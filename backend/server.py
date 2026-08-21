@@ -270,30 +270,41 @@ def simulate(req: SimRequest):
     cohort_total, app_total = s("total"), s("app")
 
     # -- Objective determines the eligible pool inside the selection -------
+    # pool_is_app records WHICH population the pool is drawn from, because
+    # reachability has to be measured against that same population. An
+    # app-install campaign targets people without the app, so intersecting it
+    # with app-installed push reach would be intersecting two disjoint groups.
     if req.objective == "app_install":
-        pool, pool_desc = s("no_app"), "no app install signal"
+        pool, pool_desc, pool_is_app = s("no_app"), "no app install signal", False
     elif req.objective == "reengagement":
-        pool, pool_desc = s("app_dormant"), "app installed, quiet 30 days or more"
+        pool, pool_desc, pool_is_app = (
+            s("app_dormant"), "app installed, quiet 30 days or more", True)
     elif req.objective == "th_activation":
         pool = app_total - s("th_booked")
-        pool_desc = "app installed, never booked telehealth"
+        pool_desc, pool_is_app = "app installed, never booked telehealth", True
     elif req.objective == "hc_activation":
         pool = app_total - s("hc_booked")
-        pool_desc = "app installed, never booked a checkup"
+        pool_desc, pool_is_app = "app installed, never booked a checkup", True
     else:  # hc_crosssell
         pool = s("hc_booked")
-        pool_desc = "booked a checkup — cross-sell on report view"
+        pool_desc, pool_is_app = "booked a checkup — cross-sell on report view", True
 
     # -- Channel: pick the one that actually reaches the most of that pool --
+    # Reach is taken from the app or no-app component to match the pool, then
+    # DND is applied proportionally, then capped by the pool itself.
+    dnd_keep = (s("not_dnd") / cohort_total) if cohort_total else 0.0
+    component = "app" if pool_is_app else "no_app"
+
     channel_options = {}
     for ch in A.CHANNELS:
-        reach = s(f"ready_{ch}" if req.exclude_dnd else f"reach_{ch}")
-        if ch == "push":
-            # Push only works on app-installed devices. Stale tokens in the
-            # no-app segment report as reachable and deliver nothing.
-            real = s("reach_push_app")
-            reach = min(reach, real) if req.exclude_no_app_for_push else reach
-        # Cannot address more people than the objective's pool contains.
+        reach = s(f"reach_{ch}_{component}")
+        if ch == "push" and not pool_is_app:
+            # The only push-reachable people without the app are stale tokens
+            # on uninstalled apps. Excluding them is the default and correct.
+            if req.exclude_no_app_for_push:
+                reach = 0
+        if req.exclude_dnd:
+            reach = round(reach * dnd_keep)
         channel_options[ch] = min(reach, pool)
 
     if req.channel:
