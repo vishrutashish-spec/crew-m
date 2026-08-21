@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
+import { AlertTriangle, Users } from "lucide-react";
 
 export default function PersonaExplorer() {
   const [personas, setPersonas] = useState<Persona[]>([]);
@@ -23,60 +24,86 @@ export default function PersonaExplorer() {
 
   if (error) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-12">
-        <p className="text-red-400">Failed to load personas. Is the backend running?</p>
+      <div className="py-12">
+        <Card className="border-destructive/30">
+          <CardContent className="pt-6">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium">Backend not running</p>
+                <p className="text-sm text-muted-foreground mt-1">Start the API server to load persona data.</p>
+                <code className="block mt-3 text-xs bg-muted px-3 py-2 rounded-md font-mono">
+                  cd backend && python3 server.py
+                </code>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!personas.length) {
+    return (
+      <div className="py-6 space-y-6">
+        <div className="space-y-1">
+          <div className="h-7 w-40 bg-muted rounded animate-pulse" />
+          <div className="h-4 w-64 bg-muted rounded animate-pulse" />
+        </div>
+        <div className="grid grid-cols-12 gap-6">
+          <div className="col-span-4 space-y-3">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-16 bg-muted rounded-lg animate-pulse" />
+            ))}
+          </div>
+          <div className="col-span-8 h-96 bg-muted rounded-lg animate-pulse" />
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold">Persona Explorer</h1>
-        <p className="text-sm text-zinc-500 mt-1">
-          {personas.length} personas discovered via K-Means clustering
-          <Badge variant="outline" className="ml-2 text-xs border-zinc-700 text-zinc-400">OBSERVED</Badge>
-        </p>
+    <div className="py-6 space-y-6">
+      <div className="flex items-end justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Personas</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            {personas.length} behavioral personas discovered via K-Means clustering
+          </p>
+        </div>
+        <Badge variant="outline" className="text-xs font-normal text-muted-foreground">OBSERVED</Badge>
       </div>
 
       <div className="grid grid-cols-12 gap-6">
-        {/* Persona grid */}
-        <div className="col-span-4 space-y-3">
+        <div className="col-span-4 space-y-2">
           {personas.map((p) => (
             <Card
               key={p.id}
-              className={`cursor-pointer transition-colors ${
+              className={`cursor-pointer transition-all ${
                 selected?.id === p.id
-                  ? "bg-zinc-800 border-blue-700"
-                  : "bg-zinc-900 border-zinc-800 hover:border-zinc-600"
+                  ? "border-primary/50 shadow-sm bg-accent"
+                  : "hover:border-border hover:shadow-sm"
               }`}
               onClick={() => setSelected(p)}
             >
-              <CardContent className="py-4 px-4 flex items-center gap-4">
-                <PixelAvatar personaId={p.id} size={40} />
+              <CardContent className="py-3 px-4 flex items-center gap-3">
+                <PixelAvatar personaId={p.id} size={36} />
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm truncate">{p.name}</p>
-                  <p className="text-xs text-zinc-500">
-                    {p.size.toLocaleString()} users ({(p.share * 100).toFixed(1)}%)
+                  <p className={`text-sm truncate ${selected?.id === p.id ? "font-medium text-primary" : "font-medium"}`}>
+                    {p.name}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {p.size.toLocaleString()} users · {(p.share * 100).toFixed(1)}%
                   </p>
                 </div>
-                <div className="text-right">
-                  <p className="text-xs text-zinc-400">#{p.rank}</p>
-                </div>
+                <span className="text-xs text-muted-foreground">#{p.rank}</span>
               </CardContent>
             </Card>
           ))}
         </div>
 
-        {/* Detail panel */}
         <div className="col-span-8">
-          {selected ? (
-            <PersonaDetail persona={selected} />
-          ) : (
-            <Card className="bg-zinc-900 border-zinc-800 h-full flex items-center justify-center">
-              <CardContent className="text-zinc-500">Select a persona to view details</CardContent>
-            </Card>
-          )}
+          {selected && <PersonaDetail persona={selected} />}
         </div>
       </div>
     </div>
@@ -85,88 +112,75 @@ export default function PersonaExplorer() {
 
 function PersonaDetail({ persona: p }: { persona: Persona }) {
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <Card className="bg-zinc-900 border-zinc-800">
-        <CardContent className="pt-6 pb-5">
+    <div className="space-y-4">
+      <Card>
+        <CardContent className="pt-5 pb-4">
           <div className="flex items-start gap-5">
-            <PixelAvatar personaId={p.id} size={72} />
-            <div>
-              <h2 className="text-xl font-semibold">{p.name}</h2>
-              <p className="text-sm text-zinc-400 mt-1">
-                {p.size.toLocaleString()} users ({(p.share * 100).toFixed(1)}% of analyzed base)
+            <PixelAvatar personaId={p.id} size={64} />
+            <div className="flex-1">
+              <h2 className="text-xl font-semibold tracking-tight">{p.name}</h2>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                {p.size.toLocaleString()} users · {(p.share * 100).toFixed(1)}% of analyzed base
               </p>
-              <div className="flex gap-2 mt-3">
-                <Badge variant="outline" className="text-xs border-zinc-700">
-                  Avg age: {p.avg_age}
-                </Badge>
-                <Badge variant="outline" className="text-xs border-zinc-700">
-                  {(p.female_share * 100).toFixed(0)}% female
-                </Badge>
-                <Badge variant="outline" className="text-xs border-zinc-700">
-                  Tenure: {p.avg_tenure_months.toFixed(1)}mo
-                </Badge>
+              <div className="flex flex-wrap gap-2 mt-3">
+                <Badge variant="secondary" className="text-xs font-normal">Age {p.avg_age}</Badge>
+                <Badge variant="secondary" className="text-xs font-normal">{(p.female_share * 100).toFixed(0)}% female</Badge>
+                <Badge variant="secondary" className="text-xs font-normal">Tenure {p.avg_tenure_months.toFixed(0)}mo</Badge>
+                <Badge variant="secondary" className="text-xs font-normal">Peak {p.peak_hour_mode}:00</Badge>
               </div>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Engagement + Product Usage */}
       <div className="grid grid-cols-2 gap-4">
-        <Card className="bg-zinc-900 border-zinc-800">
+        <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-zinc-400">Engagement</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Engagement</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-2.5">
             <StatRow label="App Installed" value={`${(p.app_installed_share * 100).toFixed(0)}%`} />
             <StatRow label="App Launches (30d)" value={p.avg_app_launches_30d.toFixed(1)} />
             <StatRow label="Days Since Active" value={`${p.avg_days_since_active.toFixed(0)}d`} />
             <StatRow label="Notif Response" value={`${(p.avg_notif_response_rate * 100).toFixed(1)}%`} />
-            <StatRow label="Campaign Fatigue" value={`${(p.avg_campaign_fatigue * 100).toFixed(0)}%`} />
-            <StatRow label="Peak Hour" value={`${p.peak_hour_mode}:00`} />
+            <StatRow label="Campaign Fatigue" value={`${(p.avg_campaign_fatigue * 100).toFixed(0)}%`} alert={p.avg_campaign_fatigue > 0.5} />
             <StatRow label="DND Share" value={`${(p.dnd_share * 100).toFixed(1)}%`} alert={p.dnd_share > 0.05} />
           </CardContent>
         </Card>
 
-        <Card className="bg-zinc-900 border-zinc-800">
+        <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-zinc-400">Product Usage</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Product Usage</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="space-y-1">
-              <p className="text-xs text-zinc-500 uppercase tracking-wider">Telehealth</p>
-              <StatRow label="Adoption" value={`${(p.th_adoption_rate * 100).toFixed(1)}%`} />
-              <StatRow label="Avg Consults" value={p.avg_th_consults.toFixed(1)} />
-              <StatRow label="Funnel Depth" value={`${p.avg_th_funnel_depth.toFixed(1)} / 5`} />
-            </div>
-            <Separator className="bg-zinc-800" />
-            <div className="space-y-1">
-              <p className="text-xs text-zinc-500 uppercase tracking-wider">Health Checkup</p>
-              <StatRow label="Adoption" value={`${(p.hc_adoption_rate * 100).toFixed(1)}%`} />
-              <StatRow label="Avg Bookings" value={p.avg_hc_bookings.toFixed(2)} />
-              <StatRow label="Funnel Depth" value={`${p.avg_hc_funnel_depth.toFixed(1)} / 5`} />
-            </div>
-            <Separator className="bg-zinc-800" />
+          <CardContent className="space-y-2.5">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Telehealth</p>
+            <StatRow label="Adoption" value={`${(p.th_adoption_rate * 100).toFixed(1)}%`} />
+            <StatRow label="Avg Consults" value={p.avg_th_consults.toFixed(1)} />
+            <StatRow label="Funnel Depth" value={`${p.avg_th_funnel_depth.toFixed(1)} / 5`} />
+            <Separator />
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Health Checkup</p>
+            <StatRow label="Adoption" value={`${(p.hc_adoption_rate * 100).toFixed(1)}%`} />
+            <StatRow label="Avg Bookings" value={p.avg_hc_bookings.toFixed(2)} />
+            <StatRow label="Funnel Depth" value={`${p.avg_hc_funnel_depth.toFixed(1)} / 5`} />
+            <Separator />
             <StatRow label="Wallet Expiry" value={`${p.avg_wallet_expiry_days.toFixed(0)} days`} />
           </CardContent>
         </Card>
       </div>
 
-      {/* Channel Reach + Segment Mix */}
       <div className="grid grid-cols-2 gap-4">
-        <Card className="bg-zinc-900 border-zinc-800">
+        <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-zinc-400">Channel Reachability</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Channel Reachability</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {Object.entries(p.channel_reach)
               .sort(([, a], [, b]) => b - a)
               .map(([ch, val]) => (
                 <div key={ch}>
-                  <div className="flex justify-between text-sm mb-1">
-                    <span className="text-zinc-300 capitalize">{ch}</span>
-                    <span className="text-zinc-200">{(val * 100).toFixed(0)}%</span>
+                  <div className="flex justify-between text-sm mb-1.5">
+                    <span className="text-muted-foreground capitalize">{ch}</span>
+                    <span className="font-medium">{(val * 100).toFixed(0)}%</span>
                   </div>
                   <Progress value={val * 100} className="h-1.5" />
                 </div>
@@ -174,67 +188,64 @@ function PersonaDetail({ persona: p }: { persona: Persona }) {
           </CardContent>
         </Card>
 
-        <Card className="bg-zinc-900 border-zinc-800">
+        <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-zinc-400">Segment Mix</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Segment Mix</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {Object.entries(p.segment_mix)
               .sort(([, a], [, b]) => b - a)
               .map(([seg, val]) => (
                 <div key={seg}>
-                  <div className="flex justify-between text-sm mb-1">
-                    <span className="text-zinc-300">{seg}</span>
-                    <span className="text-zinc-200">{(val * 100).toFixed(0)}%</span>
+                  <div className="flex justify-between text-sm mb-1.5">
+                    <span className="text-muted-foreground">{seg}</span>
+                    <span className="font-medium">{(val * 100).toFixed(0)}%</span>
                   </div>
                   <Progress value={val * 100} className="h-1.5" />
                 </div>
               ))}
-            <Separator className="bg-zinc-800" />
-            <div className="space-y-1">
-              <p className="text-xs text-zinc-500 uppercase tracking-wider mt-2">Top Lifecycle States</p>
-              {Object.entries(p.lifecycle_distribution)
-                .slice(0, 3)
-                .map(([state, pct]) => (
-                  <div key={state} className="flex justify-between text-xs">
-                    <span className="text-zinc-400">{state.replace(/_/g, " ")}</span>
-                    <span className="text-zinc-300">{(pct * 100).toFixed(0)}%</span>
-                  </div>
-                ))}
-            </div>
+            <Separator />
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mt-2">Top Lifecycle States</p>
+            {Object.entries(p.lifecycle_distribution)
+              .slice(0, 3)
+              .map(([state, pct]) => (
+                <div key={state} className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">{state.replace(/_/g, " ")}</span>
+                  <span>{(pct * 100).toFixed(0)}%</span>
+                </div>
+              ))}
           </CardContent>
         </Card>
       </div>
 
-      {/* TH Specialties + HRA */}
       {(Object.keys(p.top_th_specialties).length > 0 || Object.keys(p.hra_distribution).length > 0) && (
         <div className="grid grid-cols-2 gap-4">
           {Object.keys(p.top_th_specialties).length > 0 && (
-            <Card className="bg-zinc-900 border-zinc-800">
+            <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm text-zinc-400">Top TH Specialties</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">Top TH Specialties</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
                 {Object.entries(p.top_th_specialties).map(([spec, count]) => (
                   <div key={spec} className="flex justify-between text-sm">
-                    <span className="text-zinc-300">{spec}</span>
-                    <span className="text-zinc-400">{count}</span>
+                    <span className="text-muted-foreground">{spec}</span>
+                    <span>{count}</span>
                   </div>
                 ))}
               </CardContent>
             </Card>
           )}
-          <Card className="bg-zinc-900 border-zinc-800">
+          <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-zinc-400">HRA Status</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">HRA Status</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
               {Object.entries(p.hra_distribution)
                 .sort(([, a], [, b]) => b - a)
                 .map(([status, pct]) => (
                   <div key={status} className="flex justify-between text-sm">
-                    <span className="text-zinc-300">{status.replace(/_/g, " ")}</span>
-                    <span className="text-zinc-400">{(pct * 100).toFixed(0)}%</span>
+                    <span className="text-muted-foreground">{status.replace(/_/g, " ")}</span>
+                    <span>{(pct * 100).toFixed(0)}%</span>
                   </div>
                 ))}
             </CardContent>
@@ -248,19 +259,19 @@ function PersonaDetail({ persona: p }: { persona: Persona }) {
 function StatRow({ label, value, alert }: { label: string; value: string; alert?: boolean }) {
   return (
     <div className="flex justify-between text-sm">
-      <span className="text-zinc-400">{label}</span>
-      <span className={alert ? "text-amber-400" : "text-zinc-200"}>{value}</span>
+      <span className="text-muted-foreground">{label}</span>
+      <span className={alert ? "text-warning font-medium" : ""}>{value}</span>
     </div>
   );
 }
 
 function PixelAvatar({ personaId, size = 48 }: { personaId: number; size?: number }) {
-  const colors = [
-    ["#3b82f6", "#1d4ed8"], ["#10b981", "#047857"], ["#f59e0b", "#b45309"],
-    ["#ef4444", "#b91c1c"], ["#8b5cf6", "#6d28d9"], ["#ec4899", "#be185d"],
-    ["#06b6d4", "#0e7490"], ["#84cc16", "#4d7c0f"],
+  const palettes = [
+    ["#7c3aed", "#ede9fe"], ["#059669", "#d1fae5"], ["#d97706", "#fef3c7"],
+    ["#dc2626", "#fee2e2"], ["#7c3aed", "#f3e8ff"], ["#db2777", "#fce7f3"],
+    ["#0891b2", "#cffafe"], ["#65a30d", "#ecfccb"],
   ];
-  const [primary, secondary] = colors[personaId % colors.length];
+  const [fg, bg] = palettes[personaId % palettes.length];
   const seed = personaId * 7919 + 1;
   const pixels: boolean[][] = [];
   for (let y = 0; y < 8; y++) {
@@ -273,10 +284,10 @@ function PixelAvatar({ personaId, size = 48 }: { personaId: number; size?: numbe
   }
   const px = size / 8;
   return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-      <rect width={size} height={size} fill={secondary} rx={4} />
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="rounded-md flex-shrink-0">
+      <rect width={size} height={size} fill={bg} />
       {pixels.map((row, y) =>
-        row.map((on, x) => on ? <rect key={`${x}-${y}`} x={x * px} y={y * px} width={px} height={px} fill={primary} /> : null)
+        row.map((on, x) => on ? <rect key={`${x}-${y}`} x={x * px} y={y * px} width={px} height={px} fill={fg} /> : null)
       )}
     </svg>
   );
