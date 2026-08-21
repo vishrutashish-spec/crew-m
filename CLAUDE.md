@@ -199,6 +199,7 @@ decisions in your area:
 | **Vishrut** (PMM) | Product direction, ML pipeline, data strategy, CT integration | Bible, Platform Reference, BRIEF.md |
 | **Teammate — Design** | Design language, component library, visual system, pixel avatars, layouts | BRIEF.md (screen architecture, pixel avatar spec, naming convention) |
 | **Teammate — Copy** | Campaign copy, messaging frameworks, tone of voice, style enforcement | Bible Section 11 (copy style rules), Section 12 (narrative playbook), BRIEF.md (copy scoring spec) |
+| **Krtin** | AM Campaign Request Bot: Slack modal intake → n8n → copy/creative/CleverTap-draft API routes | BRIEF.md ("AM Campaign Request Bot" workstream), `CLEVERTAP_CAMPAIGN_SETUP_SKILL.md`, `CLEVERTAP_PLATFORM_REFERENCE.md`, `Copy_SKILL.md` |
 
 ### Locked decisions (do not revisit)
 
