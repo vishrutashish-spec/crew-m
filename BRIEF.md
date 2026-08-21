@@ -123,13 +123,22 @@ they produced unstable, unexplainable groups whose subtotals did not reconcile.
 
 | Layer | Technology |
 |-------|------------|
-| Frontend | Next.js + React + TypeScript + Tailwind + shadcn/ui |
-| Pixel avatars | Deterministic pixel avatar library |
-| Charts | Recharts |
+| Frontend | Next.js + React + TypeScript + Tailwind |
+| Type | Vollkorn (local, `public/fonts/`) for headings and figures; Inter for body |
+| Charts | Recharts, with PNG export via embedded-font SVG rasterisation |
 | Backend | Python + FastAPI |
-| ML | scikit-learn + XGBoost + SHAP + pandas + NumPy |
-| Data | CleverTap API → local feature tables (Parquet/SQLite cache) |
-| LLM | Claude API — copy analysis, persona narration, campaign NLU, explanations |
+| Cohort model | Pure-Python integer apportionment — no sklearn, no sampling |
+| Data | Documented CT segment exports + live CleverTap aggregate counts (read-only, ≤1yr windows, counts only) |
+| Insights | Deterministic rule engine (`backend/insights.py`) — no LLM in the number path |
+
+### Backend layout
+
+| File | Role |
+|------|------|
+| `anchors.py` | Every ground-truth number, each tagged OBSERVED / REFERENCE / DERIVED / MODELED, with the scope warning and recorded conflicts |
+| `population.py` | Exact integer cohort model + `verify()`, which asserts all 25 invariants |
+| `insights.py` | Deterministic cross-metric insight rules, each carrying its own arithmetic |
+| `server.py` | Cohort-first API; will not serve a request unless `verify()` passes |
 
 ---
 
