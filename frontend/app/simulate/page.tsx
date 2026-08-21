@@ -13,10 +13,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
+import { PersonaAvatar } from "@/components/persona-avatar";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
 } from "recharts";
-import { AlertTriangle, Check, ChevronDown, ArrowRight, RotateCcw } from "lucide-react";
+import { AlertTriangle, Check, ChevronDown, ArrowRight, RotateCcw, MessageSquare, Sparkles, Users } from "lucide-react";
 
 const OBJECTIVES = [
   { value: "th_activation", label: "Telehealth activation", desc: "Drive first TH consultation" },
@@ -34,11 +35,45 @@ const CHANNELS = [
   { value: "whatsapp", label: "WhatsApp" },
 ];
 
+const SEGMENTS = [
+  { value: "", label: "All segments" },
+  { value: "ENT", label: "Enterprise" },
+  { value: "SMB", label: "Small & Medium Business" },
+  { value: "MM", label: "Mid-Market" },
+  { value: "EOR", label: "Employer of Record" },
+];
+
+const ENGAGEMENT_LEVELS = [
+  { value: "", label: "All engagement levels" },
+  { value: "active", label: "Active (< 14 days)" },
+  { value: "occasional", label: "Occasional (14-60 days)" },
+  { value: "dormant", label: "Dormant (60+ days)" },
+];
+
+type AudienceBuilderStep = "idle" | "describing" | "questions" | "building" | "done";
+
+interface SegmentRule {
+  type: "event" | "property";
+  name: string;
+  operator: string;
+  value: string;
+}
+
+const EXAMPLE_QUESTIONS = [
+  "What product have these users interacted with? (Telehealth / Health Checkup / Both / Neither)",
+  "How recently should they have been active? (Last 7 days / Last 30 days / Last 90 days / Any time)",
+  "Should they already have the app installed? (Yes / No / Doesn't matter)",
+  "What organisation size are you targeting? (Enterprise / SMB / Mid-Market / Any)",
+  "What is the primary goal for this audience? (First-time activation / Repeat usage / Cross-sell / Re-engagement)",
+];
+
 export default function Simulate() {
   const [personas, setPersonas] = useState<Persona[]>([]);
   const [selectedPersonas, setSelectedPersonas] = useState<number[]>([]);
   const [objective, setObjective] = useState("th_activation");
   const [channel, setChannel] = useState("");
+  const [segment, setSegment] = useState("");
+  const [engagementLevel, setEngagementLevel] = useState("");
   const [copyText, setCopyText] = useState("");
   const [sendHour, setSendHour] = useState<number | undefined>(undefined);
   const [audienceScores, setAudienceScores] = useState<AudienceScore[]>([]);
@@ -47,6 +82,15 @@ export default function Simulate() {
   const [loading, setLoading] = useState(false);
   const [audienceLoading, setAudienceLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Audience description builder state
+  const [builderStep, setBuilderStep] = useState<AudienceBuilderStep>("idle");
+  const [audienceDescription, setAudienceDescription] = useState("");
+  const [builderQuestions, setBuilderQuestions] = useState<string[]>([]);
+  const [builderAnswers, setBuilderAnswers] = useState<string[]>([]);
+  const [currentAnswer, setCurrentAnswer] = useState("");
+  const [currentQuestionIdx, setCurrentQuestionIdx] = useState(0);
+  const [builtSegment, setBuiltSegment] = useState<SegmentRule[]>([]);
 
   useEffect(() => {
     getPersonas()
@@ -88,6 +132,65 @@ export default function Simulate() {
     setSelectedPersonas((prev) =>
       prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]
     );
+  }
+
+  function startAudienceBuilder() {
+    if (!audienceDescription.trim()) return;
+    const description = audienceDescription.toLowerCase();
+
+    // Generate contextual questions based on description
+    const questions: string[] = [];
+    if (description.includes("telehealth") || description.includes("th") || description.includes("doctor")) {
+      questions.push("What stage of the telehealth funnel are they in? (Never visited / Browsed doctors / Selected a slot / Booked but didn't complete / Completed at least once)");
+    } else if (description.includes("health check") || description.includes("hc")) {
+      questions.push("What is their health checkup booking status? (Never booked / Browsed packages / Added to cart / Completed booking)");
+    } else {
+      questions.push(EXAMPLE_QUESTIONS[0]);
+    }
+
+    if (!description.includes("active") && !description.includes("dormant") && !description.includes("recent")) {
+      questions.push(EXAMPLE_QUESTIONS[1]);
+    }
+
+    if (!description.includes("app")) {
+      questions.push(EXAMPLE_QUESTIONS[2]);
+    }
+
+    if (!description.includes("enterprise") && !description.includes("smb") && !description.includes("mid-market")) {
+      questions.push(EXAMPLE_QUESTIONS[3]);
+    }
+
+    questions.push(EXAMPLE_QUESTIONS[4]);
+
+    setBuilderQuestions(questions.slice(0, 5));
+    setBuilderAnswers([]);
+    setCurrentQuestionIdx(0);
+    setCurrentAnswer("");
+    setBuilderStep("questions");
+  }
+
+  function submitAnswer() {
+    if (!currentAnswer.trim()) return;
+    const newAnswers = [...builderAnswers, currentAnswer];
+    setBuilderAnswers(newAnswers);
+    setCurrentAnswer("");
+
+    if (currentQuestionIdx + 1 < builderQuestions.length) {
+      setCurrentQuestionIdx(currentQuestionIdx + 1);
+    } else {
+      setBuilderStep("building");
+      // Build segment rules from answers
+      setTimeout(() => {
+        const rules = buildSegmentRules(audienceDescription, newAnswers, builderQuestions);
+        setBuiltSegment(rules);
+        // Auto-select matching personas
+        const matchingPersonas = findMatchingPersonas(personas, rules);
+        if (matchingPersonas.length > 0) {
+          setSelectedPersonas(matchingPersonas.map(p => p.id));
+        }
+        setBuilderStep("done");
+      }, 800);
+    }
   }
 
   if (error && personas.length === 0) {
@@ -132,7 +235,7 @@ export default function Simulate() {
                   <button
                     key={obj.value}
                     onClick={() => setObjective(obj.value)}
-                    className={`w-full text-left px-3 py-2 rounded-md text-sm transition-all ${
+                    className={`w-full text-left px-3 py-2 rounded-md text-sm transition-all duration-150 ${
                       objective === obj.value
                         ? "bg-primary/5 border border-primary/30"
                         : "border border-transparent hover:bg-muted"
@@ -146,7 +249,7 @@ export default function Simulate() {
             </CardContent>
           </Card>
 
-          {/* Channel + Timing */}
+          {/* Channel + Timing + Segment + Engagement */}
           <div className="grid grid-cols-2 gap-3">
             <Card>
               <CardContent className="pt-4 pb-3">
@@ -155,7 +258,7 @@ export default function Simulate() {
                   <select
                     value={channel}
                     onChange={(e) => setChannel(e.target.value)}
-                    className="w-full bg-muted border border-border rounded-md px-3 py-2 text-xs appearance-none focus:outline-none focus:ring-2 focus:ring-ring"
+                    className="w-full bg-muted border border-border rounded-md px-3 py-2 text-xs appearance-none focus:outline-none focus:ring-2 focus:ring-ring transition-all duration-150"
                   >
                     {CHANNELS.map((ch) => (
                       <option key={ch.value} value={ch.value}>{ch.label}</option>
@@ -172,11 +275,49 @@ export default function Simulate() {
                   <select
                     value={sendHour ?? ""}
                     onChange={(e) => setSendHour(e.target.value ? parseInt(e.target.value) : undefined)}
-                    className="w-full bg-muted border border-border rounded-md px-3 py-2 text-xs appearance-none focus:outline-none focus:ring-2 focus:ring-ring"
+                    className="w-full bg-muted border border-border rounded-md px-3 py-2 text-xs appearance-none focus:outline-none focus:ring-2 focus:ring-ring transition-all duration-150"
                   >
                     <option value="">Auto (peak hour)</option>
                     {Array.from({ length: 24 }, (_, i) => (
                       <option key={i} value={i}>{`${i.toString().padStart(2, "0")}:00`}</option>
+                    ))}
+                  </select>
+                  <ChevronDown className="w-3.5 h-3.5 text-muted-foreground absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Segment + Engagement filters */}
+          <div className="grid grid-cols-2 gap-3">
+            <Card>
+              <CardContent className="pt-4 pb-3">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mb-2">Org segment</p>
+                <div className="relative">
+                  <select
+                    value={segment}
+                    onChange={(e) => setSegment(e.target.value)}
+                    className="w-full bg-muted border border-border rounded-md px-3 py-2 text-xs appearance-none focus:outline-none focus:ring-2 focus:ring-ring transition-all duration-150"
+                  >
+                    {SEGMENTS.map((s) => (
+                      <option key={s.value} value={s.value}>{s.label}</option>
+                    ))}
+                  </select>
+                  <ChevronDown className="w-3.5 h-3.5 text-muted-foreground absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-4 pb-3">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mb-2">Engagement</p>
+                <div className="relative">
+                  <select
+                    value={engagementLevel}
+                    onChange={(e) => setEngagementLevel(e.target.value)}
+                    className="w-full bg-muted border border-border rounded-md px-3 py-2 text-xs appearance-none focus:outline-none focus:ring-2 focus:ring-ring transition-all duration-150"
+                  >
+                    {ENGAGEMENT_LEVELS.map((e) => (
+                      <option key={e.value} value={e.value}>{e.label}</option>
                     ))}
                   </select>
                   <ChevronDown className="w-3.5 h-3.5 text-muted-foreground absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -194,7 +335,7 @@ export default function Simulate() {
                 onChange={(e) => setCopyText(e.target.value)}
                 placeholder="Enter campaign message for copy analysis..."
                 rows={2}
-                className="w-full bg-muted border border-border rounded-md px-3 py-2 text-xs placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring resize-none"
+                className="w-full bg-muted border border-border rounded-md px-3 py-2 text-xs placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring resize-none transition-all duration-150"
               />
             </CardContent>
           </Card>
@@ -203,7 +344,7 @@ export default function Simulate() {
           <button
             onClick={runSimulation}
             disabled={loading || selectedPersonas.length === 0}
-            className="w-full bg-primary hover:bg-primary/90 disabled:opacity-40 text-primary-foreground font-medium py-3 rounded-lg transition-colors flex items-center justify-center gap-2 text-sm"
+            className="w-full bg-primary hover:bg-primary/90 active:scale-[0.98] disabled:opacity-40 text-primary-foreground font-medium py-3 rounded-lg transition-all duration-150 flex items-center justify-center gap-2 text-sm"
           >
             {loading ? (
               <RotateCcw className="w-4 h-4 animate-spin" />
@@ -214,8 +355,125 @@ export default function Simulate() {
           </button>
         </div>
 
-        {/* Right: Audience + Results */}
+        {/* Right: Audience + Audience Builder + Results */}
         <div className="col-span-7 space-y-4">
+          {/* Audience Description Builder */}
+          <Card>
+            <CardContent className="pt-4 pb-3">
+              <div className="flex items-center gap-2 mb-2">
+                <MessageSquare className="w-3.5 h-3.5 text-muted-foreground" />
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Describe your audience</p>
+                <Badge variant="outline" className="text-[10px] font-normal text-muted-foreground tracking-wide ml-auto">RECOMMENDED</Badge>
+              </div>
+              <p className="text-xs text-muted-foreground mb-2">
+                Describe who you want to target in plain language, and we&apos;ll build the segment.
+              </p>
+
+              {builderStep === "idle" && (
+                <div className="space-y-2">
+                  <textarea
+                    value={audienceDescription}
+                    onChange={(e) => setAudienceDescription(e.target.value)}
+                    placeholder="e.g., Enterprise employees who have the app but haven't tried telehealth yet, and were active in the last month..."
+                    rows={2}
+                    className="w-full bg-muted border border-border rounded-md px-3 py-2 text-xs placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring resize-none transition-all duration-150"
+                  />
+                  <button
+                    onClick={startAudienceBuilder}
+                    disabled={!audienceDescription.trim()}
+                    className="bg-secondary hover:bg-secondary/80 active:scale-[0.98] disabled:opacity-40 text-secondary-foreground font-medium px-4 py-2 rounded-md transition-all duration-150 flex items-center gap-2 text-xs"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    Build segment
+                  </button>
+                </div>
+              )}
+
+              {builderStep === "questions" && (
+                <div className="space-y-3">
+                  <div className="bg-muted/50 rounded-lg p-3 space-y-2">
+                    <p className="text-[10px] text-muted-foreground">Question {currentQuestionIdx + 1} of {builderQuestions.length}</p>
+                    <p className="text-sm font-medium">{builderQuestions[currentQuestionIdx]}</p>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={currentAnswer}
+                        onChange={(e) => setCurrentAnswer(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && submitAnswer()}
+                        placeholder="Type your answer..."
+                        className="flex-1 bg-background border border-border rounded-md px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-ring transition-all duration-150"
+                        autoFocus
+                      />
+                      <button
+                        onClick={submitAnswer}
+                        disabled={!currentAnswer.trim()}
+                        className="bg-primary hover:bg-primary/90 active:scale-[0.98] disabled:opacity-40 text-primary-foreground px-3 py-2 rounded-md transition-all duration-150 text-xs"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                  {builderAnswers.length > 0 && (
+                    <div className="space-y-1">
+                      {builderAnswers.map((a, i) => (
+                        <div key={i} className="flex items-start gap-2 text-xs">
+                          <Check className="w-3 h-3 text-success flex-shrink-0 mt-0.5" />
+                          <span className="text-muted-foreground">{builderQuestions[i]}</span>
+                          <span className="font-medium ml-auto flex-shrink-0">{a}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <button
+                    onClick={() => { setBuilderStep("idle"); setBuilderAnswers([]); }}
+                    className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
+
+              {builderStep === "building" && (
+                <div className="flex items-center gap-3 py-4">
+                  <RotateCcw className="w-4 h-4 animate-spin text-primary" />
+                  <span className="text-sm text-muted-foreground">Building segment from your answers...</span>
+                </div>
+              )}
+
+              {builderStep === "done" && builtSegment.length > 0 && (
+                <div className="space-y-3">
+                  <div className="bg-muted/50 rounded-lg p-3">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Users className="w-3.5 h-3.5 text-primary" />
+                      <p className="text-xs font-medium">Built segment ({builtSegment.length} rules)</p>
+                    </div>
+                    <div className="space-y-1.5">
+                      {builtSegment.map((rule, i) => (
+                        <div key={i} className="flex items-center gap-2 text-[11px] bg-background rounded px-2.5 py-1.5 border border-border/50">
+                          <Badge variant={rule.type === "event" ? "default" : "secondary"} className="text-[9px] font-normal px-1.5 py-0">
+                            {rule.type === "event" ? "Event" : "Property"}
+                          </Badge>
+                          <span className="font-medium">{rule.name}</span>
+                          <span className="text-muted-foreground">{rule.operator}</span>
+                          <span className="text-primary font-medium">{rule.value}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-[10px] text-muted-foreground mt-2">
+                      {selectedPersonas.length} matching persona{selectedPersonas.length !== 1 ? "s" : ""} auto-selected
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => { setBuilderStep("idle"); setAudienceDescription(""); setBuiltSegment([]); }}
+                    className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    Reset builder
+                  </button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           {/* Audience Selector */}
           <Card>
             <CardContent className="pt-4 pb-3">
@@ -236,16 +494,16 @@ export default function Simulate() {
                     <button
                       key={score.persona_id}
                       onClick={() => togglePersona(score.persona_id)}
-                      className={`w-full text-left px-3 py-2.5 rounded-md transition-all flex items-center gap-3 ${
+                      className={`w-full text-left px-3 py-2.5 rounded-md transition-all duration-150 flex items-center gap-3 ${
                         isSelected ? "bg-primary/5 border border-primary/30" : "border border-transparent hover:bg-muted"
                       }`}
                     >
-                      <div className={`w-4 h-4 rounded border flex-shrink-0 flex items-center justify-center transition-colors ${
+                      <div className={`w-4 h-4 rounded border flex-shrink-0 flex items-center justify-center transition-all duration-150 ${
                         isSelected ? "bg-primary border-primary" : "border-muted-foreground/30"
                       }`}>
                         {isSelected && <Check className="w-3 h-3 text-primary-foreground" />}
                       </div>
-                      {persona && <PersonaAvatar personaId={persona.id} size={24} />}
+                      {persona && <PersonaAvatar personaId={persona.id} personaName={persona.name} size={24} />}
                       <div className="flex-1 min-w-0">
                         <span className="text-xs font-medium truncate block">{score.persona_name}</span>
                         <span className="text-[10px] text-muted-foreground">
@@ -447,35 +705,97 @@ function DeltaBadge({ current, prev }: { current: number; prev: number }) {
   );
 }
 
-function PersonaAvatar({ personaId, size = 24 }: { personaId: number; size?: number }) {
-  const palettes = [
-    ["oklch(0.45 0.12 320)", "oklch(0.95 0.02 320)"],
-    ["oklch(0.45 0.15 155)", "oklch(0.95 0.02 155)"],
-    ["oklch(0.55 0.15 65)", "oklch(0.96 0.02 65)"],
-    ["oklch(0.55 0.18 15)", "oklch(0.96 0.02 15)"],
-    ["oklch(0.45 0.12 280)", "oklch(0.95 0.02 280)"],
-    ["oklch(0.45 0.15 200)", "oklch(0.95 0.02 200)"],
-    ["oklch(0.55 0.12 100)", "oklch(0.96 0.02 100)"],
-    ["oklch(0.45 0.18 340)", "oklch(0.95 0.02 340)"],
-  ];
-  const [fg, bg] = palettes[personaId % palettes.length];
-  const seed = personaId * 7919 + 1;
-  const pixels: boolean[][] = [];
-  for (let y = 0; y < 8; y++) {
-    const row: boolean[] = [];
-    for (let x = 0; x < 4; x++) {
-      const hash = ((seed + y * 31 + x * 17) * 2654435761) >>> 0;
-      row.push(hash % 3 !== 0);
-    }
-    pixels.push([...row, ...[...row].reverse()]);
+function buildSegmentRules(description: string, answers: string[], questions: string[]): SegmentRule[] {
+  const rules: SegmentRule[] = [];
+  const lower = description.toLowerCase();
+
+  // Parse description for base rules
+  if (lower.includes("enterprise") || lower.includes("ent")) {
+    rules.push({ type: "property", name: "organisation_type", operator: "equals", value: "ENT" });
   }
-  const px = size / 8;
-  return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="rounded flex-shrink-0">
-      <rect width={size} height={size} fill={bg} rx={2} />
-      {pixels.map((row, y) =>
-        row.map((on, x) => on ? <rect key={`${x}-${y}`} x={x * px} y={y * px} width={px} height={px} fill={fg} /> : null)
-      )}
-    </svg>
-  );
+  if (lower.includes("app installed") || lower.includes("have the app")) {
+    rules.push({ type: "property", name: "has_app", operator: "equals", value: "true" });
+  }
+  if (lower.includes("no app") || lower.includes("without app")) {
+    rules.push({ type: "property", name: "has_app", operator: "equals", value: "false" });
+  }
+
+  // Parse answers
+  for (let i = 0; i < answers.length; i++) {
+    const q = questions[i]?.toLowerCase() || "";
+    const a = answers[i].toLowerCase();
+
+    if (q.includes("telehealth") || q.includes("product")) {
+      if (a.includes("never") || a.includes("neither")) {
+        rules.push({ type: "event", name: "th_homepage_viewed", operator: "count equals", value: "0" });
+      } else if (a.includes("browsed") || a.includes("telehealth")) {
+        rules.push({ type: "event", name: "th_homepage_viewed", operator: "count >=", value: "1" });
+        rules.push({ type: "event", name: "th_consultation_booked", operator: "count equals", value: "0" });
+      } else if (a.includes("completed") || a.includes("both")) {
+        rules.push({ type: "event", name: "th_consultation_booked", operator: "count >=", value: "1" });
+      }
+    }
+
+    if (q.includes("health checkup")) {
+      if (a.includes("never")) {
+        rules.push({ type: "event", name: "hc_listing_viewed", operator: "count equals", value: "0" });
+      } else if (a.includes("browsed") || a.includes("added")) {
+        rules.push({ type: "event", name: "hc_listing_viewed", operator: "count >=", value: "1" });
+      } else if (a.includes("completed")) {
+        rules.push({ type: "event", name: "hc_booking_confirmed", operator: "count >=", value: "1" });
+      }
+    }
+
+    if (q.includes("recently") || q.includes("active")) {
+      if (a.includes("7")) {
+        rules.push({ type: "property", name: "days_since_active", operator: "<=", value: "7" });
+      } else if (a.includes("30")) {
+        rules.push({ type: "property", name: "days_since_active", operator: "<=", value: "30" });
+      } else if (a.includes("90")) {
+        rules.push({ type: "property", name: "days_since_active", operator: "<=", value: "90" });
+      }
+    }
+
+    if (q.includes("app installed")) {
+      if (a.includes("yes")) {
+        rules.push({ type: "property", name: "has_app", operator: "equals", value: "true" });
+      } else if (a.includes("no") && !a.includes("doesn")) {
+        rules.push({ type: "property", name: "has_app", operator: "equals", value: "false" });
+      }
+    }
+
+    if (q.includes("organisation") || q.includes("organization")) {
+      if (a.includes("enterprise")) {
+        rules.push({ type: "property", name: "organisation_type", operator: "equals", value: "ENT" });
+      } else if (a.includes("smb")) {
+        rules.push({ type: "property", name: "organisation_type", operator: "equals", value: "SMB" });
+      } else if (a.includes("mid")) {
+        rules.push({ type: "property", name: "organisation_type", operator: "equals", value: "MM" });
+      }
+    }
+  }
+
+  // Deduplicate by name
+  const seen = new Set<string>();
+  return rules.filter((r) => {
+    const key = `${r.type}:${r.name}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function findMatchingPersonas(personas: Persona[], rules: SegmentRule[]): Persona[] {
+  return personas.filter((p) => {
+    for (const rule of rules) {
+      if (rule.name === "organisation_type" && rule.value === "ENT" && p.segment_mix.ENT < 0.4) return false;
+      if (rule.name === "organisation_type" && rule.value === "SMB" && p.segment_mix.SMB < 0.3) return false;
+      if (rule.name === "has_app" && rule.value === "true" && p.app_installed_share < 0.3) return false;
+      if (rule.name === "has_app" && rule.value === "false" && p.app_installed_share > 0.3) return false;
+      if (rule.name === "days_since_active" && parseInt(rule.value) < 30 && p.avg_days_since_active > 30) return false;
+      if (rule.name === "th_consultation_booked" && rule.operator.includes(">=") && p.th_adoption_rate < 0.05) return false;
+      if (rule.name === "th_homepage_viewed" && rule.operator.includes("count equals") && rule.value === "0" && p.avg_th_funnel_depth > 0.5) return false;
+    }
+    return true;
+  }).slice(0, 5);
 }
