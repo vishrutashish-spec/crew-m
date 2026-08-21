@@ -159,10 +159,9 @@ def assign_persona_names(personas: list) -> list:
     """
     Assign descriptive names based on cluster characteristics.
     These are plain names — no fantasy naming.
+    Guarantees unique names by using segment + behavioral differentiators.
     """
     for p in personas:
-        traits = []
-
         # Engagement level
         if p["avg_days_since_active"] < 14:
             engagement = "Active"
@@ -178,23 +177,46 @@ def assign_persona_names(personas: list) -> list:
             product = "TH-Engaged"
         elif p["hc_adoption_rate"] > 0.15:
             product = "HC-Engaged"
-        elif p["app_installed_share"] < 0.3:
+        elif p["app_installed_share"] > 0.5:
+            product = "Pre-Activation"
+        elif p["app_installed_share"] < 0.05:
             product = "No-App"
         else:
-            product = "Pre-Activation"
+            product = "Low-App"
 
-        # Special modifiers
+        # Dominant segment as differentiator
+        seg = max(p["segment_mix"], key=p["segment_mix"].get)
+
+        # Behavioral modifier
+        modifier = ""
         if p["dnd_share"] > 0.1:
-            traits.append("DND-Locked")
-        if p["avg_campaign_fatigue"] > 0.5:
-            traits.append("Fatigued")
-        if p["avg_tenure_months"] < 3:
-            traits.append("New")
+            modifier = "DND-Locked"
+        elif p["avg_campaign_fatigue"] > 0.5:
+            modifier = "Fatigued"
+        elif p["avg_tenure_months"] < 3:
+            modifier = "New"
         elif p["avg_tenure_months"] > 9:
-            traits.append("Tenured")
+            modifier = "Tenured"
+        elif p["avg_notif_response_rate"] > 0.35:
+            modifier = "Responsive"
+        elif p["avg_wallet_expiry_days"] < 60:
+            modifier = "Expiring-Soon"
 
-        modifier = f" ({', '.join(traits)})" if traits else ""
-        p["name"] = f"{engagement} {product}{modifier}"
+        p["name"] = f"{engagement} {product} ({seg})"
+        if modifier:
+            p["name"] = f"{engagement} {product} — {modifier} ({seg})"
+
+    # Deduplicate: if any names collide, append size rank
+    name_counts = {}
+    for p in personas:
+        name_counts[p["name"]] = name_counts.get(p["name"], 0) + 1
+
+    name_seen = {}
+    for p in personas:
+        if name_counts[p["name"]] > 1:
+            idx = name_seen.get(p["name"], 0) + 1
+            name_seen[p["name"]] = idx
+            p["name"] = f"{p['name']} #{idx}"
 
     return personas
 
