@@ -311,6 +311,17 @@ actually deployed at the Vercel domain the n8n workflow calls) — separate
 from `backend/server.py`, which is the Python/FastAPI service for the
 analytics platform's ML pipeline and is not part of this workstream.
 
+**Environment variables needed** (set in `frontend/.env.local` for dev, and
+in the Vercel project settings for the deployed app — never commit values):
+`SLACK_BOT_TOKEN` (requires creating a Slack app — not done yet),
+`ANTHROPIC_API_KEY`, `CT_ACCOUNT_ID`, `CT_PASSCODE`, `CT_REGION`.
+
+**Known gaps**: creative rendering is currently a stub (no real Figma call);
+CleverTap has no API to create campaigns, so `/api/campaign/draft` produces
+a structured brief for a human to paste into CleverTap's dashboard rather
+than a real CT draft; there's no Slack app yet, so nothing in this workstream
+runs end-to-end until one is created and `SLACK_BOT_TOKEN` is set.
+
 ---
 
 ## Build Principles
