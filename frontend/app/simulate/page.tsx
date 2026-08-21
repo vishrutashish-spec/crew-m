@@ -138,31 +138,27 @@ export default function Simulate() {
 
   function startAudienceBuilder() {
     if (!audienceDescription.trim()) return;
-    const description = audienceDescription.toLowerCase();
+    const d = audienceDescription.toLowerCase();
 
-    // Generate contextual questions based on description
     const questions: string[] = [];
-    if (description.includes("telehealth") || description.includes("th") || description.includes("doctor")) {
-      questions.push("What stage of the telehealth funnel are they in? (Never visited / Browsed doctors / Selected a slot / Booked but didn't complete / Completed at least once)");
-    } else if (description.includes("health check") || description.includes("hc")) {
-      questions.push("What is their health checkup booking status? (Never booked / Browsed packages / Added to cart / Completed booking)");
+    const hasTH = d.includes("telehealth") || d.includes(" th ") || d.includes("doctor") || d.includes("consult");
+    const hasHC = d.includes("health check") || d.includes("checkup") || d.includes(" hc ");
+    const hasApp = d.includes("app") || d.includes("install");
+    const hasOrg = d.includes("enterprise") || d.includes("smb") || d.includes("mid-market") || d.includes("eor");
+    const hasLifecycle = d.includes("active") || d.includes("dormant") || d.includes("lapsing") || d.includes("new user");
+
+    if (hasTH && !hasHC) {
+      questions.push(BASE_QUESTIONS.thFunnel);
+    } else if (hasHC && !hasTH) {
+      questions.push(BASE_QUESTIONS.hcFunnel);
     } else {
-      questions.push(EXAMPLE_QUESTIONS[0]);
+      questions.push(BASE_QUESTIONS.product);
     }
 
-    if (!description.includes("active") && !description.includes("dormant") && !description.includes("recent")) {
-      questions.push(EXAMPLE_QUESTIONS[1]);
-    }
-
-    if (!description.includes("app")) {
-      questions.push(EXAMPLE_QUESTIONS[2]);
-    }
-
-    if (!description.includes("enterprise") && !description.includes("smb") && !description.includes("mid-market")) {
-      questions.push(EXAMPLE_QUESTIONS[3]);
-    }
-
-    questions.push(EXAMPLE_QUESTIONS[4]);
+    if (!hasLifecycle) questions.push(BASE_QUESTIONS.lifecycle);
+    if (!hasApp) questions.push(BASE_QUESTIONS.appStatus);
+    if (!hasOrg) questions.push(BASE_QUESTIONS.orgSegment);
+    questions.push(BASE_QUESTIONS.goal);
 
     setBuilderQuestions(questions.slice(0, 5));
     setBuilderAnswers([]);
@@ -709,17 +705,54 @@ function DeltaBadge({ current, prev }: { current: number; prev: number }) {
 
 function buildSegmentRules(description: string, answers: string[], questions: string[]): SegmentRule[] {
   const rules: SegmentRule[] = [];
-  const lower = description.toLowerCase();
+  const d = description.toLowerCase();
 
-  // Parse description for base rules
-  if (lower.includes("enterprise") || lower.includes("ent")) {
-    rules.push({ type: "property", name: "organisation_type", operator: "equals", value: "ENT" });
+  // Base eligibility (Bible Section 5 — always applied)
+  rules.push({ type: "property", name: "warehouse_production_organisationStatus", operator: "equals", value: "ACTIVE" });
+  rules.push({ type: "property", name: "warehouse_production_isTestOrganisation", operator: "not equals", value: "true" });
+
+  // Organisation segment from description
+  if (d.includes("enterprise") || /\bent\b/.test(d)) {
+    rules.push({ type: "property", name: "partner_segment", operator: "equals", value: "ENT" });
+  } else if (d.includes("smb") || d.includes("small business")) {
+    rules.push({ type: "property", name: "partner_segment", operator: "equals", value: "SMB" });
+  } else if (d.includes("mid-market") || d.includes("mid market")) {
+    rules.push({ type: "property", name: "partner_segment", operator: "equals", value: "MM" });
+  } else if (d.includes("eor") || d.includes("employer of record")) {
+    rules.push({ type: "property", name: "partner_segment", operator: "equals", value: "EOR" });
   }
-  if (lower.includes("app installed") || lower.includes("have the app")) {
-    rules.push({ type: "property", name: "has_app", operator: "equals", value: "true" });
+
+  // App status from description
+  if (d.includes("no app") || d.includes("without app") || d.includes("haven't installed")) {
+    rules.push({ type: "event", name: "App Installed", operator: "Have Not Done", value: "in last 365 days" });
+  } else if (d.includes("app installed") || d.includes("have the app") || d.includes("has the app")) {
+    rules.push({ type: "event", name: "App Launched", operator: "Did", value: "in last 180 days" });
   }
-  if (lower.includes("no app") || lower.includes("without app")) {
-    rules.push({ type: "property", name: "has_app", operator: "equals", value: "false" });
+
+  // DND from description
+  if (d.includes("exclude dnd") || d.includes("not dnd")) {
+    rules.push({ type: "property", name: "is_in_DND_CT", operator: "not equals", value: "true" });
+  } else if (d.includes("dnd") || d.includes("do not disturb")) {
+    rules.push({ type: "property", name: "is_in_DND_CT", operator: "equals", value: "true" });
+  }
+
+  // Product eligibility from description (Bible Section 5 — membership timestamp must exist in last 365d)
+  const descTH = d.includes("telehealth") || d.includes("doctor") || d.includes("consult");
+  const descHC = d.includes("health check") || d.includes("checkup") || /\bhc\b/.test(d);
+  if (descTH) rules.push({ type: "property", name: "warehouse_production_telehealthMembershipCreatedAtTimestamp", operator: "exists", value: "in last 365 days" });
+  if (descHC) rules.push({ type: "property", name: "warehouse_production_plumHealthCheckupMembershipCreatedAtTimestamp", operator: "exists", value: "in last 365 days" });
+
+  // TH funnel from description keywords
+  if (descTH && (d.includes("never booked") || d.includes("haven't tried") || d.includes("never tried"))) {
+    rules.push({ type: "event", name: "AppointmentSuccessful_Viewed", operator: "Have Not Done", value: "ever" });
+  }
+  if (descHC && (d.includes("never booked") || d.includes("haven't used"))) {
+    rules.push({ type: "event", name: "healthCheckupbooking_confirmed", operator: "Have Not Done", value: "ever" });
+  }
+
+  // Wallet expiry urgency
+  if (d.includes("expir") || d.includes("wallet") || d.includes("urgency")) {
+    rules.push({ type: "property", name: "wallet_expiry_days_left", operator: "<=", value: "30" });
   }
 
   // Parse answers
@@ -727,60 +760,116 @@ function buildSegmentRules(description: string, answers: string[], questions: st
     const q = questions[i]?.toLowerCase() || "";
     const a = answers[i].toLowerCase();
 
-    if (q.includes("telehealth") || q.includes("product")) {
-      if (a.includes("never") || a.includes("neither")) {
-        rules.push({ type: "event", name: "th_homepage_viewed", operator: "count equals", value: "0" });
-      } else if (a.includes("browsed") || a.includes("telehealth")) {
-        rules.push({ type: "event", name: "th_homepage_viewed", operator: "count >=", value: "1" });
-        rules.push({ type: "event", name: "th_consultation_booked", operator: "count equals", value: "0" });
-      } else if (a.includes("completed") || a.includes("both")) {
-        rules.push({ type: "event", name: "th_consultation_booked", operator: "count >=", value: "1" });
-      }
-    }
-
-    if (q.includes("health checkup")) {
+    // TH funnel stage (real CT events from Bible Section 3.1)
+    if (q.includes("telehealth funnel")) {
       if (a.includes("never")) {
-        rules.push({ type: "event", name: "hc_listing_viewed", operator: "count equals", value: "0" });
-      } else if (a.includes("browsed") || a.includes("added")) {
-        rules.push({ type: "event", name: "hc_listing_viewed", operator: "count >=", value: "1" });
-      } else if (a.includes("completed")) {
-        rules.push({ type: "event", name: "hc_booking_confirmed", operator: "count >=", value: "1" });
+        rules.push({ type: "event", name: "EmployeeMobileApp_Telehealth_Homepage_Viewed", operator: "Have Not Done", value: "ever" });
+      } else if (a.includes("browsed") || a.includes("didn't book")) {
+        rules.push({ type: "event", name: "DoctorList_Viewed", operator: "Did", value: "in last 120 days" });
+        rules.push({ type: "event", name: "AppointmentSuccessful_Viewed", operator: "Have Not Done", value: "ever" });
+      } else if (a.includes("booked") || a.includes("at least once")) {
+        rules.push({ type: "event", name: "AppointmentSuccessful_Viewed", operator: "Did", value: "in last 120 days" });
+      } else if (a.includes("completed") || a.includes("consultation")) {
+        rules.push({ type: "event", name: "telehealth_doctor_joined", operator: "Did", value: "in last 120 days" });
       }
     }
 
-    if (q.includes("recently") || q.includes("active")) {
-      if (a.includes("7")) {
-        rules.push({ type: "property", name: "days_since_active", operator: "<=", value: "7" });
-      } else if (a.includes("30")) {
-        rules.push({ type: "property", name: "days_since_active", operator: "<=", value: "30" });
-      } else if (a.includes("90")) {
-        rules.push({ type: "property", name: "days_since_active", operator: "<=", value: "90" });
+    // HC funnel stage (real CT events from Bible Section 3.2)
+    if (q.includes("health checkup") && q.includes("status")) {
+      if (a.includes("never")) {
+        rules.push({ type: "event", name: "healthCheckuphomepage_viewed", operator: "Have Not Done", value: "ever" });
+      } else if (a.includes("browsed") || a.includes("listing")) {
+        rules.push({ type: "event", name: "healthCheckuplisting_viewed", operator: "Did", value: "in last 120 days" });
+        rules.push({ type: "event", name: "healthCheckupbooking_confirmed", operator: "Have Not Done", value: "ever" });
+      } else if (a.includes("cart") || a.includes("added")) {
+        rules.push({ type: "event", name: "item_added", operator: "Did", value: "in last 120 days" });
+        rules.push({ type: "event", name: "healthCheckupbooking_confirmed", operator: "Have Not Done", value: "ever" });
+      } else if (a.includes("completed") || a.includes("booked")) {
+        rules.push({ type: "event", name: "healthCheckupbooking_confirmed", operator: "Did", value: "in last 120 days" });
       }
     }
 
-    if (q.includes("app installed")) {
-      if (a.includes("yes")) {
-        rules.push({ type: "property", name: "has_app", operator: "equals", value: "true" });
-      } else if (a.includes("no") && !a.includes("doesn")) {
-        rules.push({ type: "property", name: "has_app", operator: "equals", value: "false" });
+    // Generic product question
+    if (q.includes("benefit product")) {
+      if (a.includes("telehealth") || a.includes("th")) {
+        rules.push({ type: "property", name: "warehouse_production_telehealthMembershipCreatedAtTimestamp", operator: "exists", value: "in last 365 days" });
+      }
+      if (a.includes("health check") || a.includes("hc") || a.includes("checkup")) {
+        rules.push({ type: "property", name: "warehouse_production_plumHealthCheckupMembershipCreatedAtTimestamp", operator: "exists", value: "in last 365 days" });
+      }
+      if (a.includes("neither") || a.includes("none")) {
+        rules.push({ type: "event", name: "AppointmentSuccessful_Viewed", operator: "Have Not Done", value: "ever" });
+        rules.push({ type: "event", name: "healthCheckupbooking_confirmed", operator: "Have Not Done", value: "ever" });
       }
     }
 
-    if (q.includes("organisation") || q.includes("organization")) {
-      if (a.includes("enterprise")) {
-        rules.push({ type: "property", name: "organisation_type", operator: "equals", value: "ENT" });
-      } else if (a.includes("smb")) {
-        rules.push({ type: "property", name: "organisation_type", operator: "equals", value: "SMB" });
-      } else if (a.includes("mid")) {
-        rules.push({ type: "property", name: "organisation_type", operator: "equals", value: "MM" });
+    // Lifecycle stage (Bible Section 8 — real App Launched recency)
+    if (q.includes("lifecycle")) {
+      if (a.includes("new") || a.includes("under 60") || a.includes("fresh")) {
+        rules.push({ type: "event", name: "App Launched", operator: "Did", value: "in last 60 days" });
+        rules.push({ type: "property", name: "gmcMembershipCreatedAtTimestamp", operator: "exists", value: "in last 60 days" });
+      } else if (a.includes("active") || a.includes("30 day") || a.includes("last month")) {
+        rules.push({ type: "event", name: "App Launched", operator: "Did", value: "in last 30 days" });
+      } else if (a.includes("lapsing") || a.includes("30") || a.includes("occasional")) {
+        rules.push({ type: "event", name: "App Launched", operator: "Did", value: "between 30 and 90 days ago" });
+      } else if (a.includes("dormant") || a.includes("90") || a.includes("inactive")) {
+        rules.push({ type: "event", name: "App Launched", operator: "Have Not Done", value: "in last 90 days" });
+      }
+    }
+
+    // App installed
+    if (q.includes("plum app")) {
+      if (a.includes("yes") || a.includes("must have")) {
+        rules.push({ type: "event", name: "App Launched", operator: "Did", value: "in last 180 days" });
+      } else if (a.includes("no") && !a.includes("doesn't")) {
+        rules.push({ type: "event", name: "App Installed", operator: "Have Not Done", value: "in last 365 days" });
+      }
+    }
+
+    // Organisation segment
+    if (q.includes("organisation segment")) {
+      if (a.includes("enterprise") || a.includes("ent")) {
+        rules.push({ type: "property", name: "partner_segment", operator: "equals", value: "ENT" });
+      } else if (a.includes("smb") || a.includes("small")) {
+        rules.push({ type: "property", name: "partner_segment", operator: "equals", value: "SMB" });
+      } else if (a.includes("mid") || a.includes("mm")) {
+        rules.push({ type: "property", name: "partner_segment", operator: "equals", value: "MM" });
+      } else if (a.includes("eor")) {
+        rules.push({ type: "property", name: "partner_segment", operator: "equals", value: "EOR" });
+      }
+    }
+
+    // Campaign goal
+    if (q.includes("campaign goal")) {
+      if (a.includes("first-time") || a.includes("activation") || a.includes("first time")) {
+        const hasTHRule = rules.some(r => r.name.includes("telehealth") || r.name.includes("Telehealth") || r.name === "AppointmentSuccessful_Viewed");
+        const hasHCRule = rules.some(r => r.name.includes("healthCheckup") || r.name === "healthCheckupbooking_confirmed");
+        if (!rules.some(r => r.operator === "Have Not Done" && r.name === "AppointmentSuccessful_Viewed") && hasTHRule) {
+          rules.push({ type: "event", name: "AppointmentSuccessful_Viewed", operator: "Have Not Done", value: "ever" });
+        }
+        if (!rules.some(r => r.operator === "Have Not Done" && r.name === "healthCheckupbooking_confirmed") && hasHCRule) {
+          rules.push({ type: "event", name: "healthCheckupbooking_confirmed", operator: "Have Not Done", value: "ever" });
+        }
+      } else if (a.includes("cross-sell") || a.includes("crosssell") || a.includes("hc to th") || a.includes("hc→th")) {
+        rules.push({ type: "event", name: "healthCheckupreport_viewed", operator: "Did", value: "in last 120 days" });
+        rules.push({ type: "event", name: "healthCheckuptelehealthBooking_done", operator: "Have Not Done", value: "ever" });
+      } else if (a.includes("re-engage") || a.includes("reengage") || a.includes("bring back")) {
+        if (!rules.some(r => r.name === "App Launched" && r.operator === "Have Not Done")) {
+          rules.push({ type: "event", name: "App Launched", operator: "Have Not Done", value: "in last 90 days" });
+        }
       }
     }
   }
 
-  // Deduplicate by name
+  // Default DND exclusion if not explicitly set (Bible: all campaigns must check DND)
+  if (!rules.some(r => r.name === "is_in_DND_CT")) {
+    rules.push({ type: "property", name: "is_in_DND_CT", operator: "not equals", value: "true" });
+  }
+
+  // Deduplicate by name+operator
   const seen = new Set<string>();
   return rules.filter((r) => {
-    const key = `${r.type}:${r.name}`;
+    const key = `${r.type}:${r.name}:${r.operator}`;
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
@@ -790,13 +879,29 @@ function buildSegmentRules(description: string, answers: string[], questions: st
 function findMatchingPersonas(personas: Persona[], rules: SegmentRule[]): Persona[] {
   return personas.filter((p) => {
     for (const rule of rules) {
-      if (rule.name === "organisation_type" && rule.value === "ENT" && p.segment_mix.ENT < 0.4) return false;
-      if (rule.name === "organisation_type" && rule.value === "SMB" && p.segment_mix.SMB < 0.3) return false;
-      if (rule.name === "has_app" && rule.value === "true" && p.app_installed_share < 0.3) return false;
-      if (rule.name === "has_app" && rule.value === "false" && p.app_installed_share > 0.3) return false;
-      if (rule.name === "days_since_active" && parseInt(rule.value) < 30 && p.avg_days_since_active > 30) return false;
-      if (rule.name === "th_consultation_booked" && rule.operator.includes(">=") && p.th_adoption_rate < 0.05) return false;
-      if (rule.name === "th_homepage_viewed" && rule.operator.includes("count equals") && rule.value === "0" && p.avg_th_funnel_depth > 0.5) return false;
+      // Organisation segment filtering
+      if (rule.name === "partner_segment") {
+        const segShare = p.segment_mix[rule.value] || 0;
+        if (segShare < 0.3) return false;
+      }
+      // App status: "Did App Launched" means must have app
+      if (rule.name === "App Launched" && rule.operator === "Did" && p.app_installed_share < 0.3) return false;
+      // No app: "Have Not Done App Installed" means targeting non-app users
+      if ((rule.name === "App Installed" || rule.name === "App Launched") && rule.operator === "Have Not Done" && p.app_installed_share > 0.5) return false;
+      // Recency: dormant users
+      if (rule.name === "App Launched" && rule.operator === "Have Not Done" && rule.value.includes("90") && p.avg_days_since_active < 30) return false;
+      // Active users
+      if (rule.name === "App Launched" && rule.operator === "Did" && rule.value.includes("30 days") && p.avg_days_since_active > 60) return false;
+      // TH never booked — high TH adoption personas don't match
+      if (rule.name === "AppointmentSuccessful_Viewed" && rule.operator === "Have Not Done" && p.th_adoption_rate > 0.3) return false;
+      // TH booked — low TH adoption personas don't match
+      if (rule.name === "AppointmentSuccessful_Viewed" && rule.operator === "Did" && p.th_adoption_rate < 0.05) return false;
+      // HC never booked
+      if (rule.name === "healthCheckupbooking_confirmed" && rule.operator === "Have Not Done" && p.hc_adoption_rate > 0.3) return false;
+      // HC booked
+      if (rule.name === "healthCheckupbooking_confirmed" && rule.operator === "Did" && p.hc_adoption_rate < 0.05) return false;
+      // DND-only targeting
+      if (rule.name === "is_in_DND_CT" && rule.operator === "equals" && rule.value === "true" && p.dnd_share < 0.1) return false;
     }
     return true;
   }).slice(0, 5);
