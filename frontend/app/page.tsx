@@ -144,6 +144,71 @@ export default function Overview() {
         />
       </div>
 
+      {/* Live CleverTap metrics */}
+      {data.ct_live && (
+        <div className="animate-fade-in stagger-1">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+            <p className="text-sm font-medium">Live from CleverTap</p>
+            <Badge variant="outline" className="text-[10px] font-normal text-green-700 border-green-300 tracking-wide">
+              OBSERVED · LIVE
+            </Badge>
+            {data.ct_live.pulled_at && (
+              <span className="text-[10px] text-muted-foreground ml-auto">
+                Pulled {new Date(data.ct_live.pulled_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+              </span>
+            )}
+          </div>
+          <div className="grid grid-cols-5 gap-3">
+            {data.ct_live.dau != null && (
+              <Card className="hover-lift">
+                <CardContent className="pt-3 pb-2.5">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mb-1">DAU (Today)</p>
+                  <p className="text-xl font-semibold tracking-tight tabular-nums">{data.ct_live.dau.toLocaleString()}</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">Active users today</p>
+                </CardContent>
+              </Card>
+            )}
+            {data.ct_live.mau != null && (
+              <Card className="hover-lift">
+                <CardContent className="pt-3 pb-2.5">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mb-1">MAU (30d)</p>
+                  <p className="text-xl font-semibold tracking-tight tabular-nums">{data.ct_live.mau.toLocaleString()}</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">Monthly active users</p>
+                </CardContent>
+              </Card>
+            )}
+            {data.ct_live.new_installs_30d != null && (
+              <Card className="hover-lift">
+                <CardContent className="pt-3 pb-2.5">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mb-1">New installs</p>
+                  <p className="text-xl font-semibold tracking-tight tabular-nums text-success">{data.ct_live.new_installs_30d.toLocaleString()}</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">Last 30 days</p>
+                </CardContent>
+              </Card>
+            )}
+            {data.ct_live.total_sessions_30d != null && (
+              <Card className="hover-lift">
+                <CardContent className="pt-3 pb-2.5">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mb-1">Sessions (30d)</p>
+                  <p className="text-xl font-semibold tracking-tight tabular-nums">{data.ct_live.total_sessions_30d.toLocaleString()}</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">Total app launches</p>
+                </CardContent>
+              </Card>
+            )}
+            {data.ct_live.ytd_active_users != null && (
+              <Card className="hover-lift">
+                <CardContent className="pt-3 pb-2.5">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mb-1">YTD Active</p>
+                  <p className="text-xl font-semibold tracking-tight tabular-nums">{data.ct_live.ytd_active_users.toLocaleString()}</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">Unique users this year</p>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Funnel + Channel split */}
       <div className="grid grid-cols-12 gap-6 animate-fade-in stagger-2">
         <div className="col-span-7">
