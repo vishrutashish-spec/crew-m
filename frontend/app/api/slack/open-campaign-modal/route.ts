@@ -65,13 +65,16 @@ export async function POST(request: Request) {
             element: { type: "plain_text_input", action_id: "account_input" },
           },
           {
+            // static_select was consistently rejected by views.open with
+            // invalid_arguments (isolated via bisection); radio_buttons
+            // produces the same selected_option.value shape on submit and
+            // works reliably.
             type: "input",
             block_id: "campaign_type_block",
             label: { type: "plain_text", text: "Campaign type" },
             element: {
-              type: "static_select",
+              type: "radio_buttons",
               action_id: "campaign_type_select",
-              placeholder: { type: "plain_text", text: "Choose one" },
               options: [
                 { text: { type: "plain_text", text: "Welcome" }, value: "welcome" },
                 { text: { type: "plain_text", text: "Renewal" }, value: "renewal" },
