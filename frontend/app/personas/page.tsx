@@ -190,7 +190,7 @@ function PersonaDetail({ persona: p }: { persona: Persona }) {
                 <BarChart data={channelData} layout="vertical" margin={{ left: 10, right: 30, top: 5, bottom: 5 }}>
                   <XAxis type="number" domain={[0, 1]} tickFormatter={(v: number) => `${(v * 100).toFixed(0)}%`} tick={{ fontSize: 10, fill: "oklch(0.5 0.02 320)" }} axisLine={false} tickLine={false} />
                   <YAxis type="category" dataKey="channel" tick={{ fontSize: 11, fill: "oklch(0.5 0.02 320)" }} axisLine={false} tickLine={false} width={65} />
-                  <Tooltip formatter={(v: number) => [`${(v * 100).toFixed(0)}%`, "Reach"]} contentStyle={{ fontSize: 11, borderRadius: 8 }} />
+                  <Tooltip formatter={(v) => [`${(Number(v) * 100).toFixed(0)}%`, "Reach"]} contentStyle={{ fontSize: 11, borderRadius: 8 }} />
                   <Bar dataKey="reach" radius={[0, 4, 4, 0]} barSize={22}>
                     {channelData.map((d) => (
                       <Cell key={d.channel} fill={CHANNEL_COLORS[d.channel] || "oklch(0.5 0 0)"} />

@@ -46,7 +46,7 @@ Respond with ONLY a raw JSON object (no markdown fences, no commentary) shaped e
     },
     body: JSON.stringify({
       model: "claude-sonnet-5",
-      max_tokens: 1024,
+      max_tokens: 4096,
       system: copySkill,
       messages: [{ role: "user", content: userPrompt }],
     }),
@@ -59,7 +59,8 @@ Respond with ONLY a raw JSON object (no markdown fences, no commentary) shaped e
   }
 
   const data = await res.json();
-  const text: string = data?.content?.[0]?.text ?? "{}";
+  const textBlock = data?.content?.find((b: { type: string }) => b.type === "text");
+  const text: string = textBlock?.text ?? "{}";
 
   let parsed: { subject?: string; body?: string };
   try {
