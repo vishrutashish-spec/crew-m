@@ -441,6 +441,68 @@ def simulate(req: SimRequest):
     }
 
 
+# ---------------------------------------------------------------------------
+# Copy studio: deterministic generation from the approved library
+# ---------------------------------------------------------------------------
+
+class CopyGenRequest(BaseModel):
+    objective: str
+    cohort_keys: list[str]
+    channel: str
+    angle: Optional[str] = None
+    # Server-produced audience size from a prior /api/simulate run. Passing it
+    # back lets each variant carry a predicted funnel in absolute counts.
+    audience_sent: Optional[int] = None
+
+
+class CopyAnalyzeRequest(BaseModel):
+    text: str
+    title: Optional[str] = None
+    channel: str
+    objective: str
+    cohort_key: str
+    audience_sent: Optional[int] = None
+
+
+@app.get("/api/copy/options")
+def copy_options():
+    get_model()
+    return CE.options()
+
+
+@app.post("/api/copy/generate")
+def copy_generate(req: CopyGenRequest):
+    """Generate channel-disciplined variants from the approved copy library."""
+    get_model()
+    logger.info(
+        f"DATA_ACCESS: copy generation objective={req.objective} "
+        f"cohorts={req.cohort_keys} channel={req.channel} angle={req.angle}"
+    )
+    try:
+        return CE.generate(req.objective, req.cohort_keys, req.channel,
+                           angle=req.angle, audience_sent=req.audience_sent)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.post("/api/copy/analyze")
+def copy_analyze(req: CopyAnalyzeRequest):
+    """Analyze pasted copy against the same discipline rules."""
+    get_model()
+    if req.channel not in A.CHANNELS:
+        raise HTTPException(400, f"Unknown channel '{req.channel}'")
+    if req.cohort_key not in CE.BANDS:
+        raise HTTPException(400, f"Unknown cohort '{req.cohort_key}'")
+    if req.objective not in A.OBJECTIVE_CONVERSION:
+        raise HTTPException(400, f"Unknown objective '{req.objective}'")
+    logger.info(f"DATA_ACCESS: copy analysis channel={req.channel} objective={req.objective}")
+    analysis = CE.analyze(req.text, req.channel, req.cohort_key, req.objective,
+                          title=req.title)
+    prediction = CE.predict(analysis, req.channel, req.objective,
+                            audience_sent=req.audience_sent)
+    return {"label": "DERIVED", "analysis": analysis, "prediction": prediction}
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
