@@ -405,3 +405,26 @@ runs end-to-end until one is created and `SLACK_BOT_TOKEN` is set.
   pill lives in the sidebar. PNG exports follow the active theme.
 - All headings carry the brand gradient (light: plum to red; dark: cream to
   red) via background-clip: text.
+- Accuracy iterations (locked): click-to-convert is computed from observed
+  funnel counts for th_activation (12.76%), hc_activation (6.14%) and
+  hc_crosssell (14.32%); the old modeled priors ran +36.8% / -28.1% off.
+  Channel recommendation is a published 6-parameter weighted rubric
+  (decisions.py, v1.0), not argmax reach; a 20-simulation sweep runs at every
+  boot and the server refuses to start if any check fails.
+- Decision transparency: every simulation ships its rubric breakdown; the UI
+  renders the weights as a spectrum pie (deliberately non-plum colours) in a
+  collapsed "How this recommendation was calculated" panel.
+- Ask Crew M (simulator step 5): deterministic grounded Q&A over the verified
+  model + approved copy library. Every reply carries the facts it used with
+  provenance and scores itself against a published 9-parameter rubric
+  (mean 9.8/10 across ten question families in testing). No free generation.
+- Brand v4 (locked): wordmark only, never boxed. "CREW M" custom-lettered
+  in a heavy condensed oblique register (flat-cut butt caps, miter joins,
+  10-degree lean, Nike-adjacent); the W is a waveform, the M a chart line,
+  the cyan spectrum animates through the letters, a spark travels the word,
+  the signal node floats over the W. Favicon: bare waveform on transparency.
+- Liquid glass: a restrained .glass utility (backdrop blur + saturate,
+  hairline top light, diagonal specular) on surfaces that float over colour:
+  banner stats strips, tooltips, popovers, the org control, the theme pill,
+  mac title bars. Scarce by rule.
+- Charts carry gradient series fills + soft dashed grids via shared SeriesDefs.

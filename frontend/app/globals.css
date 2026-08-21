@@ -141,6 +141,9 @@
   --series-1: #2b0b21;          /* primary chart series */
   --series-2: #ff3f52;          /* secondary */
   --series-3: #f8dbc9;          /* tertiary */
+  --series-1-hi: #5a2450;       /* gradient top stops */
+  --series-2-hi: #ff7585;
+  --series-3-hi: #fdeee2;
   --series-4: #6b3a58;
   --series-5: #e8b899;
   --tick: #565064;              /* chart axis + label text */
@@ -214,6 +217,9 @@
   --series-1: #f8dbc9;          /* cream leads on dark ground */
   --series-2: #ff5468;
   --series-3: #6b3a58;
+  --series-1-hi: #fff2e6;
+  --series-2-hi: #ff8494;
+  --series-3-hi: #96587e;
   --tick: #9c90a2;
   --cursor-fill: rgba(248, 219, 201, 0.06);
   --swatch-border: rgba(255, 255, 255, 0.14);
@@ -782,3 +788,153 @@ select.field:focus, input.field:focus, textarea.field:focus {
 }
 .theme-pill .hint-l { left: 3px; }
 .theme-pill .hint-r { right: 3px; }
+
+/* ===========================================================================
+   Brand mark v2: kinetic. A slow conic halo breathes behind the badge and a
+   cyan-spectrum gradient flows through the wordmark, product-page style.
+   =========================================================================== */
+
+@keyframes halo-spin { to { transform: rotate(360deg); } }
+@keyframes spectrum-flow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+@keyframes node-pulse {
+  0%, 100% { opacity: 0.9; }
+  50% { opacity: 0.4; }
+}
+
+.brand-hero {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.brand-halo {
+  position: absolute;
+  inset: -14px auto -14px -14px;
+  width: 104px;
+  height: 104px;
+  border-radius: 999px;
+  background: conic-gradient(
+    from 0deg,
+    rgba(34, 200, 214, 0) 0deg,
+    rgba(34, 200, 214, 0.55) 70deg,
+    rgba(79, 227, 193, 0.4) 140deg,
+    rgba(59, 130, 246, 0.45) 220deg,
+    rgba(34, 200, 214, 0) 320deg
+  );
+  filter: blur(18px);
+  animation: halo-spin 9s linear infinite;
+  pointer-events: none;
+}
+.brand-word {
+  font-family: var(--font-serif);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  background-image: linear-gradient(100deg,
+    #0e9aa7 0%, #22c8d6 22%, #4fe3c1 44%, #3b82f6 68%, #22c8d6 88%, #0e9aa7 100%);
+  background-size: 220% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: spectrum-flow 7s ease-in-out infinite;
+}
+.dark .brand-word {
+  background-image: linear-gradient(100deg,
+    #35d9e7 0%, #7bdde8 22%, #4fe3c1 44%, #60a5fa 68%, #7bdde8 88%, #35d9e7 100%);
+}
+.mark-node { animation: node-pulse 2.6s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .brand-halo, .brand-word, .mark-node { animation: none; }
+  .wm-spark { display: none; }
+}
+
+/* ===========================================================================
+   Liquid glass. Translucent, blurred, saturated surfaces with a specular
+   streak and a hairline top light. Applied where content sits over colour
+   (the aurora banners, popovers, tooltips, controls), never everywhere:
+   glass reads premium only while it is scarce.
+   =========================================================================== */
+
+.glass {
+  position: relative;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.62) 0%, rgba(255, 255, 255, 0.30) 100%);
+  -webkit-backdrop-filter: blur(22px) saturate(1.7);
+  backdrop-filter: blur(22px) saturate(1.7);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.18),
+    inset 1px 0 0 rgba(255, 255, 255, 0.30),
+    0 10px 34px -14px rgba(43, 11, 33, 0.22),
+    0 1.5px 4px rgba(43, 11, 33, 0.05);
+}
+.glass::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background:
+    linear-gradient(115deg,
+      transparent 18%,
+      rgba(255, 255, 255, 0.34) 26%,
+      rgba(255, 255, 255, 0.06) 34%,
+      transparent 42%);
+  pointer-events: none;
+}
+.dark .glass {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.085) 0%, rgba(255, 255, 255, 0.028) 100%);
+  border-color: rgba(255, 255, 255, 0.14);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    inset 1px 0 0 rgba(255, 255, 255, 0.06),
+    0 14px 44px -18px rgba(0, 0, 0, 0.75),
+    0 2px 6px rgba(0, 0, 0, 0.3);
+}
+.dark .glass::before {
+  background:
+    linear-gradient(115deg,
+      transparent 18%,
+      rgba(255, 255, 255, 0.10) 26%,
+      rgba(255, 255, 255, 0.02) 34%,
+      transparent 42%);
+}
+
+/* Controls become glass where they float over colour */
+.seg {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.28));
+  -webkit-backdrop-filter: blur(16px) saturate(1.6);
+  backdrop-filter: blur(16px) saturate(1.6);
+  border-color: rgba(255, 255, 255, 0.6);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 4px 14px -8px rgba(43, 11, 33, 0.25);
+}
+.dark .seg {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.02));
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 6px 18px -10px rgba(0, 0, 0, 0.6);
+}
+.theme-pill {
+  -webkit-backdrop-filter: blur(14px) saturate(1.5);
+  backdrop-filter: blur(14px) saturate(1.5);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.22));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
+}
+.dark .theme-pill {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.02));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+/* The mac title bar becomes a fine glass strip */
+.mac-bar {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.45));
+  -webkit-backdrop-filter: blur(18px) saturate(1.6);
+  backdrop-filter: blur(18px) saturate(1.6);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+.dark .mac-bar {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.03));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}

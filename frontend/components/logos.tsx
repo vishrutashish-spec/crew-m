@@ -18,57 +18,106 @@
 
 /* ------------------------------------------------------------------ Crew M */
 
-export function CrewMMark({ size = 36 }: { size?: number }) {
+/*
+ * The wordmark IS the logo. No badge, no backdrop: custom-lettered monoline
+ * capitals drawn as SVG strokes with a forward lean. The W is a literal
+ * waveform and the M a chart line, the cyan spectrum flows through the
+ * letters as an animated gradient, and a bright spark travels the whole word
+ * end to end (pathLength-normalised dash sweep). The brand's signal node
+ * floats above the W's centre peak. Motion honours prefers-reduced-motion.
+ */
+
+/*
+ * Letterforms, v4. The rounded monoline read comical, so this is the Nike
+ * register instead: heavy, condensed, oblique, flat-cut. Strokes use butt
+ * caps and miter joins (no rounding anywhere), stem weight is 6.4 on a
+ * 27-unit cap height, the whole word leans 10 degrees forward. The W and M
+ * keep their waveform/chart-line geometry, now sharpened to race-livery
+ * angles. Gradient flow, travelling spark and the signal node all stay.
+ */
+
+const WORD_PATH =
+  "M21 7.2 H8.2 V30.8 H21 " +                       /* C, squared */
+  "M32.2 34 V7.2 H43 V19 H32.2 " +                   /* R, stem + blocky bowl */
+  "M38.8 19 L45.6 34 " +                             /* R leg */
+  "M66 7.2 H55.2 V30.8 H66 M55.2 18.6 H63.4 " +      /* E */
+  "M71.8 6.4 L76.9 31.6 L82 13.6 L87.1 31.6 L92.2 6.4 " + /* W, the waveform */
+  "M104.2 34 V7.2 L112.4 20.6 L120.6 7.2 V34";       /* M, the chart line */
+
+export function CrewMWordmark({ width = 168, spark = true }: {
+  width?: number; spark?: boolean;
+}) {
+  const height = Math.round(width * (38 / 138));
   return (
-    <svg width={size} height={size} viewBox="0 0 48 48" fill="none" aria-label="Crew M">
+    <svg width={width} height={height} viewBox="0 0 138 38" fill="none"
+      aria-label="Crew M" style={{ display: "block", overflow: "visible" }}>
       <defs>
-        <linearGradient id="cm-bg" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
-          <stop offset="0" stopColor="#43183A" />
-          <stop offset="0.55" stopColor="#2B0B21" />
-          <stop offset="1" stopColor="#160410" />
+        <linearGradient id="wm-g" x1="0" y1="0" x2="138" y2="0" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stopColor="#0E9AA7">
+            <animate attributeName="stop-color" dur="7s" repeatCount="indefinite"
+              values="#0E9AA7;#22C8D6;#4FE3C1;#3B82F6;#0E9AA7" />
+          </stop>
+          <stop offset="0.5" stopColor="#22C8D6">
+            <animate attributeName="stop-color" dur="7s" repeatCount="indefinite"
+              values="#22C8D6;#4FE3C1;#3B82F6;#22C8D6;#22C8D6" />
+          </stop>
+          <stop offset="1" stopColor="#3B82F6">
+            <animate attributeName="stop-color" dur="7s" repeatCount="indefinite"
+              values="#3B82F6;#0E9AA7;#22C8D6;#4FE3C1;#3B82F6" />
+          </stop>
         </linearGradient>
-        <linearGradient id="cm-m" x1="11" y1="33" x2="37" y2="14" gradientUnits="userSpaceOnUse">
-          <stop offset="0" stopColor="#F8DBC9" />
-          <stop offset="0.45" stopColor="#FF6273" />
-          <stop offset="1" stopColor="#FF3F52" />
-        </linearGradient>
-        <radialGradient id="cm-node" cx="0.5" cy="0.5" r="0.5">
-          <stop offset="0" stopColor="#22C8D6" stopOpacity="0.85" />
-          <stop offset="1" stopColor="#22C8D6" stopOpacity="0" />
-        </radialGradient>
       </defs>
-      <rect x="1" y="1" width="46" height="46" rx="13" fill="url(#cm-bg)" />
-      <rect x="1.6" y="1.6" width="44.8" height="44.8" rx="12.4" stroke="#FFFFFF" strokeOpacity="0.16" strokeWidth="1" />
-      {/* top sheen */}
-      <path d="M14 2h20c6 0 11 4 12 9H2c1-5 6-9 12-9z" fill="#FFFFFF" opacity="0.055" />
-      {/* the M */}
-      <path
-        d="M11 34V15h4.7l8.3 10.2L32.3 15H37v19h-4.5V22.4L24 32.7l-8.5-10.3V34z"
-        fill="url(#cm-m)"
-      />
-      {/* signal node above the valley */}
-      <circle cx="24" cy="11.5" r="5.4" fill="url(#cm-node)" />
-      <circle cx="24" cy="11.5" r="1.9" fill="#22C8D6" />
-      <circle cx="24" cy="11.5" r="1.9" stroke="#FFFFFF" strokeOpacity="0.55" strokeWidth="0.7" />
-      {/* baseline axis ticks */}
-      <path d="M13 40.5h4.5M21.75 40.5h4.5M30.5 40.5h4.5" stroke="#FFFFFF" strokeOpacity="0.28" strokeWidth="1.4" strokeLinecap="round" />
+      <g transform="translate(5.5 0) skewX(-10)">
+        {/* echo of the stroke: depth, never a backdrop */}
+        <path d={WORD_PATH} stroke="url(#wm-g)" strokeWidth="10" strokeLinecap="butt"
+          strokeLinejoin="miter" opacity="0.13" />
+        {/* the letters */}
+        <path d={WORD_PATH} stroke="url(#wm-g)" strokeWidth="6.4" strokeLinecap="butt"
+          strokeLinejoin="miter" />
+        {/* the spark travelling through the word */}
+        {spark && (
+          <path d={WORD_PATH} pathLength={100} stroke="#EAFFFF" strokeWidth="6.4"
+            strokeLinecap="butt" strokeLinejoin="miter" opacity="0.85"
+            strokeDasharray="5 95" className="wm-spark">
+            <animate attributeName="stroke-dashoffset" from="100" to="0"
+              dur="3.8s" repeatCount="indefinite" />
+          </path>
+        )}
+        {/* the signal node, above the waveform's centre peak */}
+        <circle className="mark-node" cx="82" cy="5.2" r="3.6" fill="#22C8D6" opacity="0.22" />
+        <circle cx="82" cy="5.2" r="1.7" fill="#4FE3C1" />
+      </g>
+    </svg>
+  );
+}
+
+/** Boxless glyph for tight spots: the waveform + node alone. */
+export function CrewMMark({ size = 30 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" aria-label="Crew M"
+      style={{ overflow: "visible" }}>
+      <defs>
+        <linearGradient id="wm-s" x1="0" y1="0" x2="32" y2="0" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stopColor="#22C8D6" />
+          <stop offset="1" stopColor="#3B82F6" />
+        </linearGradient>
+      </defs>
+      <path d="M3 26 L10 7 L16 20 L22 5.5 L29 26" stroke="url(#wm-s)" strokeWidth="4.2"
+        strokeLinecap="butt" strokeLinejoin="miter" />
+      <circle className="mark-node" cx="22" cy="3" r="1.7" fill="#4FE3C1" />
     </svg>
   );
 }
 
 export function CrewMLogo({ compact = false }: { compact?: boolean }) {
   return (
-    <span className="inline-flex items-center gap-3">
-      <CrewMMark size={compact ? 30 : 38} />
-      <span className="leading-none">
-        <span className="font-heading block text-[color:var(--ink-text)]"
-          style={{ fontSize: compact ? 16 : 19, letterSpacing: "-0.01em" }}>
-          Crew M
+    <span className="inline-block">
+      <CrewMWordmark width={compact ? 118 : 172} spark={!compact} />
+      {!compact && (
+        <span className="label-mono block mt-2 !text-[9px] !tracking-[0.22em]">
+          Campaign intelligence
         </span>
-        {!compact && (
-          <span className="label-mono block mt-1 !text-[8.5px]">Campaign intelligence</span>
-        )}
-      </span>
+      )}
     </span>
   );
 }

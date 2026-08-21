@@ -239,6 +239,8 @@ export interface SimResult {
   };
   timing: { send_hour: number; note: string; label: string };
   warnings: string[];
+  decision?: Decision;
+  conversion_provenance?: { kind: string; basis: string };
 }
 
 export interface Methodology {
@@ -440,3 +442,55 @@ export const analyzeCopy = (req: {
   cohort_key: string; audience_sent?: number | null;
 }) => post<{ label: string; analysis: CopyAnalysis; prediction: CopyPrediction }>(
   "/api/copy/analyze", req);
+
+/* ---------------------------------------------------------------------------
+   Decision rubrics + the grounded assistant
+   --------------------------------------------------------------------------- */
+
+export interface DecisionParam {
+  key: string; label: string; weight: number; desc: string; provenance: string;
+}
+
+export interface Decision {
+  rule: { id: string; label: string; version: string; parameters: DecisionParam[] };
+  channels: Record<string, {
+    label: string;
+    components: Record<string, number>;
+    total: number;
+    addressable: number;
+  }>;
+  selected: string;
+}
+
+export interface AssistantScoreParam {
+  key: string; label: string; weight: number; score: number; points: number;
+}
+
+export interface AssistantReply {
+  label: string;
+  intents: string[];
+  cohorts: string[];
+  objective: string;
+  answer: string;
+  action: string;
+  facts: { label: string; value: string; provenance: string }[];
+  score: {
+    total: number; out_of: number;
+    parameters: AssistantScoreParam[];
+    rule_version: string;
+  };
+}
+
+export const askAssistant = (req: {
+  message: string; cohort_keys?: string[]; org?: string | null;
+  objective?: string | null; channel?: string | null;
+}) => post<AssistantReply>("/api/assistant", req);
+
+/** Spectrum palette for rubric visuals: deliberately outside the plum chart
+    palette so decision explanations can never be confused with data series. */
+export const SPECTRUM = ["#22C8D6", "#3B82F6", "#8B5CF6", "#10B981", "#F59E0B", "#64748B"];
+
+export const getRules = () => get<{
+  version: string;
+  rules: { id: string; label: string; version: string; parameters: DecisionParam[] }[];
+}>("/api/rules");

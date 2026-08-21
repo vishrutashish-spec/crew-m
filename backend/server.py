@@ -26,6 +26,8 @@ import anchors as A
 import population as P
 import insights as I
 import copy_engine as CE
+import decisions as D
+import assistant as AS
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("crewm")
@@ -50,8 +52,50 @@ def get_model() -> dict:
         _state["model"] = model
         _state["checks"] = checks
         _state["built_at"] = datetime.now(timezone.utc).isoformat()
-        logger.info(f"Cohort model verified, {len(checks)} invariants hold")
+        _state["sim_checks"] = _simulation_sweep(model)
+        logger.info(
+            f"Cohort model verified, {len(checks)} invariants and "
+            f"{len(_state['sim_checks'])} simulation checks hold"
+        )
     return _state["model"]
+
+
+def _simulation_sweep(model: dict) -> list[str]:
+    """
+    Run every objective x channel combination through the simulator core at
+    startup and assert its sanity. If any assertion fails, the server refuses
+    to boot, exactly like the cohort invariants: a wrong simulation is a wrong
+    number wearing a chart.
+    """
+    checks: list[str] = []
+    combos = 0
+    for objective in A.OBJECTIVE_CONVERSION:
+        for forced in [None] + A.CHANNELS:
+            r = _simulate_core(model, objective, ["26_35", "36_40"], None,
+                               forced, None, True, True)
+            f = r["funnel"]
+            combos += 1
+            assert f["sent"] >= f["delivered"] >= f["opened"] >= f["clicked"] >= f["converted"],                 f"{objective}/{forced}: funnel not monotonic"
+            assert r["audience"]["addressable"] <= r["audience"]["objective_pool"],                 f"{objective}/{forced}: addressable exceeds pool"
+            assert r["audience"]["control_group"] == round(
+                r["audience"]["addressable"] * A.CONTROL_GROUP_SHARE),                 f"{objective}/{forced}: control group is not 5% flat"
+            if objective == "app_install" and forced == "push":
+                assert r["audience"]["addressable"] == 0,                     "app_install over push must address nobody (disjoint groups)"
+            if forced is None:
+                sel = r["decision"]["selected"]
+                best = max(r["decision"]["channels"].values(), key=lambda c: c["total"])
+                assert r["decision"]["channels"][sel]["total"] == best["total"],                     f"{objective}: recommended channel is not the rubric winner"
+    checks.append(f"all {combos} objective x channel simulations are monotonic")
+    checks.append("addressable never exceeds the objective pool")
+    checks.append("control group is 5% flat in every simulation")
+    checks.append("app-install over push addresses exactly nobody")
+    checks.append("the recommended channel always wins the published rubric")
+    conv = A.OBJECTIVE_CONVERSION
+    assert conv["th_activation"] == round(A.TH_FUNNEL[-1][2] / A.TH_FUNNEL[0][2], 4)
+    assert conv["hc_activation"] == round(A.HC_FUNNEL[-1][2] / A.HC_FUNNEL[0][2], 4)
+    assert conv["hc_crosssell"] == A.HC_TO_TH_CROSSSELL_RATE
+    checks.append("3 of 5 conversion rates reconcile to observed funnel anchors")
+    return checks
 
 
 SEGMENT_LABELS = {
@@ -92,7 +136,8 @@ def verification():
     """Every invariant the model asserts. Shown in the UI methodology panel so
     the accuracy claim is checkable rather than asserted."""
     get_model()
-    return {"label": "OBSERVED", "checks": _state["checks"]}
+    return {"label": "OBSERVED", "checks": _state["checks"],
+            "sim_checks": _state["sim_checks"]}
 
 
 @app.get("/api/overview")
@@ -251,36 +296,12 @@ def simulate_options():
     }
 
 
-@app.post("/api/simulate")
-def simulate(req: SimRequest):
-    """
-    Size an audience from the real cohort model, then project a funnel.
-
-    Audience sizing is DERIVED, exact counts out of the model.
-    Funnel projection is PREDICTED and capped at low confidence, because no
-    real campaign performance data exists for this account. The Bible names the
-    missing campaign history export as the single most critical data gap, so
-    these rates are industry priors and are labelled as such rather than
-    dressed up as a learned prediction.
-    """
-    model = get_model()
-    org_f = _org(req.org)
-
-    if req.objective not in A.OBJECTIVE_CONVERSION:
-        raise HTTPException(400, f"Unknown objective '{req.objective}'")
-    if not req.cohort_keys:
-        raise HTTPException(400, "Select at least one age cohort")
-    unknown = set(req.cohort_keys) - set(P.COHORT_KEYS)
-    if unknown:
-        raise HTTPException(400, f"Unknown cohort(s): {sorted(unknown)}")
-
-    logger.info(
-        f"DATA_ACCESS: simulation objective={req.objective} "
-        f"cohorts={req.cohort_keys} org={org_f or 'all'} channel={req.channel}"
-    )
-
+def _simulate_core(model: dict, objective: str, cohort_keys: list[str],
+                   org_f, forced_channel, send_hour_in,
+                   exclude_dnd: bool, exclude_no_app_for_push: bool) -> dict:
+    """The whole simulation, callable by the endpoint AND the startup sweep."""
     cells = [c for c in model["cells"].values()
-             if c["cohort"] in req.cohort_keys
+             if c["cohort"] in cohort_keys
              and (org_f is None or c["org"] == org_f)]
     if not cells:
         raise HTTPException(400, "That combination selects nobody")
@@ -293,15 +314,15 @@ def simulate(req: SimRequest):
     # reachability has to be measured against that same population. An
     # app-install campaign targets people without the app, so intersecting it
     # with app-installed push reach would be intersecting two disjoint groups.
-    if req.objective == "app_install":
+    if objective == "app_install":
         pool, pool_desc, pool_is_app = s("no_app"), "no app install signal", False
-    elif req.objective == "reengagement":
+    elif objective == "reengagement":
         pool, pool_desc, pool_is_app = (
             s("app_dormant"), "app installed, quiet 30 days or more", True)
-    elif req.objective == "th_activation":
+    elif objective == "th_activation":
         pool = app_total - s("th_booked")
         pool_desc, pool_is_app = "app installed, never booked telehealth", True
-    elif req.objective == "hc_activation":
+    elif objective == "hc_activation":
         pool = app_total - s("hc_booked")
         pool_desc, pool_is_app = "app installed, never booked a checkup", True
     else:  # hc_crosssell
@@ -320,19 +341,21 @@ def simulate(req: SimRequest):
         if ch == "push" and not pool_is_app:
             # The only push-reachable people without the app are stale tokens
             # on uninstalled apps. Excluding them is the default and correct.
-            if req.exclude_no_app_for_push:
+            if exclude_no_app_for_push:
                 reach = 0
-        if req.exclude_dnd:
+        if exclude_dnd:
             reach = round(reach * dnd_keep)
         channel_options[ch] = min(reach, pool)
 
-    if req.channel:
-        if req.channel not in A.CHANNELS:
-            raise HTTPException(400, f"Unknown channel '{req.channel}'")
-        channel = req.channel
+    # Weighted rubric over six published parameters (decisions.CHANNEL_RULE),
+    # not argmax(reach). The full breakdown ships with the response so the UI
+    # can show exactly how the recommendation was computed.
+    decision = D.score_channels(pool, channel_options, dnd_keep)
+    if forced_channel:
+        channel = forced_channel
         channel_label = "OBSERVED"
     else:
-        channel = max(channel_options, key=lambda c: channel_options[c])
+        channel = decision["selected"]
         channel_label = "RECOMMENDED"
 
     addressable = channel_options[channel]
@@ -341,14 +364,14 @@ def simulate(req: SimRequest):
 
     # -- Funnel projection, PREDICTED, low confidence by construction -----
     b = A.CHANNEL_BENCHMARKS[channel]
-    conv = A.OBJECTIVE_CONVERSION[req.objective]
+    conv = A.OBJECTIVE_CONVERSION[objective]
     delivered = round(sent * b["delivery"])
     opened = round(delivered * b["open"])
     clicked = round(opened * b["click"])
     converted = round(clicked * conv)
 
-    hours = [A.PEAK_HOUR[k] for k in req.cohort_keys]
-    send_hour = req.send_hour if req.send_hour is not None else max(set(hours), key=hours.count)
+    hours = [A.PEAK_HOUR[k] for k in cohort_keys]
+    send_hour = send_hour_in if send_hour_in is not None else max(set(hours), key=hours.count)
 
     warnings = []
     if channel == "push":
@@ -358,7 +381,7 @@ def simulate(req: SimRequest):
                 f"This objective targets people without the app, so push has no "
                 f"legitimate audience here, the only push-reachable users in "
                 f"that pool are {stale:,} stale tokens on uninstalled apps. "
-                + ("They are excluded." if req.exclude_no_app_for_push
+                + ("They are excluded." if exclude_no_app_for_push
                    else "They are currently INCLUDED and will deliver nothing.")
             )
         elif stale > 0:
@@ -373,13 +396,13 @@ def simulate(req: SimRequest):
             f"{A.CHANNEL_LABELS[channel]} reaches nobody in this pool. Pick a "
             f"different channel or a different objective."
         )
-    if req.objective == "hc_crosssell":
+    if objective == "hc_crosssell":
         warnings.append(
             f"Cross-sell converts best triggered on report view, not on a "
             f"schedule, {A.HC_TO_TH_CROSSSELL_RATE:.1%} convert unprompted "
             f"from that moment."
         )
-    if not req.exclude_dnd:
+    if not exclude_dnd:
         warnings.append(
             f"DND is not being excluded. {s('dnd'):,} people in this selection "
             f"carry the suppression flag and must not receive campaign sends."
@@ -391,7 +414,7 @@ def simulate(req: SimRequest):
         "confidence_reason": A.BENCHMARK_PROVENANCE,
 
         "selection": {
-            "cohorts": [P.COHORT_BY_KEY[k]["label"] for k in req.cohort_keys],
+            "cohorts": [P.COHORT_BY_KEY[k]["label"] for k in cohort_keys],
             "org": A.ORG_TYPE_LABELS[org_f] if org_f else "All org types",
             "cohort_total": cohort_total,
             "app_in_selection": app_total,
@@ -405,6 +428,11 @@ def simulate(req: SimRequest):
             "control_group": control,
             "sent": sent,
             "label": "DERIVED",
+        },
+        "decision": decision,
+        "conversion_provenance": {
+            "kind": A.CONVERSION_PROVENANCE[objective][0],
+            "basis": A.CONVERSION_PROVENANCE[objective][1],
         },
         "channel": {
             "selected": channel,
@@ -435,10 +463,44 @@ def simulate(req: SimRequest):
         "timing": {
             "send_hour": send_hour,
             "note": f"Peak window is 20:00-23:00; this selection skews to {send_hour}:00",
-            "label": "RECOMMENDED" if req.send_hour is None else "OBSERVED",
+            "label": "RECOMMENDED" if send_hour_in is None else "OBSERVED",
         },
         "warnings": warnings,
     }
+
+
+
+
+@app.post("/api/simulate")
+def simulate(req: SimRequest):
+    """
+    Size an audience from the real cohort model, then project a funnel.
+
+    Audience sizing is DERIVED, exact counts out of the model. The funnel is
+    PREDICTED at low confidence; click-to-convert is anchored to the OBSERVED
+    homepage-to-booked funnel rates wherever one exists (three of the five
+    objectives), and stays a labelled prior for the other two.
+    """
+    model = get_model()
+    org_f = _org(req.org)
+
+    if req.objective not in A.OBJECTIVE_CONVERSION:
+        raise HTTPException(400, f"Unknown objective '{req.objective}'")
+    if not req.cohort_keys:
+        raise HTTPException(400, "Select at least one age cohort")
+    unknown = set(req.cohort_keys) - set(P.COHORT_KEYS)
+    if unknown:
+        raise HTTPException(400, f"Unknown cohort(s): {sorted(unknown)}")
+    if req.channel and req.channel not in A.CHANNELS:
+        raise HTTPException(400, f"Unknown channel '{req.channel}'")
+
+    logger.info(
+        f"DATA_ACCESS: simulation objective={req.objective} "
+        f"cohorts={req.cohort_keys} org={org_f or 'all'} channel={req.channel}"
+    )
+    return _simulate_core(model, req.objective, req.cohort_keys, org_f,
+                          req.channel, req.send_hour,
+                          req.exclude_dnd, req.exclude_no_app_for_push)
 
 
 # ---------------------------------------------------------------------------
@@ -462,6 +524,36 @@ class CopyAnalyzeRequest(BaseModel):
     objective: str
     cohort_key: str
     audience_sent: Optional[int] = None
+
+
+class AssistantRequest(BaseModel):
+    message: str
+    cohort_keys: list[str] = []
+    org: Optional[str] = None
+    objective: Optional[str] = None
+    channel: Optional[str] = None
+
+
+@app.post("/api/assistant")
+def assistant_answer(req: AssistantRequest):
+    """Grounded campaign Q&A. Deterministic retrieval over the verified model,
+    every reply scored against the published 9-parameter rubric."""
+    model = get_model()
+    msg = (req.message or "").strip()
+    if not msg:
+        raise HTTPException(400, "Empty message")
+    if len(msg) > 600:
+        raise HTTPException(400, "Keep questions under 600 characters")
+    org_f = _org(req.org)
+    logger.info(f"DATA_ACCESS: assistant query intents on cohorts={req.cohort_keys}")
+    return AS.answer(model, msg, req.cohort_keys, org_f, req.objective, req.channel)
+
+
+@app.get("/api/rules")
+def rules():
+    """The decision rubrics: every recommendation's parameters and weights."""
+    get_model()
+    return D.registry()
 
 
 @app.get("/api/copy/options")

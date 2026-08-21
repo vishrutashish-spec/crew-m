@@ -19,7 +19,7 @@ export function Sidebar() {
   return (
     <aside className="fixed inset-y-0 left-0 w-[236px] bg-sidebar border-r border-border flex flex-col z-40">
       {/* Brand */}
-      <div className="h-[78px] flex items-center px-5 border-b border-border relative grid-ground">
+      <div className="h-[108px] flex items-center px-5 border-b border-border relative grid-ground overflow-hidden">
         <Link href="/" className="relative">
           <CrewMLogo />
         </Link>

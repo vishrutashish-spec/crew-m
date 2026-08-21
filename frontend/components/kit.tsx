@@ -391,7 +391,7 @@ export function ChartTip({
 }) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-[color:var(--card)] border border-[color:var(--border-strong)] rounded-lg px-3 py-2 shadow-lg">
+    <div className="glass rounded-xl px-3.5 py-2.5">
       {label !== undefined && (
         <p className="text-[11.5px] font-semibold text-[color:var(--ink-text)] mb-1.5 font-heading">{label}</p>
       )}
@@ -476,8 +476,37 @@ export function PageBanner({
           </div>
           {right && <div className="flex-shrink-0 relative">{right}</div>}
         </div>
-        {children && <div className="relative mt-7">{children}</div>}
+        {children && <div className="glass relative mt-7 rounded-2xl px-6 py-5">{children}</div>}
       </div>
     </section>
   );
 }
+
+/* --------------------------------------------------------------------------
+   Chart polish: gradient series fills + soft grid, shared by every chart.
+   Diagonal gradients read well in both bar orientations, and the stops are
+   theme tokens, so dark mode re-lights every chart automatically.
+   -------------------------------------------------------------------------- */
+
+export function SeriesDefs() {
+  return (
+    <defs>
+      {[1, 2, 3].map((i) => (
+        <linearGradient key={i} id={`gs${i}`} x1="0" y1="0" x2="0.6" y2="1">
+          <stop offset="0%" stopColor={`var(--series-${i}-hi)`} />
+          <stop offset="100%" stopColor={`var(--series-${i})`} />
+        </linearGradient>
+      ))}
+      <filter id="soft-glow" x="-30%" y="-30%" width="160%" height="160%">
+        <feDropShadow dx="0" dy="2" stdDeviation="3" floodColor="var(--series-1)" floodOpacity="0.18" />
+      </filter>
+    </defs>
+  );
+}
+
+/** Series gradient fills, indexed to match CHART.ink/red/sand. */
+export const GRAD = {
+  ink: "url(#gs1)",
+  red: "url(#gs2)",
+  sand: "url(#gs3)",
+} as const;

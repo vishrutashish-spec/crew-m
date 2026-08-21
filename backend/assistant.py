@@ -143,9 +143,10 @@ def _handle_channel(model, keys, org, facts):
         {"label": f"{A.CHANNEL_LABELS[win]} addressable", "value": _n(w["addressable"]), "provenance": "DERIVED"},
         {"label": "Rubric", "value": f"6 weighted parameters, v{D.RULES_VERSION}", "provenance": "RECOMMENDED"},
     ]
+    labels = ", ".join(c["label"] for c in cs)
     text = (
-        f"{A.CHANNEL_LABELS[win]} scores {w['total']}/100 on the channel rubric for this "
-        f"selection, against {runner[1]['total']}/100 for {runner[1]['label']}. The rubric "
+        f"{A.CHANNEL_LABELS[win]} scores {w['total']}/100 on the channel rubric for the "
+        f"{labels} selection, against {runner[1]['total']}/100 for {runner[1]['label']}. The rubric "
         f"weighs deliverable reach at 40, open propensity at 22, click at 12, delivery at 10, "
         f"frequency headroom at 9 and DND safety at 7. {A.CHANNEL_LABELS[win]} can address "
         f"{_n(w['addressable'])} people here."
@@ -157,9 +158,16 @@ def _handle_channel(model, keys, org, facts):
 def _handle_conversion(model, keys, org, objective, facts):
     prov, src = A.CONVERSION_PROVENANCE[objective]
     rate = A.OBJECTIVE_CONVERSION[objective]
+    cs = _summary(model, keys, org)
+    labels = ", ".join(c["label"] for c in cs)
+    app = sum(c["app"] for c in cs)
     facts.append({"label": f"Click to convert, {objective.replace('_', ' ')}",
                   "value": _pct(rate, 2), "provenance": prov})
-    lines = []
+    facts.append({"label": f"App base in {labels}", "value": _n(app),
+                  "provenance": "OBSERVED"})
+    lines = [
+        f"For the {labels} selection ({_n(app)} app users), here is what the evidence supports."
+    ]
     if objective in ("th_activation", "hc_activation"):
         f = A.TH_FUNNEL if objective == "th_activation" else A.HC_FUNNEL
         worst_i = min(range(1, len(f)), key=lambda i: f[i][2] / f[i - 1][2])
@@ -189,10 +197,11 @@ def _handle_timing(model, keys, org, facts):
         {"label": "Peak activity window", "value": "20:00 to 23:00", "provenance": "OBSERVED"},
         {"label": "Cohort-adjusted send hour", "value": f"{hour}:00", "provenance": "RECOMMENDED"},
     ]
+    labels = ", ".join(c["label"] for c in cs)
     text = (
         f"Base-wide activity peaks 20:00 to 23:00, and that window is documented, not modeled. "
-        f"Within it, this selection skews to {hour}:00. The timing rubric weighs the documented "
-        f"window at 60 and the cohort age skew at 40."
+        f"Within it, the {labels} selection skews to {hour}:00. The timing rubric weighs the "
+        f"documented window at 60 and the cohort age skew at 40."
     )
     return [text], f"Schedule the send for {hour}:00 local and keep the journey's day-gaps as designed (day 0, 2, 4, 9)."
 
@@ -219,12 +228,14 @@ def _handle_device(model, keys, org, facts):
     android = sum(c["android"] for c in cs)
     ios = sum(c["ios"] for c in cs)
     app = sum(c["app"] for c in cs) or 1
+    labels = ", ".join(c["label"] for c in cs)
     facts += [
+        {"label": f"App base in {labels}", "value": _n(app), "provenance": "OBSERVED"},
         {"label": "Android in app base", "value": f"{_n(android)} ({_pct(android / app, 0)})", "provenance": "MODELED"},
         {"label": "iOS in app base", "value": f"{_n(ios)} ({_pct(ios / app, 0)})", "provenance": "MODELED"},
     ]
     text = (
-        f"Of the {_n(app)} app users in this selection, the model carries {_n(android)} Android "
+        f"Of the {_n(app)} app users in the {labels} selection, the model carries {_n(android)} Android "
         f"({_pct(android / app, 0)}) and {_n(ios)} iOS ({_pct(ios / app, 0)}). This split is MODELED "
         f"and labelled so: no device distribution exists in any source, and CleverTap's counts "
         f"endpoint ignores platform filters, which was verified by direct query. iOS needs explicit "
@@ -242,8 +253,9 @@ def _handle_push_gap(model, keys, org, facts):
         {"label": "Push deliverable", "value": _n(real), "provenance": "DERIVED"},
         {"label": "Stale tokens", "value": _n(reported - real), "provenance": "DERIVED"},
     ]
+    labels = ", ".join(c["label"] for c in cs)
     text = (
-        f"The reachability panel reports {_n(reported)} push-reachable here, but only {_n(real)} "
+        f"The reachability panel reports {_n(reported)} push-reachable in {labels}, but only {_n(real)} "
         f"have an app install signal. The {_n(reported - real)} in between are stale tokens: "
         f"App Uninstalled never fires in this account (zero data points in the schema), so tokens "
         f"are never invalidated. Those sends report as sent and land nowhere."
@@ -281,8 +293,10 @@ def _handle_accuracy(facts):
         "Every figure carries one of four labels: OBSERVED comes off the source of record, DERIVED "
         "is exact arithmetic on observed facts, MODELED is a calibrated assumption that still "
         "reconciles to the anchors, and PREDICTED is a forecast capped at low confidence. The "
-        "cohort model asserts 25 invariants at startup and a full simulation sweep runs on boot; "
-        "if either fails, the API refuses to serve rather than show a wrong number."
+        "956,050-person base reconciles to 25 asserted invariants at startup, 20 simulations are "
+        "swept on every boot, and 3 of the 5 conversion rates are computed from observed funnel "
+        "counts rather than typed in. If any check fails, the API refuses to serve rather than "
+        "show a wrong number."
     )
     return [text], "Open the Methodology page for field-level provenance and the live list of checks."
 

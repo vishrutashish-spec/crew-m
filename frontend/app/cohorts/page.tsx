@@ -7,10 +7,11 @@ import {
 } from "@/lib/api";
 import {
   Panel, PanelHead, ChartFrame, Chip, Stat, BarRow, SplitRibbon,
-  InsightCard, ErrorState, Skeleton, ChartTip, AXIS, PageBanner,
+  InsightCard, ErrorState, Skeleton, ChartTip, AXIS, SeriesDefs, GRAD, PageBanner,
 } from "@/components/kit";
 import { ChannelGlyph } from "@/components/logos";
 import {
+  CartesianGrid,
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
   RadialBarChart, RadialBar, PolarAngleAxis, LabelList,
 } from "recharts";
@@ -130,13 +131,15 @@ function CohortCompare({ cohorts }: { cohorts: Cohort[] }) {
         <div className="h-[236px]">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={data} margin={{ left: -6, right: 12, top: 6, bottom: 0 }} barGap={2}>
+                <SeriesDefs />
+                <CartesianGrid strokeDasharray="3 7" stroke="var(--border)" vertical={false} />
               <XAxis dataKey="label" {...AXIS} />
               <YAxis tickFormatter={compact} {...AXIS} width={44} />
               <Tooltip content={<ChartTip formatter={(v) => n(v)} />}
                 cursor={{ fill: "var(--cursor-fill)" }} />
-              <Bar dataKey="whatsapp" name="WhatsApp" fill={CHART.ink} radius={[4, 4, 0, 0]} barSize={17} />
-              <Bar dataKey="email" name="Email" fill={CHART.red} radius={[4, 4, 0, 0]} barSize={17} />
-              <Bar dataKey="push" name="Push (real)" fill={CHART.sand} radius={[4, 4, 0, 0]} barSize={17} />
+              <Bar dataKey="whatsapp" name="WhatsApp" fill={GRAD.ink} radius={[4, 4, 0, 0]} barSize={17} />
+              <Bar dataKey="email" name="Email" fill={GRAD.red} radius={[4, 4, 0, 0]} barSize={17} />
+              <Bar dataKey="push" name="Push (real)" fill={GRAD.sand} radius={[4, 4, 0, 0]} barSize={17} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -167,12 +170,14 @@ function CohortCompare({ cohorts }: { cohorts: Cohort[] }) {
         <div className="h-[236px]">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={booking} margin={{ left: -6, right: 12, top: 6, bottom: 0 }} barGap={2}>
+                <SeriesDefs />
+                <CartesianGrid strokeDasharray="3 7" stroke="var(--border)" vertical={false} />
               <XAxis dataKey="label" {...AXIS} tick={{ ...AXIS.tick, fontSize: 10 }} />
               <YAxis tickFormatter={compact} {...AXIS} width={40} />
               <Tooltip content={<ChartTip formatter={(v) => n(v)} />}
                 cursor={{ fill: "var(--cursor-fill)" }} />
-              <Bar dataKey="th" name="Telehealth" fill={CHART.ink} radius={[4, 4, 0, 0]} barSize={20} />
-              <Bar dataKey="hc" name="Health checkup" fill={CHART.red} radius={[4, 4, 0, 0]} barSize={20} />
+              <Bar dataKey="th" name="Telehealth" fill={GRAD.ink} radius={[4, 4, 0, 0]} barSize={20} />
+              <Bar dataKey="hc" name="Health checkup" fill={GRAD.red} radius={[4, 4, 0, 0]} barSize={20} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -391,11 +396,13 @@ function Detail({ detail, org }: { detail: CohortDetail; org: string }) {
             <div className="h-[204px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={funnelData(f)} margin={{ left: -6, right: 12, top: 20, bottom: 0 }}>
+                <SeriesDefs />
+                <CartesianGrid strokeDasharray="3 7" stroke="var(--border)" vertical={false} />
                   <XAxis dataKey="stage" {...AXIS} interval={0} tick={{ ...AXIS.tick, fontSize: 9.5 }} />
                   <YAxis tickFormatter={compact} {...AXIS} width={42} />
                   <Tooltip content={<ChartTip formatter={(v, name) => (name === "Users" ? n(v) : pct(v))} />}
                     cursor={{ fill: "var(--cursor-fill)" }} />
-                  <Bar dataKey="count" name="Users" fill={CHART.ink} radius={[4, 4, 0, 0]} barSize={38}>
+                  <Bar dataKey="count" name="Users" fill={GRAD.ink} radius={[4, 4, 0, 0]} barSize={38}>
                     <LabelList dataKey="step" position="top"
                       formatter={(v: unknown) => (typeof v === "number" && v < 1 ? pct(v, 0) : "")}
                       style={{ fontSize: 9.5, fill: "var(--tick)", fontFamily: "Vollkorn, Georgia, serif" }} />

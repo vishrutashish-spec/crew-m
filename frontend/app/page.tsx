@@ -8,10 +8,11 @@ import {
 } from "@/lib/api";
 import {
   Panel, PanelHead, ChartFrame, Chip, Stat, BarRow, SplitRibbon,
-  InsightCard, ErrorState, Skeleton, ChartTip, AXIS, PageBanner,
+  InsightCard, ErrorState, Skeleton, ChartTip, AXIS, SeriesDefs, GRAD, PageBanner,
 } from "@/components/kit";
 import { ChannelTickX, ChannelGlyph } from "@/components/logos";
 import {
+  CartesianGrid,
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
   ComposedChart, Line, LabelList,
 } from "recharts";
@@ -135,6 +136,8 @@ function Body({ data }: { data: OverviewX }) {
           <div className="h-[244px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={reachChart} margin={{ left: -6, right: 16, top: 6, bottom: 16 }} barGap={3}>
+                <SeriesDefs />
+                <CartesianGrid strokeDasharray="3 7" stroke="var(--border)" vertical={false} />
                 <XAxis dataKey="channel" tick={<ChannelTickX />} axisLine={false} tickLine={false}
                   interval={0} height={48} />
                 <YAxis tickFormatter={compact} {...AXIS} width={44} />
@@ -142,12 +145,12 @@ function Body({ data }: { data: OverviewX }) {
                   cursor={{ fill: "var(--cursor-fill)" }} />
                 <Bar dataKey="reported" name="Reported reachable" radius={[5, 5, 0, 0]} barSize={36}>
                   {reachChart.map((d) => (
-                    <Cell key={d.channel} fill={d.channel === "Push" ? CHART.sand : CHART.ink} />
+                    <Cell key={d.channel} fill={d.channel === "Push" ? GRAD.sand : GRAD.ink} />
                   ))}
                 </Bar>
                 <Bar dataKey="real" name="Actually deliverable" radius={[5, 5, 0, 0]} barSize={36}>
                   {reachChart.map((d) => (
-                    <Cell key={d.channel} fill={d.channel === "Push" ? CHART.red : CHART.ink} />
+                    <Cell key={d.channel} fill={d.channel === "Push" ? GRAD.red : GRAD.ink} />
                   ))}
                 </Bar>
               </BarChart>
@@ -204,6 +207,7 @@ function Body({ data }: { data: OverviewX }) {
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={segments} layout="vertical"
                 margin={{ left: 10, right: 46, top: 4, bottom: 4 }} barGap={2}>
+                <SeriesDefs />
                 <XAxis type="number" domain={[0, 100]}
                   tickFormatter={(v: number) => `${v}%`} {...AXIS} />
                 <YAxis type="category" dataKey="label" {...AXIS} width={178}
@@ -211,9 +215,9 @@ function Body({ data }: { data: OverviewX }) {
                 <Tooltip
                   content={<ChartTip formatter={(v) => `${v}%`} />}
                   cursor={{ fill: "var(--cursor-fill)" }} />
-                <Bar dataKey="waPct" name="WhatsApp" fill={CHART.ink} radius={[0, 4, 4, 0]} barSize={9} />
-                <Bar dataKey="emailPct" name="Gmail" fill={CHART.red} radius={[0, 4, 4, 0]} barSize={9} />
-                <Bar dataKey="pushPct" name="Plum push" fill={CHART.sand} radius={[0, 4, 4, 0]} barSize={9}>
+                <Bar dataKey="waPct" name="WhatsApp" fill={GRAD.ink} radius={[0, 4, 4, 0]} barSize={9} />
+                <Bar dataKey="emailPct" name="Gmail" fill={GRAD.red} radius={[0, 4, 4, 0]} barSize={9} />
+                <Bar dataKey="pushPct" name="Plum push" fill={GRAD.sand} radius={[0, 4, 4, 0]} barSize={9}>
                   <LabelList dataKey="users" position="right"
                     formatter={(v: unknown) => (typeof v === "number" ? compact(v) : "")}
                     style={{ fontSize: 10, fill: "var(--tick)", fontFamily: "Vollkorn, Georgia, serif" }} />
@@ -254,6 +258,8 @@ function Body({ data }: { data: OverviewX }) {
           <div className="h-[262px]">
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={cohortChart} margin={{ left: -6, right: 8, top: 12, bottom: 0 }}>
+                <SeriesDefs />
+                <CartesianGrid strokeDasharray="3 7" stroke="var(--border)" vertical={false} />
                 <XAxis dataKey="label" {...AXIS} />
                 <YAxis tickFormatter={compact} {...AXIS} width={44} />
                 <YAxis yAxisId="r" orientation="right" domain={[0, 0.4]}
@@ -261,8 +267,8 @@ function Body({ data }: { data: OverviewX }) {
                 <Tooltip
                   content={<ChartTip formatter={(v, name) => (name === "App ownership" ? pct(v) : n(v))} />}
                   cursor={{ fill: "var(--cursor-fill)" }} />
-                <Bar dataKey="app" name="Has app" stackId="a" fill={CHART.ink} barSize={44} />
-                <Bar dataKey="noApp" name="No app" stackId="a" fill={CHART.sand}
+                <Bar dataKey="app" name="Has app" stackId="a" fill={GRAD.ink} barSize={44} />
+                <Bar dataKey="noApp" name="No app" stackId="a" fill={GRAD.sand}
                   radius={[5, 5, 0, 0]} barSize={44} />
                 <Line yAxisId="r" type="monotone" dataKey="appShare" name="App ownership"
                   stroke={CHART.red} strokeWidth={2.5}
@@ -391,6 +397,8 @@ function FunnelPanel({
       <div className="h-[212px]">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} margin={{ left: -6, right: 12, top: 20, bottom: 0 }}>
+                <SeriesDefs />
+                <CartesianGrid strokeDasharray="3 7" stroke="var(--border)" vertical={false} />
             <XAxis dataKey="stage" {...AXIS} interval={0} tick={{ ...AXIS.tick, fontSize: 10 }} />
             <YAxis tickFormatter={compact} {...AXIS} width={44} />
             <Tooltip
@@ -398,7 +406,7 @@ function FunnelPanel({
               cursor={{ fill: "var(--cursor-fill)" }} />
             <Bar dataKey="count" name="Users" radius={[5, 5, 0, 0]} barSize={40}>
               {data.map((d) => (
-                <Cell key={d.stage} fill={d.isWorst ? CHART.red : CHART.ink} />
+                <Cell key={d.stage} fill={d.isWorst ? GRAD.red : GRAD.ink} />
               ))}
               <LabelList dataKey="step" position="top"
                 formatter={(v: unknown) => (typeof v === "number" && v < 1 ? pct(v, 0) : "")}

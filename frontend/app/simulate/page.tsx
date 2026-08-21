@@ -7,18 +7,22 @@ import {
   type SimOptions, type SimResult, type Cohort,
   type CopyOptions, type CopyGenResponse, type CopyVariant,
   type CopyAnalysis, type CopyPrediction,
+  askAssistant, getRules, SPECTRUM,
+  type AssistantReply, type DecisionParam,
 } from "@/lib/api";
 import {
-  Panel, PanelHead, ChartFrame, Chip, Stat, ErrorState, ChartTip, AXIS,
+  Panel, PanelHead, ChartFrame, Chip, Stat, ErrorState, ChartTip, AXIS, SeriesDefs, GRAD,
   PageBanner, MacBar,
 } from "@/components/kit";
 import { ChannelGlyph, ChannelTickY, PlumGlyph, WhatsAppGlyph, GmailGlyph } from "@/components/logos";
 import {
+  CartesianGrid,
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, LabelList,
+  PieChart, Pie,
 } from "recharts";
 import {
   ArrowRight, TriangleAlert, RotateCw, Check, Clock, Users, Radio,
-  Sparkles, PenLine, TrendingUp, TrendingDown,
+  Sparkles, PenLine, TrendingUp, TrendingDown, MessageCircle, ChevronDown, Send,
 } from "lucide-react";
 
 export default function SimulatePage() {
@@ -279,6 +283,14 @@ export default function SimulatePage() {
         channelWasAuto={!channel}
         audienceSent={result?.audience.sent ?? null}
         copyOpts={copyOpts}
+      />
+
+      {/* ---------- STEP 5: ask ---------- */}
+      <AskPanel
+        cohortKeys={selected}
+        org={org === "all" ? null : org}
+        objective={objective}
+        channel={channel || result?.channel.selected || null}
       />
     </div>
   );
@@ -708,6 +720,8 @@ function Result({ result: r }: { result: SimResult }) {
         </div>
       )}
 
+      {r.decision && <DecisionBreakdown result={r} />}
+
       <div className="grid grid-cols-12 gap-5">
         <ChartFrame
           title="Channel choice"
@@ -721,6 +735,7 @@ function Result({ result: r }: { result: SimResult }) {
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={channelData} layout="vertical"
                 margin={{ left: 14, right: 44, top: 4, bottom: 4 }}>
+                <SeriesDefs />
                 <XAxis type="number" tickFormatter={compact} {...AXIS} />
                 <YAxis type="category" dataKey="channel" width={96}
                   tick={<ChannelTickY />} axisLine={false} tickLine={false} />
@@ -728,7 +743,7 @@ function Result({ result: r }: { result: SimResult }) {
                   cursor={{ fill: "var(--cursor-fill)" }} />
                 <Bar dataKey="addressable" name="Addressable" radius={[0, 5, 5, 0]} barSize={26}>
                   {channelData.map((d) => (
-                    <Cell key={d.channel} fill={d.isChosen ? CHART.ink : CHART.sand} />
+                    <Cell key={d.channel} fill={d.isChosen ? GRAD.ink : GRAD.sand} />
                   ))}
                   <LabelList dataKey="addressable" position="right"
                     formatter={(v: unknown) => (typeof v === "number" ? compact(v) : "")}
@@ -759,13 +774,15 @@ function Result({ result: r }: { result: SimResult }) {
           <div className="h-[196px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={funnel} margin={{ left: -6, right: 12, top: 20, bottom: 0 }}>
+                <SeriesDefs />
+                <CartesianGrid strokeDasharray="3 7" stroke="var(--border)" vertical={false} />
                 <XAxis dataKey="stage" {...AXIS} />
                 <YAxis tickFormatter={compact} {...AXIS} width={44} />
                 <Tooltip content={<ChartTip formatter={(v, name) => (name === "Users" ? n(v) : pct(v))} />}
                   cursor={{ fill: "var(--cursor-fill)" }} />
                 <Bar dataKey="count" name="Users" radius={[5, 5, 0, 0]} barSize={44}>
                   {funnel.map((d, i) => (
-                    <Cell key={d.stage} fill={i === funnel.length - 1 ? CHART.red : CHART.ink} />
+                    <Cell key={d.stage} fill={i === funnel.length - 1 ? GRAD.red : GRAD.ink} />
                   ))}
                   <LabelList dataKey="rate" position="top"
                     formatter={(v: unknown) => (typeof v === "number" && v < 1 ? pct(v, 1) : "")}
@@ -876,5 +893,322 @@ function Toggle({
         <span className="text-[10.5px] text-muted-foreground">{hint}</span>
       </span>
     </button>
+  );
+}
+
+/* ==========================================================================
+   Decision breakdown: the recommendation's parameters and weights, as a
+   spectrum pie (deliberately outside the plum data palette) plus per-channel
+   rubric scores. Collapsed by default so it explains without crowding.
+   ========================================================================== */
+
+function DecisionBreakdown({ result: r }: { result: SimResult }) {
+  const [open, setOpen] = useState(false);
+  const d = r.decision!;
+  const pie = d.rule.parameters.map((p, i) => ({
+    name: p.label, value: p.weight, fill: SPECTRUM[i % SPECTRUM.length], desc: p.desc,
+  }));
+  const ranked = Object.entries(d.channels).sort((a, b) => b[1].total - a[1].total);
+  const maxScore = ranked[0]?.[1].total || 1;
+
+  return (
+    <Panel className="p-0 overflow-hidden">
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center gap-3 px-5 py-4 text-left hover:bg-[color:var(--muted)] transition-colors"
+        aria-expanded={open}
+      >
+        <span className="w-8 h-8 rounded-lg metal-cyan flex items-center justify-center flex-shrink-0">
+          <ChevronDown className={`w-4 h-4 text-white transition-transform ${open ? "rotate-180" : ""}`} />
+        </span>
+        <span className="flex-1">
+          <span className="text-[13.5px] font-medium font-heading block">How this recommendation was calculated</span>
+          <span className="text-[11px] text-muted-foreground">
+            {d.rule.parameters.length} weighted parameters · rubric v{d.rule.version} · every weight published
+          </span>
+        </span>
+        <Chip kind="RECOMMENDED" />
+      </button>
+
+      {open && (
+        <div className="px-5 pb-5 pt-1 border-t border-border">
+          <div className="grid grid-cols-12 gap-6 items-center">
+            {/* Weight pie */}
+            <div className="col-span-12 md:col-span-4 flex items-center gap-5">
+              <div className="w-[150px] h-[150px] flex-shrink-0">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie data={pie} dataKey="value" nameKey="name" cx="50%" cy="50%"
+                      innerRadius={42} outerRadius={68} paddingAngle={3} strokeWidth={0} />
+                    <Tooltip content={<ChartTip formatter={(v) => `${v}% weight`} />} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="space-y-1.5 min-w-0">
+                {pie.map((p) => (
+                  <div key={p.name} className="flex items-center gap-2 text-[11px]" title={p.desc}>
+                    <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: p.fill }} />
+                    <span className="text-muted-foreground truncate">{p.name}</span>
+                    <span className="tnum font-semibold ml-auto">{p.value}%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Per-channel rubric scores */}
+            <div className="col-span-12 md:col-span-8 space-y-3.5">
+              {ranked.map(([key, ch]) => (
+                <div key={key}>
+                  <div className="flex items-baseline justify-between gap-3 mb-1.5">
+                    <span className="text-[12.5px] font-medium inline-flex items-center gap-2">
+                      <ChannelGlyph channel={key} size={15} />
+                      {ch.label}
+                      {key === d.selected && (
+                        <span className="chip chip-derived !text-[8px]">SELECTED</span>
+                      )}
+                    </span>
+                    <span className="text-[12.5px] tnum">
+                      <span className="font-semibold">{ch.total}</span>
+                      <span className="text-muted-foreground">/100 · {n(ch.addressable)} addressable</span>
+                    </span>
+                  </div>
+                  <div className="ribbon">
+                    <span style={{
+                      width: `${(ch.total / Math.max(maxScore, 1)) * 100}%`,
+                      background: key === d.selected
+                        ? "linear-gradient(90deg, #22C8D6, #3B82F6)"
+                        : "var(--border-strong)",
+                    }} />
+                  </div>
+                </div>
+              ))}
+              {r.conversion_provenance && (
+                <p className="text-[10.5px] text-muted-foreground pt-2 border-t border-border">
+                  Click-to-convert basis: <Chip kind={r.conversion_provenance.kind} />{" "}
+                  {r.conversion_provenance.basis}.
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </Panel>
+  );
+}
+
+/* ==========================================================================
+   Ask Crew M: grounded campaign Q&A. Every reply carries the facts it used
+   with provenance, and a quality score against the published 9-parameter
+   rubric, computed from the reply itself.
+   ========================================================================== */
+
+interface ChatMsg {
+  role: "user" | "ai";
+  text: string;
+  reply?: AssistantReply;
+}
+
+const SUGGESTED = [
+  "Which channel for this selection?",
+  "How many can we actually reach on push?",
+  "Write a WhatsApp message for this cohort",
+  "How do I know these numbers are reliable?",
+];
+
+function AskPanel({
+  cohortKeys, org, objective, channel,
+}: {
+  cohortKeys: string[];
+  org: string | null;
+  objective: string;
+  channel: string | null;
+}) {
+  const [messages, setMessages] = useState<ChatMsg[]>([]);
+  const [input, setInput] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [rubric, setRubric] = useState<DecisionParam[] | null>(null);
+  const [rubricOpen, setRubricOpen] = useState(false);
+
+  useEffect(() => {
+    getRules().then((r) => {
+      const rule = r.rules.find((x) => x.id === "assistant_quality");
+      if (rule) setRubric(rule.parameters);
+    }).catch(() => {});
+  }, []);
+
+  async function send(text?: string) {
+    const msg = (text ?? input).trim();
+    if (!msg || busy) return;
+    setInput("");
+    setMessages((m) => [...m, { role: "user", text: msg }]);
+    setBusy(true);
+    try {
+      const reply = await askAssistant({
+        message: msg, cohort_keys: cohortKeys, org, objective, channel,
+      });
+      setMessages((m) => [...m, { role: "ai", text: reply.answer, reply }]);
+    } catch (e) {
+      setMessages((m) => [...m, {
+        role: "ai",
+        text: e instanceof Error ? `That did not work: ${e.message}` : "That did not work.",
+      }]);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Panel className="p-5 rise" ground="grid">
+      <PanelHead
+        title="5 · Ask Crew M"
+        sub="Grounded answers only: every reply cites the figures it used and scores itself against the published rubric"
+        chip="DERIVED"
+        right={
+          <div className="relative">
+            <button className="btn !px-3 !py-1.5 !text-[11px]" onClick={() => setRubricOpen(!rubricOpen)}>
+              Scored on {rubric?.length ?? 9} parameters
+              <ChevronDown className={`w-3 h-3 transition-transform ${rubricOpen ? "rotate-180" : ""}`} />
+            </button>
+            {rubricOpen && rubric && (
+              <div className="glass absolute right-0 top-full mt-2 w-[340px] z-30 rounded-2xl p-4">
+                <p className="label-mono mb-2.5">Answer quality rubric · weights sum to 100</p>
+                <div className="space-y-2">
+                  {rubric.map((p, i) => (
+                    <div key={p.key} className="flex items-start gap-2 text-[11px]">
+                      <span className="w-2 h-2 rounded-full mt-1 flex-shrink-0"
+                        style={{ background: SPECTRUM[i % SPECTRUM.length] }} />
+                      <span className="flex-1">
+                        <span className="font-medium">{p.label}</span>
+                        <span className="text-muted-foreground block text-[10px] leading-snug">{p.desc}</span>
+                      </span>
+                      <span className="tnum font-semibold flex-shrink-0">{p.weight}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        }
+      />
+
+      {/* Thread */}
+      <div className="relative space-y-3 mb-4">
+        {messages.length === 0 && (
+          <div className="flex items-start gap-3 py-2">
+            <span className="w-8 h-8 rounded-lg metal-ink flex items-center justify-center flex-shrink-0">
+              <MessageCircle className="w-4 h-4 text-[color:var(--sand)]" />
+            </span>
+            <p className="text-[12px] text-muted-foreground leading-relaxed pt-1.5">
+              Ask about reach, channels, conversion, timing, DND, devices or copy for your current
+              selection. Answers use only figures the cohort model serves.
+            </p>
+          </div>
+        )}
+        {messages.map((m, i) => (
+          m.role === "user" ? (
+            <div key={i} className="flex justify-end">
+              <div className="max-w-[70%] rounded-2xl rounded-br-md px-4 py-2.5 metal-ink">
+                <p className="text-[12.5px] text-white leading-relaxed">{m.text}</p>
+              </div>
+            </div>
+          ) : (
+            <AiMessage key={i} msg={m} />
+          )
+        ))}
+        {busy && (
+          <div className="flex items-center gap-2.5 text-[12px] text-muted-foreground">
+            <RotateCw className="w-3.5 h-3.5 animate-spin" /> Checking the model
+          </div>
+        )}
+      </div>
+
+      {/* Suggestions + input */}
+      {messages.length === 0 && (
+        <div className="relative flex flex-wrap gap-2 mb-3">
+          {SUGGESTED.map((q) => (
+            <button key={q} className="btn !px-3 !py-1.5 !text-[11px]" onClick={() => send(q)}>
+              {q}
+            </button>
+          ))}
+        </div>
+      )}
+      <div className="relative flex gap-2.5">
+        <input
+          className="field flex-1"
+          placeholder="Ask about this campaign plan"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && send()}
+        />
+        <button onClick={() => send()} disabled={busy || !input.trim()}
+          className="btn btn-primary !px-5">
+          <Send className="w-4 h-4" />
+        </button>
+      </div>
+    </Panel>
+  );
+}
+
+function AiMessage({ msg }: { msg: ChatMsg }) {
+  const [showScore, setShowScore] = useState(false);
+  const r = msg.reply;
+  return (
+    <div className="flex items-start gap-3">
+      <span className="w-8 h-8 rounded-lg metal-cyan flex items-center justify-center flex-shrink-0 mt-1">
+        <MessageCircle className="w-4 h-4 text-white" />
+      </span>
+      <div className="flex-1 min-w-0 panel-flush p-4">
+        <p className="text-[12.5px] leading-relaxed whitespace-pre-line">{msg.text}</p>
+        {r?.action && (
+          <p className="text-[11.5px] mt-2.5 pt-2.5 border-t border-border">
+            <span className="label-mono !text-[color:var(--cyan-deep)] mr-2">Do this</span>
+            {r.action}
+          </p>
+        )}
+        {r && (
+          <>
+            <div className="flex flex-wrap gap-1.5 mt-3">
+              {r.facts.slice(0, 4).map((f, i) => (
+                <span key={i} className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg border border-border bg-[color:var(--card)] text-[10px]">
+                  <Chip kind={f.provenance} />
+                  <span className="text-muted-foreground">{f.label}:</span>
+                  <span className="tnum font-semibold">{f.value}</span>
+                </span>
+              ))}
+            </div>
+            <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-border">
+              <button onClick={() => setShowScore(!showScore)}
+                className="text-[11px] text-[color:var(--cyan-deep)] hover:underline">
+                {showScore ? "Hide scoring" : "How this answer was scored"}
+              </button>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="label-mono !text-[9px]">Quality</span>
+                <span className={`tnum font-heading font-bold text-[15px] ${
+                  r.score.total >= 9 ? "text-[color:var(--success)]"
+                  : r.score.total >= 7 ? "text-[color:var(--warning)]" : "text-[color:var(--red)]"
+                }`}>
+                  {r.score.total}/{r.score.out_of}
+                </span>
+              </span>
+            </div>
+            {showScore && (
+              <div className="mt-2.5 space-y-1.5">
+                {r.score.parameters.map((p, i) => (
+                  <div key={p.key} className="flex items-center gap-2.5 text-[10.5px]">
+                    <span className="w-28 text-muted-foreground truncate flex-shrink-0">{p.label}</span>
+                    <div className="ribbon flex-1 !h-[6px]">
+                      <span style={{ width: `${p.score * 100}%`, background: SPECTRUM[i % SPECTRUM.length] }} />
+                    </div>
+                    <span className="tnum w-14 text-right text-muted-foreground flex-shrink-0">
+                      {p.points}/{p.weight}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
   );
 }
