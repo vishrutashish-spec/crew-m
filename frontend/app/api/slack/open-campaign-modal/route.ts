@@ -51,16 +51,14 @@ export async function POST(request: Request) {
         },
       },
       {
+        // Slack's file_input block element isn't supported inside modals
+        // opened via views.open (Workflow Builder / App Home only) — a
+        // plain URL field is the reliable substitute.
         type: "input",
         block_id: "logo_block",
         optional: true,
-        label: { type: "plain_text", text: "Client logo (optional)" },
-        element: {
-          type: "file_input",
-          action_id: "logo_upload",
-          filetypes: ["png", "jpg", "jpeg", "svg"],
-          max_files: 1,
-        },
+        label: { type: "plain_text", text: "Client logo URL (optional)" },
+        element: { type: "plain_text_input", action_id: "logo_url_input" },
       },
     ],
   };
@@ -76,7 +74,7 @@ export async function POST(request: Request) {
 
   const data = await res.json();
   if (!data.ok) {
-    console.error("views.open failed", data.error);
+    console.error("views.open failed", data.error, JSON.stringify(data.response_metadata ?? {}));
     return NextResponse.json({ ok: false, error: data.error }, { status: 502 });
   }
 
