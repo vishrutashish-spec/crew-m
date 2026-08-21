@@ -463,7 +463,7 @@ function PersonaDetail({ persona: p }: { persona: Persona }) {
                     <BarChart data={ageDistData} margin={{ left: 0, right: 0, top: 0, bottom: 0 }}>
                       <XAxis dataKey="label" tick={{ fontSize: 9, fill: "oklch(0.5 0.02 320)" }} axisLine={false} tickLine={false} />
                       <YAxis hide />
-                      <Tooltip formatter={(v: number) => [v.toLocaleString(), "Users"]} contentStyle={{ fontSize: 11, borderRadius: 8 }} />
+                      <Tooltip formatter={(v) => [(v as number).toLocaleString(), "Users"]} contentStyle={{ fontSize: 11, borderRadius: 8 }} />
                       <Bar dataKey="count" fill="oklch(0.35 0.12 320)" radius={[3, 3, 0, 0]} barSize={20} />
                     </BarChart>
                   </ResponsiveContainer>
@@ -508,7 +508,7 @@ function PersonaDetail({ persona: p }: { persona: Persona }) {
                 <BarChart data={orgData} margin={{ left: 0, right: 10, top: 5, bottom: 0 }}>
                   <XAxis dataKey="type" tick={{ fontSize: 10, fill: "oklch(0.5 0.02 320)" }} axisLine={false} tickLine={false} />
                   <YAxis hide />
-                  <Tooltip formatter={(v: number) => [v.toLocaleString(), "Users"]} contentStyle={{ fontSize: 11, borderRadius: 8 }} />
+                  <Tooltip formatter={(v) => [(v as number).toLocaleString(), "Users"]} contentStyle={{ fontSize: 11, borderRadius: 8 }} />
                   <Bar dataKey="count" radius={[4, 4, 0, 0]} barSize={24}>
                     {orgData.map((d) => <Cell key={d.type} fill={ORG_COLORS[d.type] || "oklch(0.5 0 0)"} />)}
                   </Bar>
