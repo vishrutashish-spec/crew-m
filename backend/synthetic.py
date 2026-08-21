@@ -230,7 +230,6 @@ def generate_users(n_users: int = 10_000, seed: int = RANDOM_SEED) -> pd.DataFra
         "is_dnd": is_dnd,
 
         "whatsapp_reachable": whatsapp_reachable,
-        "sms_reachable": sms_reachable,
         "email_reachable": email_reachable,
         "push_reachable": push_reachable,
 

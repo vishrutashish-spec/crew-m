@@ -124,7 +124,6 @@ def cluster_users(df: pd.DataFrame, n_clusters: int = N_PERSONAS) -> dict:
             # Channel reachability
             "channel_reach": {
                 "whatsapp": round(cluster_df["whatsapp_reachable"].astype(float).mean(), 3),
-                "sms": round(cluster_df["sms_reachable"].astype(float).mean(), 3),
                 "email": round(cluster_df["email_reachable"].astype(float).mean(), 3),
                 "push": round(cluster_df["push_reachable"].astype(float).mean(), 3),
             },
@@ -293,7 +292,7 @@ def score_audience_fit(persona: dict, campaign_objective: str) -> dict:
         if persona["app_installed_share"] > 0.5:
             reasons.append(f"App installed ({persona['app_installed_share']:.0%}) — push + in-app viable")
         elif persona["app_installed_share"] < 0.05:
-            reasons.append(f"No app ({persona['app_installed_share']:.0%}) — SMS/WhatsApp only")
+            reasons.append(f"No app ({persona['app_installed_share']:.0%}) — WhatsApp/email only")
 
         # Responsiveness (0-15 pts)
         score += persona["avg_notif_response_rate"] * 15
