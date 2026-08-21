@@ -32,6 +32,14 @@ export async function simulateCampaign(params: SimulationParams) {
   });
 }
 
+export async function getCtLive() {
+  return fetchAPI<CtLiveResponse>("/api/ct-live");
+}
+
+export async function refreshCtLive() {
+  return fetchAPI<CtLiveResponse>("/api/ct-refresh", { method: "POST" });
+}
+
 // Types
 
 export interface Persona {
@@ -102,6 +110,26 @@ export interface DashboardResponse {
     structural_gap: string;
   };
   generated_at?: string;
+  ct_live?: CtLiveMetrics | null;
+}
+
+export interface CtLiveMetrics {
+  dau?: number;
+  mau?: number;
+  new_installs_30d?: number;
+  ytd_active_users?: number;
+  ytd_installs?: number;
+  total_sessions_30d?: number;
+  uninstalls_90d?: number;
+  pulled_at?: string;
+  date_range?: string;
+}
+
+export interface CtLiveResponse {
+  label: string;
+  status: "live" | "unavailable" | "error";
+  metrics?: CtLiveMetrics;
+  reason?: string;
 }
 
 export interface PersonasResponse {

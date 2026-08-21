@@ -303,6 +303,31 @@ def simulate_campaign(req: SimulationRequest):
     }
 
 
+@app.get("/api/ct-live")
+def ct_live():
+    """Live CleverTap aggregate metrics — counts only, no PII."""
+    state = get_state()
+    ct = state.get("ct_live")
+    if not ct:
+        return {"label": "OBSERVED", "status": "unavailable", "reason": "no_credentials"}
+    logger.info("DATA_ACCESS: ct-live metrics requested")
+    return {"label": "OBSERVED", "status": "live", "metrics": ct}
+
+
+@app.post("/api/ct-refresh")
+def ct_refresh():
+    """Re-pull CT metrics without restarting the server."""
+    logger.info("DATA_ACCESS: ct-live refresh requested")
+    try:
+        ct_live = get_live_metrics()
+        if ct_live:
+            _state["ct_live"] = ct_live
+            return {"label": "OBSERVED", "status": "live", "metrics": ct_live}
+        return {"label": "OBSERVED", "status": "unavailable", "reason": "no_credentials"}
+    except Exception as e:
+        return {"label": "OBSERVED", "status": "error", "reason": str(e)}
+
+
 @app.get("/api/campaigns")
 def list_campaigns():
     """Historical campaign performance data."""
