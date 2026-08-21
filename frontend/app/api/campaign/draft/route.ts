@@ -48,8 +48,49 @@ export async function POST(request: Request) {
   ].join("\n");
 
   const region = process.env.CT_REGION ?? "in1";
+  const reviewUrl = `https://${region}.clevertap.com/`;
+
+  const record = {
+    am_name: amName,
+    account_name: accountName,
+    campaign_type: campaignType,
+    subject: copy?.subject ?? "",
+    body: copy?.body ?? "",
+    creative_url: creative?.creativeUrl ?? "",
+    creative_is_stub: Boolean(creative?.stub),
+    segment_suggestion: segmentSuggestion,
+    campaign_name: campaignName,
+    review_url: reviewUrl,
+  };
+
+  let id: string | null = null;
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (supabaseUrl && supabaseKey) {
+    try {
+      const insertRes = await fetch(`${supabaseUrl}/rest/v1/campaign_requests`, {
+        method: "POST",
+        headers: {
+          apikey: supabaseKey,
+          Authorization: `Bearer ${supabaseKey}`,
+          "Content-Type": "application/json",
+          Prefer: "return=representation",
+        },
+        body: JSON.stringify(record),
+      });
+      if (insertRes.ok) {
+        const [row] = await insertRes.json();
+        id = row?.id ?? null;
+      } else {
+        console.error("Supabase insert failed", insertRes.status, await insertRes.text());
+      }
+    } catch (err) {
+      console.error("Supabase insert threw", err);
+    }
+  }
 
   return NextResponse.json({
+    id,
     requestId,
     campaignName,
     channel,
@@ -59,7 +100,7 @@ export async function POST(request: Request) {
     creativeUrl: creative?.creativeUrl ?? "",
     creativeIsStub: Boolean(creative?.stub),
     segmentSuggestion,
-    reviewUrl: `https://${region}.clevertap.com/`,
+    reviewUrl,
     // Kept for the Slack-reply path, which still expects a flat string.
     summary,
   });
