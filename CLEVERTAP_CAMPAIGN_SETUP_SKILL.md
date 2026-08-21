@@ -760,7 +760,113 @@ From the CT editor mobile preview:
 - Social icon rows: desktop has horizontal layout (logo + icons in
   one row), mobile has stacked layout (logo above, icons below)
 
-### 11.8 Anti-Patterns (What Plum Does NOT Do)
+### 11.8 Banner Co-Branding Lockup & Layout
+
+> Extracted from Figma banner screenshots showing HC and TH banners
+> with partner logos (teikametrics, WeWork), including correct sizing,
+> a documented sizing fuckup, and element positioning.
+
+**Banner dimensions (confirmed):**
+- Desktop: **944 × 422px**
+- Mobile: 514 × 828px (stacked variant, see Section 2.3)
+
+**Two-zone layout:**
+
+```
+┌──────────────────────────┬───────────────────────────┐
+│                          │                           │
+│   Co-branding lockup     │     Phone mockup          │
+│   (plum | partner)       │     showing app screen    │
+│                          │                           │
+│   "Hey There!"           │     (+ illustration       │
+│       ✦                  │      if applicable)       │
+│   Subtitle/value prop    │                           │
+│                          │                           │
+└──────────────────────────┴───────────────────────────┘
+     Left half (~45%)            Right half (~55%)
+```
+
+- **Left half**: text content zone — co-branding lockup at top, greeting,
+  decorative sparkle, subtitle
+- **Right half**: visual zone — phone mockup showing the relevant app
+  screen (Health Checkup Report, TeleHealth card), sometimes with an
+  illustrated character (doctor)
+- **Background**: pink gradient (left) → mint/teal gradient (right),
+  with particle/dot texture at the transition
+
+**Co-branding lockup structure:**
+
+```
+  plum  │  partnerlogo
+```
+
+- Plum wordmark (coral/red) + thin vertical divider + partner logo
+- Divider is a light/subtle line, ~1px, slightly shorter than logo height
+- Positioned at the top of the left zone, centered horizontally within it
+- If the partner's org also has standalone branding, it appears
+  **independently above** the lockup (see WeWork example: large "wework"
+  at top, then the "plum | wework" lockup below it)
+
+**Logo sizing — the critical rule:**
+
+| Partner logo size | Status | Why |
+|-------------------|--------|-----|
+| ~104 × 27px | CORRECT | Visually proportional to the Plum wordmark — neither dominates |
+| ~208 × 54px | WRONG | 2× the correct size. Partner logo visually overwhelms Plum's wordmark, breaking brand hierarchy |
+
+**The rule:** The partner logo must be **visually equal to or slightly
+smaller** than the Plum wordmark. Plum sets the sizing baseline. When in
+doubt, scale the partner logo DOWN until it feels balanced — never up.
+The co-branding lockup should read as "Plum + Partner", not
+"partner (and also plum)".
+
+**Text positioning within left zone:**
+
+| Element | Style | Position |
+|---------|-------|----------|
+| Co-branding lockup | Logo images | Top of left zone, horizontally centered |
+| Greeting | Large serif (GT Alpina), dark plum | Below lockup, ~24px gap |
+| Decorative sparkle | Small star/sparkle icon, muted | Below greeting, centered under text |
+| Subtitle / value prop | Medium serif, dark plum, 2–3 lines max | Below sparkle, ~16px gap |
+
+**Greeting text varies by email type:**
+- "Hey There!" — general (HC, TH activation)
+- "Welcome!" — onboarding / enrollment
+- Never personalized in the banner (personalization happens in body text below)
+
+**Subtitle examples:**
+- "Your Comprehensive Health Checkup is ready to book"
+- "Personalised care from a doctor is just a call away"
+- "Enroll to access your insurance benefits"
+
+**Right zone — phone mockup rules:**
+- Phone frame uses a realistic iOS chrome (status bar: 9:00, signal, wifi, battery)
+- Screen content matches the campaign's product (HC report with biomarker
+  gauge, TeleHealth card with description)
+- If an illustrated character is used (e.g. doctor), it sits below/beside
+  the phone, slightly overlapping, inside a circular mask in Figma
+- The phone mockup is slightly rotated or angled for visual interest
+- Mockup extends to the right edge of the banner (can bleed off-edge)
+
+**Common banner mistakes (from screenshots):**
+
+1. **Partner logo too large** — at 208×54 the teikametrics logo dominated
+   the lockup. The correct size was 104×27. Always check that the
+   partner logo doesn't visually outweigh Plum's wordmark.
+
+2. **Text misalignment** — greeting and subtitle should be left-aligned
+   within the left zone, centered as a group. Don't center each line
+   independently (creates a ragged mess).
+
+3. **Wrong aspect ratio for phone mockup** — the mockup should show a
+   real app screen at phone proportions, not a stretched or cropped
+   screenshot.
+
+4. **Missing co-branding divider** — the thin vertical line between
+   logos is subtle but structurally important. Without it, the two
+   logos look accidentally adjacent.
+
+### 11.9 Anti-Patterns (What Plum Does NOT Do)
 
 - **No dark backgrounds** for body content — always white
 - **No multiple competing CTAs** in the body — one primary per email
