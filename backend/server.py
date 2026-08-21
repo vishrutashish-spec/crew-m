@@ -7,6 +7,7 @@ results to the frontend. All data access is logged for audit compliance.
 
 import time
 import logging
+from datetime import datetime, timezone
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -69,6 +70,7 @@ def get_state():
         _state["cluster_result"] = result
         _state["personas"] = personas
 
+        _state["generated_at"] = datetime.now(timezone.utc).isoformat()
         logger.info(f"Pipeline complete in {time.time() - t0:.1f}s — {len(personas)} personas discovered")
     return _state
 
@@ -131,6 +133,7 @@ def dashboard():
             "channels_used": campaigns["channel"].value_counts().to_dict(),
         },
         "key_metrics": _compute_key_metrics(state["users"]),
+        "generated_at": state.get("generated_at"),
     }
 
 
