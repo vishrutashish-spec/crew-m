@@ -259,6 +259,9 @@ generated copy as a data-backed recommendation.
 
 ## What's Out of Scope
 
+For the Dashboard / Persona Explorer / Campaign Simulator platform described
+above:
+
 - Campaign drafting/activation in CleverTap
 - Uplift modeling (needs control group data we don't have)
 - Auto model retraining and drift detection
@@ -267,6 +270,46 @@ generated copy as a data-backed recommendation.
 - Backtesting dashboard (can show static validation results)
 - Send-time optimization as a separate model (show timing data in persona cards)
 - Real-time CT webhook integration
+
+Campaign drafting, copy generation, and Figma creative rendering ARE in scope
+for the separate AM Campaign Request Bot workstream below — that exclusion
+list is specific to the analytics platform, not the whole project.
+
+---
+
+## Workstream: AM Campaign Request Bot (Krtin)
+
+A second, separate slice of Crew M, running alongside the analytics platform
+above. Origin problem: AMs hit the same friction every time they set up a
+CleverTap campaign for a client — copy, creative, segment, and the fear of
+getting it wrong. This workstream automates the mechanical setup so the AM
+only supplies intent, and a human (PMM) still approves before anything goes
+out.
+
+**Flow**: AM runs `/new-campaign` in Slack → a modal collects AM name, account
+name, campaign type (Welcome/Renewal), and an optional logo → n8n
+(`iw-crew-m-c4b9 · AM campaign request → CleverTap draft`) parses the
+submission, stores the raw input for audit, and calls this app's own API
+routes in sequence: generate copy → render creative → build a CleverTap
+campaign **draft only** → reply in Slack with a link to the draft. A PMM
+reviews and publishes the draft directly in CleverTap — this tool never
+publishes/sends anything itself.
+
+**In scope for this workstream**: campaign drafting in CleverTap (draft
+state only, never published by this tool), copy generation grounded in
+account context, creative rendering, Slack modal intake.
+
+**Out of scope for this workstream**: publishing/sending campaigns (PMM does
+that manually in CleverTap), any UI beyond the Slack modal — this workstream
+has no screens of its own in the three above.
+
+**Reference docs**: `CLEVERTAP_CAMPAIGN_SETUP_SKILL.md`,
+`CLEVERTAP_PLATFORM_REFERENCE.md`, `Copy_SKILL.md`.
+
+**Where it lives**: API routes under `frontend/app/api/` (this is what's
+actually deployed at the Vercel domain the n8n workflow calls) — separate
+from `backend/server.py`, which is the Python/FastAPI service for the
+analytics platform's ML pipeline and is not part of this workstream.
 
 ---
 
