@@ -216,11 +216,11 @@ def assign_persona_names(personas: list) -> list:
             continue
         # Find a distinguishing metric
         diff_options = [
-            ("size", lambda p: p["size"], lambda v: f"{v:,} users"),
+            ("avg_notif_response_rate", lambda p: p["avg_notif_response_rate"], lambda v: "Responsive" if v > 0.3 else "Quiet"),
+            ("avg_days_since_active", lambda p: p["avg_days_since_active"], lambda v: "Recent" if v < 30 else "Lapsed"),
+            ("avg_tenure_months", lambda p: p["avg_tenure_months"], lambda v: "New" if v < 4 else "Tenured"),
             ("avg_age", lambda p: p["avg_age"], lambda v: f"~{v:.0f}y"),
-            ("avg_tenure_months", lambda p: p["avg_tenure_months"], lambda v: f"{v:.0f}mo tenure"),
-            ("avg_days_since_active", lambda p: p["avg_days_since_active"], lambda v: f"{v:.0f}d inactive"),
-            ("avg_notif_response_rate", lambda p: p["avg_notif_response_rate"], lambda v: f"{v:.0%} response"),
+            ("size", lambda p: p["size"], lambda v: "Large" if v > 500 else "Small"),
         ]
         # Pick the metric with the widest spread among colliding personas
         best_key, best_fn, best_fmt = diff_options[0]

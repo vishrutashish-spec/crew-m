@@ -96,7 +96,12 @@ export default function Overview() {
             {model_confidence.n_personas} personas discovered
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
+          {data.generated_at && (
+            <span className="text-[10px] text-muted-foreground/60 tabular-nums">
+              {new Date(data.generated_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+            </span>
+          )}
           <Badge variant="secondary" className="text-xs font-normal">
             {model_confidence.data_source === "synthetic_calibrated" ? "Synthetic" : "Live CT"}
           </Badge>
