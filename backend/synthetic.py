@@ -52,7 +52,6 @@ HC_FUNNEL = {
 # Channel reachability (Bible Section 13)
 CHANNEL_REACH = {
     "whatsapp": (0.74, 0.99),
-    "sms": (0.87, 0.99),
     "email": (0.77, 0.98),
     "push": (0.11, 0.43),
 }
@@ -112,7 +111,6 @@ def generate_users(n_users: int = 10_000, seed: int = RANDOM_SEED) -> pd.DataFra
 
     # --- Channel reachability (correlated with app status) ---
     whatsapp_reachable = rng.random(n_users) < rng.uniform(*CHANNEL_REACH["whatsapp"], n_users)
-    sms_reachable = rng.random(n_users) < rng.uniform(*CHANNEL_REACH["sms"], n_users)
     email_reachable = rng.random(n_users) < rng.uniform(*CHANNEL_REACH["email"], n_users)
     push_reachable = has_app & (rng.random(n_users) < rng.uniform(*CHANNEL_REACH["push"], n_users))
 
@@ -276,15 +274,15 @@ def generate_campaigns(n_campaigns: int = 50, seed: int = RANDOM_SEED) -> pd.Dat
         sent = rng.integers(5000, 50000)
 
         # Delivery rates vary by channel
-        delivery_rates = {"whatsapp": 0.95, "push": 0.85, "email": 0.92, "sms": 0.97}
+        delivery_rates = {"whatsapp": 0.95, "push": 0.85, "email": 0.92}
         delivered = int(sent * rng.normal(delivery_rates[channel], 0.03))
 
         # Open/view rates
-        open_rates = {"whatsapp": 0.65, "push": 0.12, "email": 0.22, "sms": 0.45}
+        open_rates = {"whatsapp": 0.65, "push": 0.12, "email": 0.22}
         opened = int(delivered * rng.normal(open_rates[channel], 0.05))
 
         # Click rates
-        click_rates = {"whatsapp": 0.08, "push": 0.04, "email": 0.03, "sms": 0.02}
+        click_rates = {"whatsapp": 0.08, "push": 0.04, "email": 0.03}
         clicked = int(opened * rng.normal(click_rates[channel], 0.01))
 
         # Conversion rates (vary by objective)
