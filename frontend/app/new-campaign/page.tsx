@@ -10,6 +10,7 @@ import { Megaphone, Loader2, ExternalLink, Copy, Check } from "lucide-react";
 type CampaignType = "welcome" | "renewal";
 
 interface DraftResult {
+  id?: string;
   campaignName: string;
   channel: string;
   subject: string;
@@ -18,18 +19,6 @@ interface DraftResult {
   creativeIsStub: boolean;
   segmentSuggestion: string;
   reviewUrl: string;
-}
-
-function encodeResult(result: DraftResult): string {
-  return encodeURIComponent(btoa(encodeURIComponent(JSON.stringify(result))));
-}
-
-function decodeResult(encoded: string): DraftResult | null {
-  try {
-    return JSON.parse(decodeURIComponent(atob(decodeURIComponent(encoded))));
-  } catch {
-    return null;
-  }
 }
 
 function NewCampaignForm() {
@@ -46,15 +35,24 @@ function NewCampaignForm() {
   const [result, setResult] = useState<DraftResult | null>(null);
   const [copied, setCopied] = useState(false);
 
-  // Load a shared result straight from the URL, e.g. /new-campaign?d=...
+  // Load a shared result straight from its saved record, e.g. /new-campaign?id=...
   useEffect(() => {
-    const encoded = searchParams.get("d");
-    if (!encoded) return;
-    const decoded = decodeResult(encoded);
-    if (decoded) {
-      setResult(decoded);
-      setStatus("done");
-    }
+    const id = searchParams.get("id");
+    if (!id) return;
+    setStatus("loading");
+    fetch(`/api/campaign/${id}`)
+      .then((res) => {
+        if (!res.ok) throw new Error("That campaign link couldn't be found.");
+        return res.json();
+      })
+      .then((draft: DraftResult) => {
+        setResult(draft);
+        setStatus("done");
+      })
+      .catch((err) => {
+        setErrorMessage(err instanceof Error ? err.message : "Something went wrong.");
+        setStatus("error");
+      });
   }, [searchParams]);
 
   const canSubmit = amName.trim().length > 0 && accountName.trim().length > 0;
