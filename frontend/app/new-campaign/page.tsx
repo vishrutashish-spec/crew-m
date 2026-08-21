@@ -116,6 +116,31 @@ function NewCampaignForm() {
     setTimeout(() => setCopied(false), 2000);
   }
 
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+  async function handleCopyField(field: string, value: string) {
+    await navigator.clipboard.writeText(value);
+    setCopiedField(field);
+    setTimeout(() => setCopiedField((f) => (f === field ? null : f)), 2000);
+  }
+
+  function FieldCopyButton({ field, value }: { field: string; value: string }) {
+    return (
+      <Button variant="ghost" size="xs" onClick={() => handleCopyField(field, value)}>
+        {copiedField === field ? (
+          <>
+            <Check className="w-3 h-3" />
+            Copied
+          </>
+        ) : (
+          <>
+            <Copy className="w-3 h-3" />
+            Copy
+          </>
+        )}
+      </Button>
+    );
+  }
+
   const isLoadingSharedLink = status === "loading" && Boolean(searchParams.get("id")) && !result;
 
   return (
