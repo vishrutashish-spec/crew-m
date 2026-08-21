@@ -7,8 +7,9 @@ import {
 } from "@/lib/api";
 import {
   Panel, PanelHead, ChartFrame, Chip, Stat, BarRow, SplitRibbon,
-  InsightCard, ErrorState, Skeleton, ChartTip, AXIS,
+  InsightCard, ErrorState, Skeleton, ChartTip, AXIS, PageBanner,
 } from "@/components/kit";
+import { ChannelGlyph } from "@/components/logos";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
   RadialBarChart, RadialBar, PolarAngleAxis, LabelList,
@@ -43,22 +44,22 @@ export default function CohortsPage() {
 
   return (
     <div className="space-y-7">
-      <div className="flex items-end justify-between gap-6 flex-wrap rise">
-        <div>
-          <h1 className="text-[30px] leading-none">Age cohorts</h1>
-          <p className="text-[13px] text-muted-foreground mt-2">
-            Six cohorts across the eligible base. Pick one, then narrow by org type.
-          </p>
-        </div>
-        <div className="seg" role="tablist" aria-label="Organisation type">
-          {ORGS.map((o) => (
-            <button key={o.key} data-active={org === o.key} onClick={() => setOrg(o.key)}
-              role="tab" aria-selected={org === o.key}>
-              {o.label}
-            </button>
-          ))}
-        </div>
-      </div>
+      <PageBanner
+        kicker="Age cohorts"
+        title="Six ways into the base"
+        sub="Age is the primary audience dimension. Pick a cohort, then narrow by org type."
+        window="crewm / cohorts"
+        right={
+          <div className="seg" role="tablist" aria-label="Organisation type">
+            {ORGS.map((o) => (
+              <button key={o.key} data-active={org === o.key} onClick={() => setOrg(o.key)}
+                role="tab" aria-selected={org === o.key}>
+                {o.label}
+              </button>
+            ))}
+          </div>
+        }
+      />
 
       {/* Cohort tiles run across the full width: no left rail, so no dead gutter */}
       {list && (
