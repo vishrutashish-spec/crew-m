@@ -60,7 +60,7 @@ export default function CohortsPage() {
         </div>
       </div>
 
-      {/* Cohort tiles run across the full width — no left rail, so no dead gutter */}
+      {/* Cohort tiles run across the full width: no left rail, so no dead gutter */}
       {list && (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 rise d1">
           {list.cohorts.map((c) => (
@@ -119,10 +119,10 @@ function CohortCompare({ cohorts }: { cohorts: Cohort[] }) {
     <div className="grid grid-cols-12 gap-5 rise d2">
       <ChartFrame
         title="Deliverable reach by cohort"
-        sub="Push shown as real capacity only — stale tokens excluded"
+        sub="Push shown as real capacity only: stale tokens excluded"
         chip="DERIVED"
         filename="cohort-reach"
-        caption="Deliverable channel reach by age cohort — Crew M"
+        caption="Deliverable channel reach by age cohort: Crew M"
         className="col-span-12 lg:col-span-7"
         ground="dot"
       >
@@ -142,7 +142,7 @@ function CohortCompare({ cohorts }: { cohorts: Cohort[] }) {
         <div className="flex items-center gap-5 mt-3 pt-3 border-t border-border flex-wrap">
           <Legend color={CHART.ink} label="WhatsApp" />
           <Legend color={CHART.red} label="Email" />
-          <Legend color={CHART.sand} label="Push — deliverable only" />
+          <Legend color={CHART.sand} label="Push: deliverable only" />
         </div>
       </ChartFrame>
 
@@ -151,7 +151,7 @@ function CohortCompare({ cohorts }: { cohorts: Cohort[] }) {
         sub="Absolute bookings in the 120-day funnel window"
         chip="OBSERVED"
         filename="cohort-bookings"
-        caption="Telehealth and health checkup bookings by age cohort — Crew M"
+        caption="Telehealth and health checkup bookings by age cohort: Crew M"
         className="col-span-12 lg:col-span-5"
       >
         <div className="h-[236px]">
@@ -199,7 +199,7 @@ function Detail({ detail, org }: { detail: CohortDetail; org: string }) {
           <div className="col-span-12 lg:col-span-3">
             <div className="flex items-center gap-2 mb-2">
               <span className="label-mono">Cohort</span>
-              <Chip kind="MODELED" title="Age composition is modeled — see methodology" />
+              <Chip kind="MODELED" title="Age composition is modeled: see methodology" />
             </div>
             <h2 className="text-[32px] leading-none">{c.label}</h2>
             <p className="figure text-[26px] mt-3">{n(c.total)}</p>
@@ -237,13 +237,13 @@ function Detail({ detail, org }: { detail: CohortDetail; org: string }) {
       {/* ---- Reach + demographics ---- */}
       <div className="grid grid-cols-12 gap-5">
         <Panel className="col-span-12 lg:col-span-5 p-5">
-          <PanelHead title="Reachability" sub="Counts first — rates come from them" chip="DERIVED" />
+          <PanelHead title="Reachability" sub="Counts first: rates come from them" chip="DERIVED" />
           <div className="space-y-4">
             <BarRow label="WhatsApp" value={c.reach.whatsapp.count} total={c.total} color={CHART.ink}
               note={`${n(c.reach.whatsapp.campaign_ready)} campaign-ready after DND`} />
             <BarRow label="Email" value={c.reach.email.count} total={c.total} color={CHART.red}
               note={`${n(c.reach.email.campaign_ready)} campaign-ready after DND`} />
-            <BarRow label="Push — deliverable" value={realPush} total={c.total} color={CHART.sand}
+            <BarRow label="Push: deliverable" value={realPush} total={c.total} color={CHART.sand}
               note={`${n(push.count)} reported, ${n(stale)} of those are stale tokens`} />
           </div>
           {stale > 0 && (
@@ -265,7 +265,7 @@ function Detail({ detail, org }: { detail: CohortDetail; org: string }) {
             <div>
               <div className="flex items-center gap-2 mb-2.5">
                 <Smartphone className="w-3.5 h-3.5 text-muted-foreground" />
-                <p className="label-mono !mb-0">Device — app base</p>
+                <p className="label-mono !mb-0">Device: app base</p>
               </div>
               <SplitRibbon parts={[
                 { label: "Android", value: c.android, color: CHART.ink },
@@ -277,7 +277,7 @@ function Detail({ detail, org }: { detail: CohortDetail; org: string }) {
               </p>
             </div>
             <div className="pt-4 border-t border-border">
-              <p className="label-mono mb-2.5">Gender — whole cohort</p>
+              <p className="label-mono mb-2.5">Gender: whole cohort</p>
               <SplitRibbon parts={[
                 { label: "Male", value: c.male, color: CHART.ink },
                 { label: "Female", value: c.female, color: CHART.sand },
@@ -290,7 +290,7 @@ function Detail({ detail, org }: { detail: CohortDetail; org: string }) {
               <div>
                 <p className="figure text-[19px]">{c.peak_hour}:00</p>
                 <p className="text-[10.5px] text-muted-foreground mt-0.5">
-                  Best send hour · peak window 20:00–23:00
+                  Best send hour · peak window 20:00-23:00
                 </p>
               </div>
             </div>
@@ -356,7 +356,7 @@ function Detail({ detail, org }: { detail: CohortDetail; org: string }) {
           </table>
         </div>
         <p className="text-[10.5px] text-muted-foreground mt-3.5 pt-3.5 border-t border-border leading-relaxed">
-          Org type is not a CleverTap property — there is no <code className="text-[10px]">partner_type</code> field
+          Org type is not a CleverTap property: there is no <code className="text-[10px]">partner_type</code> field
           in the export, so this split is modeled from employee share and adoption, and must be
           joined via org ID for a real campaign. SMB is best judged by accounts activated rather
           than employees: it is roughly 65% of accounts but only 14% of employees.
@@ -371,11 +371,11 @@ function Detail({ detail, org }: { detail: CohortDetail; org: string }) {
         ]).map(([title, f]) => (
           <ChartFrame
             key={title}
-            title={`${title} — ${c.label}`}
+            title={`${title}: ${c.label}`}
             sub={`${pct(f[f.length - 1].cumulative, 2)} of homepage viewers book · 120-day window`}
             chip="OBSERVED"
             filename={`${title}-${c.label}`}
-            caption={`${title} for the ${c.label} cohort — Crew M`}
+            caption={`${title} for the ${c.label} cohort: Crew M`}
             className="col-span-12 lg:col-span-6"
           >
             <div className="h-[204px]">

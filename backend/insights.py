@@ -7,9 +7,9 @@ out, and each one carries the arithmetic that produced it so a PMM can check
 the claim rather than trust it.
 
 Insights are typed by the four-way distinction the project mandates:
-  OBSERVED    — a fact read off the source of record
-  DERIVED     — exact arithmetic on observed facts
-  RECOMMENDED — an action the rules suggest, given the facts
+  OBSERVED   , a fact read off the source of record
+  DERIVED    , exact arithmetic on observed facts
+  RECOMMENDED, an action the rules suggest, given the facts
   (PREDICTED is reserved for the simulator, which is the only thing that
    forecasts anything.)
 
@@ -53,7 +53,7 @@ def base_insights(model: dict) -> list[dict]:
             f"Push reachability reads {_pct(push['of_total'])} of the base, but only "
             f"{_n(real_push)} of those people have an app install signal. The remaining "
             f"{_n(stale)} sit in the no-app segment, which still reports 11% push "
-            f"reachability because App Uninstalled never fires in this account — so "
+            f"reachability because App Uninstalled never fires in this account, so "
             f"tokens are never invalidated. Those sends will report as delivered and "
             f"land nowhere."
         ),
@@ -90,7 +90,7 @@ def base_insights(model: dict) -> list[dict]:
         "title": f"{_pct(t['no_app_share'])} of the eligible base has no app install signal",
         "body": (
             f"{_n(t['no_app'])} of {_n(t['eligible'])} people show no install signal in "
-            f"365 days. Every in-app funnel — telehealth, health checkup, HRA — is "
+            f"365 days. Every in-app funnel, telehealth, health checkup, HRA, is "
             f"invisible to them. This is an acquisition gate, not an engagement problem: "
             f"no amount of in-app optimisation moves it."
         ),
@@ -114,7 +114,7 @@ def base_insights(model: dict) -> list[dict]:
             f"{_pct(A.ORG_ACTIVATION_RATE)} org - {_pct(A.EMPLOYEE_ACTIVATION_RATE)} "
             f"employee = {A.ACTIVATION_GAP_POINTS} points"
         ),
-        "action": "Target employees inside already-activated orgs — the access is there, the awareness is not.",
+        "action": "Target employees inside already-activated orgs, the access is there, the awareness is not.",
     })
 
     # -- Installed but quiet ----------------------------------------------
@@ -127,7 +127,7 @@ def base_insights(model: dict) -> list[dict]:
         "body": (
             f"Of {_n(t['app'])} with an install signal, {_n(t['mau'])} were active in the "
             f"last 30 days, leaving {_n(quiet)} installed and quiet. These are the "
-            f"cheapest users to reactivate — the install barrier is already cleared and "
+            f"cheapest users to reactivate, the install barrier is already cleared and "
             f"push still works on them."
         ),
         "arithmetic": f"{_n(t['app'])} app - {_n(t['mau'])} active 30d = {_n(quiet)}",
@@ -148,7 +148,7 @@ def base_insights(model: dict) -> list[dict]:
             "title": f"{label}: biggest drop is {prev['stage']} to {worst['stage']} ({_pct(worst['from_prev'])} continue)",
             "body": (
                 f"{_n(prev['count'])} reached {prev['stage']} and {_n(worst['count'])} "
-                f"reached {worst['stage']} — {_n(lost)} people lost at one step, the "
+                f"reached {worst['stage']}, {_n(lost)} people lost at one step, the "
                 f"largest single leak in the {label} funnel. End to end, "
                 f"{_pct(funnel[-1]['cumulative'])} of homepage viewers book."
             ),
@@ -171,7 +171,7 @@ def base_insights(model: dict) -> list[dict]:
             f"{A.TH_CONSULTS_PER_YEAR:.0f} consults a year once a user starts. Reading "
             f"HC repeat rate as a failure leads to the wrong campaign."
         ),
-        "arithmetic": "One free checkup per plan year — a ceiling, not a conversion problem.",
+        "arithmetic": "One free checkup per plan year, a ceiling, not a conversion problem.",
         "action": "Message HC as 'use the one in your plan', never 'book again'.",
     })
 
@@ -218,7 +218,7 @@ def cohort_insights(model: dict, cohort_key: str,
             f"against {_pct(base['app_share'])} across the whole base. "
             + (f"Push is a viable primary channel here."
                if delta > 0.03 else
-               f"Push will underperform badly in this cohort — lead with WhatsApp.")
+               f"Push will underperform badly in this cohort, lead with WhatsApp.")
         ),
         "arithmetic": (
             f"{_n(c['app'])} / {_n(c['total'])} = {_pct(c['app_share'])} vs base "
@@ -264,7 +264,7 @@ def cohort_insights(model: dict, cohort_key: str,
                 f"suggest."
             ),
             "arithmetic": f"{_n(c['android'])} Android + {_n(c['ios'])} iOS = {_n(c['app'])} app users",
-            "action": "Rich-media creative renders differently across the two — check both before send.",
+            "action": "Rich-media creative renders differently across the two, check both before send.",
             "modeled": True,
         })
 
@@ -283,7 +283,7 @@ def cohort_insights(model: dict, cohort_key: str,
                 f"{_n(ov['dnd'])} are DND-suppressed."
             ).strip(),
             "arithmetic": f"{_n(ov['total'])} / {_n(c['total'])} = {_pct(ov['share_of_cohort'])}",
-            "action": f"Segment by {ov['label']} first — it dominates this cohort's behaviour.",
+            "action": f"Segment by {ov['label']} first, it dominates this cohort's behaviour.",
             "modeled": True,
         })
 
@@ -300,9 +300,9 @@ def cohort_insights(model: dict, cohort_key: str,
             "title": f"{name} booking is {_pct(rate)} of app users here vs {_pct(base_rate)} base-wide",
             "body": (
                 f"{_n(booked)} bookings from {_n(c['app'])} app users in this cohort. "
-                + ("Above average — this cohort responds; give it more volume."
+                + ("Above average, this cohort responds; give it more volume."
                    if d > 0.005 else
-                   "Below average — headroom exists but the message has not landed yet."
+                   "Below average, headroom exists but the message has not landed yet."
                    if d < -0.005 else
                    "In line with the base.")
             ),
@@ -335,7 +335,7 @@ def cohort_insights(model: dict, cohort_key: str,
             "title": f"{_n(c['dnd'])} people in this cohort are DND-suppressed",
             "body": (
                 f"{_pct(c['dnd_share'])} of the cohort. DND is applied at whole-org "
-                f"level and unconditionally — every campaign has to check the flag "
+                f"level and unconditionally, every campaign has to check the flag "
                 f"itself, it is not enforced centrally. These users are P1, never P0."
             ),
             "arithmetic": f"{_n(c['dnd'])} / {_n(c['total'])} = {_pct(c['dnd_share'])}",
@@ -346,7 +346,7 @@ def cohort_insights(model: dict, cohort_key: str,
 
 
 def cohort_comparison(model: dict, org_filter: str | None = None) -> dict:
-    """Cross-cohort comparison — which cohort leads on each metric."""
+    """Cross-cohort comparison, which cohort leads on each metric."""
     cohorts = [c for c in P.all_cohorts(model, org_filter) if c]
     if not cohorts:
         return {}

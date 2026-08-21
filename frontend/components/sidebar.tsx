@@ -61,7 +61,7 @@ export function Sidebar() {
         </div>
       </nav>
 
-      {/* Footer — the scope caveat lives here so it is always in view */}
+      {/* Footer: the scope caveat lives here so it is always in view */}
       <div className="px-3.5 pb-4">
         <div className="panel-flush p-3 bg-[color:var(--muted)]">
           <div className="flex items-center gap-2 mb-1.5">

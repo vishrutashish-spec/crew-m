@@ -6,9 +6,9 @@
    Crew M design system
 
    Palette is deliberately narrow. Three colours carry every chart:
-     ink     #2B0B21  plum violet — headers, primary series
-     red     #FF3F52  plum red    — accent, alerts, secondary series
-     sand    #F8DBC9  cream       — tertiary series, soft fills
+     ink     #2B0B21  plum violet, headers, primary series
+     red     #FF3F52  plum red   , accent, alerts, secondary series
+     sand    #F8DBC9  cream      , tertiary series, soft fills
    Metallic cyan is the interaction colour only: focus, active, selection.
    It never appears in a chart, so data and controls can't be confused.
 
@@ -85,13 +85,13 @@
 }
 
 :root {
-  /* Surfaces — super white, with barely-there warm lift on panels */
+  /* Surfaces, super white, with barely-there warm lift on panels */
   --background: #ffffff;
   --card: #ffffff;
   --card-raised: #fdfcfd;
   --popover: #ffffff;
 
-  /* Type — dark and solid. Nothing here is transparent. */
+  /* Type, dark and solid. Nothing here is transparent. */
   --foreground: #17141c;
   --card-foreground: #17141c;
   --popover-foreground: #17141c;
@@ -106,7 +106,7 @@
   --sand: #f8dbc9;
   --sand-deep: #e8b899;
 
-  /* Metallic cyan — interaction only */
+  /* Metallic cyan, interaction only */
   --cyan: #0e9aa7;
   --cyan-bright: #22c8d6;
   --cyan-deep: #0a7580;
@@ -122,7 +122,7 @@
   --success: #0f8a6a;
   --warning: #b8791a;
 
-  /* Outlines — visible by design. Every panel is drawn, not floated. */
+  /* Outlines, visible by design. Every panel is drawn, not floated. */
   --border: #e4e1e8;
   --border-strong: #cfcad6;
   --input: #d8d4de;
@@ -166,7 +166,7 @@
 }
 
 /* ===========================================================================
-   Panels — outlined, layered, tech-first
+   Panels, outlined, layered, tech-first
    =========================================================================== */
 
 .panel {
@@ -186,7 +186,7 @@
   border-radius: var(--radius-lg);
 }
 
-/* Blueprint corner ticks — reads as instrumentation, not decoration */
+/* Blueprint corner ticks, reads as instrumentation, not decoration */
 .panel-ticked::before,
 .panel-ticked::after {
   content: "";
@@ -207,7 +207,7 @@
   border-bottom-right-radius: 3px;
 }
 
-/* Engineered grid — the tech-first ground under hero panels */
+/* Engineered grid, the tech-first ground under hero panels */
 .grid-ground {
   position: relative;
   overflow: hidden;
@@ -225,7 +225,7 @@
   pointer-events: none;
 }
 
-/* Dot field — alternate ground for secondary panels */
+/* Dot field, alternate ground for secondary panels */
 .dot-ground::before {
   content: "";
   position: absolute;
@@ -237,7 +237,7 @@
   pointer-events: none;
 }
 
-/* Warm aurora — used behind the single most important number on a screen */
+/* Warm aurora, used behind the single most important number on a screen */
 .aurora {
   position: relative;
   overflow: hidden;
@@ -255,7 +255,7 @@
   pointer-events: none;
 }
 
-/* Metallic cyan surface — interaction accents only */
+/* Metallic cyan surface, interaction accents only */
 .metal-cyan {
   background: linear-gradient(135deg, var(--cyan-bright) 0%, var(--cyan) 46%, var(--cyan-deep) 100%);
   box-shadow:
@@ -276,7 +276,7 @@
     0 2px 10px -3px rgba(255, 63, 82, 0.45);
 }
 
-/* Data ribbon — a thin stacked bar used as an inline visual primitive */
+/* Data ribbon, a thin stacked bar used as an inline visual primitive */
 .ribbon {
   display: flex;
   height: 8px;
@@ -312,7 +312,7 @@
 }
 .tnum { font-variant-numeric: tabular-nums; }
 
-/* Provenance chips — the four-way distinction, visually distinct */
+/* Provenance chips, the four-way distinction, visually distinct */
 .chip {
   display: inline-flex;
   align-items: center;
@@ -410,7 +410,7 @@ select.field:focus, input.field:focus, textarea.field:focus {
   box-shadow: 0 0 0 3px rgba(34, 200, 214, 0.16);
 }
 
-/* Cohort tile — the primary selection control */
+/* Cohort tile, the primary selection control */
 .tile {
   position: relative;
   text-align: left;

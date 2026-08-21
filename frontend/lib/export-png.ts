@@ -18,7 +18,7 @@
  *     the PNG is usable on a slide.
  *
  * Exports the rendered chart image only. It carries no row-level data and no
- * identifiers — the same aggregate figures already visible on screen.
+ * identifiers: the same aggregate figures already visible on screen.
  */
 
 const FONT_URLS = [
@@ -39,7 +39,7 @@ function getFontCss(): Promise<string> {
           const res = await fetch(url);
           if (!res.ok) return "";
           const buf = await res.arrayBuffer();
-          // Chunked conversion — a spread on a large array blows the call stack.
+          // Chunked conversion: a spread on a large array blows the call stack.
           const bytes = new Uint8Array(buf);
           let binary = "";
           const CHUNK = 0x8000;
@@ -177,7 +177,7 @@ export async function exportSvgToPng(
     try {
       await img.decode();
     } catch {
-      /* Safari rejects decode() on data URLs it has already loaded — harmless. */
+      /* Safari rejects decode() on data URLs it has already loaded: harmless. */
     }
   }
 
@@ -212,7 +212,7 @@ export async function exportSvgToPng(
   document.body.appendChild(a);
   a.click();
   a.remove();
-  // Revoke on the next frame — revoking synchronously cancels the download
+  // Revoke on the next frame: revoking synchronously cancels the download
   // in Safari.
   requestAnimationFrame(() => URL.revokeObjectURL(href));
 }

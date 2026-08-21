@@ -64,7 +64,7 @@ def allocate_capped(total: int, weights: dict[str, float],
 
     Water-filling: allocate proportionally, clamp anything over cap, redistribute
     the freed units among keys with headroom, repeat. Needed wherever a quantity
-    is nested inside another — MAU inside a cell's app base, a funnel stage
+    is nested inside another, MAU inside a cell's app base, a funnel stage
     inside the app base it is drawn from.
     """
     total = min(total, sum(caps.get(k, 0) for k in weights))
@@ -91,7 +91,7 @@ def allocate_capped(total: int, weights: dict[str, float],
 
 
 # ---------------------------------------------------------------------------
-# DERIVED — 30-day-active users inside the eligible base.
+# DERIVED, 30-day-active users inside the eligible base.
 #
 # CleverTap's MAU (147,003) is account-wide and cannot be used as a scoped
 # anchor. What transfers is the RATIO: account-wide, 147,003 of 397,301 annual
@@ -120,7 +120,7 @@ def _cid(cohort: str, org: str) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Build — 6 cohorts x 4 org types = 24 cells, all exact integers
+# Build, 6 cohorts x 4 org types = 24 cells, all exact integers
 # ---------------------------------------------------------------------------
 
 def build() -> dict:
@@ -226,7 +226,7 @@ def build() -> dict:
 
 
 # ---------------------------------------------------------------------------
-# Verification — the server will not start if any of this fails
+# Verification, the server will not start if any of this fails
 # ---------------------------------------------------------------------------
 
 def verify(model: dict) -> list[str]:
@@ -329,7 +329,7 @@ def cohort_summary(model: dict, cohort_key: str,
             "app_portion": s(f"reach_{ch}_app"),
             "no_app_portion": s(f"reach_{ch}_no_app"),
             "basis": ("requires app install + live push token"
-                      if ch == "push" else "member record — app not required"),
+                      if ch == "push" else "member record, app not required"),
         }
 
     org_breakdown = {}

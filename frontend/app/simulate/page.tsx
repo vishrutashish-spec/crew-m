@@ -20,7 +20,7 @@ export default function SimulatePage() {
   const [cohorts, setCohorts] = useState<Cohort[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  // Step 1 — cohorts. Step 2 — narrow. Step 3 — run.
+  // Step 1: cohorts. Step 2: narrow. Step 3: run.
   const [selected, setSelected] = useState<string[]>(["26_35"]);
   const [org, setOrg] = useState("all");
   const [objective, setObjective] = useState("th_activation");
@@ -82,7 +82,7 @@ export default function SimulatePage() {
         <Chip kind="PREDICTED" title="Funnel projection uses modeled industry priors" />
       </div>
 
-      {/* ---------- STEP 1 — cohorts ---------- */}
+      {/* ---------- STEP 1: cohorts ---------- */}
       <Panel className="p-5 rise d1" ground="dot">
         <PanelHead
           title="1 · Choose age cohorts"
@@ -137,7 +137,7 @@ export default function SimulatePage() {
           <div className="mt-4 pt-4 border-t border-border flex items-center gap-2.5 relative">
             <Users className="w-3.5 h-3.5 text-muted-foreground" />
             <span className="text-[12px] text-muted-foreground">
-              {selected.length} cohort{selected.length !== 1 ? "s" : ""} selected —{" "}
+              {selected.length} cohort{selected.length !== 1 ? "s" : ""} selected ,{" "}
               <span className="font-semibold text-foreground tnum">{n(selectedTotal)}</span> people
               before any objective or channel filter
             </span>
@@ -145,7 +145,7 @@ export default function SimulatePage() {
         )}
       </Panel>
 
-      {/* ---------- STEP 2 — narrow ---------- */}
+      {/* ---------- STEP 2: narrow ---------- */}
       <Panel className="p-5 rise d2">
         <PanelHead title="2 · Narrow the audience" sub="Everything here filters the cohorts you picked above" />
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
@@ -160,7 +160,7 @@ export default function SimulatePage() {
             </p>
           </Field>
 
-          <Field label="Org type" hint="Modeled — not a CleverTap property">
+          <Field label="Org type" hint="Modeled: not a CleverTap property">
             <select className="field" value={org} onChange={(e) => setOrg(e.target.value)}>
               <option value="all">All org types</option>
               {opts?.org_types.map((o) => (
@@ -171,16 +171,16 @@ export default function SimulatePage() {
 
           <Field label="Channel" hint="Leave on auto to pick the widest real reach">
             <select className="field" value={channel} onChange={(e) => setChannel(e.target.value)}>
-              <option value="">Auto — best real reach</option>
+              <option value="">Auto: best real reach</option>
               {opts?.channels.map((c) => (
                 <option key={c.key} value={c.key}>{c.label}</option>
               ))}
             </select>
           </Field>
 
-          <Field label="Send hour" hint="Peak window is 20:00–23:00">
+          <Field label="Send hour" hint="Peak window is 20:00-23:00">
             <select className="field" value={sendHour} onChange={(e) => setSendHour(e.target.value)}>
-              <option value="">Auto — cohort peak</option>
+              <option value="">Auto: cohort peak</option>
               {Array.from({ length: 24 }, (_, i) => (
                 <option key={i} value={i}>{String(i).padStart(2, "0")}:00</option>
               ))}
@@ -191,7 +191,7 @@ export default function SimulatePage() {
         <div className="mt-5 pt-5 border-t border-border flex flex-wrap items-center gap-6">
           <Toggle checked={excludeDnd} onChange={setExcludeDnd}
             label="Exclude DND-suppressed"
-            hint="is_in_DND_CT — must be checked by every campaign" />
+            hint="is_in_DND_CT: must be checked by every campaign" />
           <Toggle checked={excludeStale} onChange={setExcludeStale}
             label="Exclude stale push tokens"
             hint="No-app users whose tokens were never invalidated" />
@@ -215,7 +215,7 @@ export default function SimulatePage() {
         </div>
       </Panel>
 
-      {/* ---------- STEP 3 — result ---------- */}
+      {/* ---------- STEP 3: result ---------- */}
       {result ? (
         <Result result={result} />
       ) : (
@@ -298,7 +298,7 @@ function Result({ result: r }: { result: SimResult }) {
           sub="How many of the objective pool each channel can actually reach"
           chip="DERIVED"
           filename="channel-choice"
-          caption="Addressable audience by channel — Crew M"
+          caption="Addressable audience by channel: Crew M"
           className="col-span-12 lg:col-span-5"
         >
           <div className="h-[196px]">
@@ -334,10 +334,10 @@ function Result({ result: r }: { result: SimResult }) {
         {/* Funnel */}
         <ChartFrame
           title="Projected funnel"
-          sub="Modeled industry priors — no real campaign history exists for this account"
+          sub="Modeled industry priors: no real campaign history exists for this account"
           chip="PREDICTED"
           filename="projected-funnel"
-          caption="Projected campaign funnel — PREDICTED from modeled priors — Crew M"
+          caption="Projected campaign funnel: PREDICTED from modeled priors: Crew M"
           className="col-span-12 lg:col-span-7"
         >
           <div className="h-[196px]">
@@ -393,7 +393,7 @@ function Result({ result: r }: { result: SimResult }) {
               <p className="label-mono !text-[color:#8a4a06] mb-1.5">Soft</p>
               <p className="text-[11.5px] leading-relaxed">
                 Everything downstream of send. The rates are priors, not learned from Plum
-                campaigns — treat the shape as directional, not the absolute numbers.
+                campaigns: treat the shape as directional, not the absolute numbers.
               </p>
             </div>
           </div>

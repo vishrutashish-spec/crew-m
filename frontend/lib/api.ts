@@ -315,7 +315,7 @@ export async function simulate(req: SimRequest): Promise<SimResult> {
 }
 
 /* ---------------------------------------------------------------------------
-   Formatting — one place, so 216,924 never renders three different ways.
+   Formatting: one place, so 216,924 never renders three different ways.
    --------------------------------------------------------------------------- */
 
 export const n = (v: number) => v.toLocaleString("en-US");

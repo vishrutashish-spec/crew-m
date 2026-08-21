@@ -14,7 +14,7 @@ import { exportSvgToPng, findChartSvg } from "@/lib/export-png";
 import { pct, n, type Provenance } from "@/lib/api";
 
 /* --------------------------------------------------------------------------
-   Provenance chip — the four-way distinction, never blurred
+   Provenance chip: the four-way distinction, never blurred
    -------------------------------------------------------------------------- */
 
 const CHIP_CLASS: Record<string, string> = {
@@ -83,7 +83,7 @@ export function PanelHead({
 }
 
 /* --------------------------------------------------------------------------
-   ChartFrame — wraps every chart, owns the PNG export
+   ChartFrame: wraps every chart, owns the PNG export
    -------------------------------------------------------------------------- */
 
 export function ChartFrame({
@@ -100,7 +100,7 @@ export function ChartFrame({
   title: string;
   sub?: string;
   chip?: Provenance | string;
-  /** Burned into the PNG footer — keeps an exported image self-describing. */
+  /** Burned into the PNG footer: keeps an exported image self-describing. */
   caption?: string;
   filename?: string;
   children: ReactNode;
@@ -124,7 +124,7 @@ export function ChartFrame({
     try {
       await exportSvgToPng(svg, {
         filename: filename ?? title,
-        caption: caption ?? `${title} — Crew M`,
+        caption: caption ?? `${title}: Crew M`,
         scale: 2,
       });
       setState("done");
@@ -343,7 +343,7 @@ export function ErrorState({ message }: { message: string }) {
         <h3 className="text-[17px] mb-2">The API is not reachable</h3>
         <p className="text-[12.5px] text-muted-foreground mb-1">{message}</p>
         <p className="text-[12.5px] text-muted-foreground mb-5">
-          The cohort model is served by the Python API — start it and this page will load.
+          The cohort model is served by the Python API: start it and this page will load.
         </p>
         <code className="text-[11.5px] bg-[color:var(--muted)] border border-border px-3.5 py-2 rounded-md font-mono inline-block">
           cd backend &amp;&amp; python3 server.py
@@ -370,7 +370,7 @@ export function Skeleton({ rows = 3 }: { rows?: number }) {
 }
 
 /* --------------------------------------------------------------------------
-   Chart tooltip — shared so every chart reads the same
+   Chart tooltip: shared so every chart reads the same
    -------------------------------------------------------------------------- */
 
 export function ChartTip({

@@ -92,7 +92,7 @@ function Body({ data, org }: { data: Overview; org: string }) {
           <div className="col-span-12 lg:col-span-4">
             <div className="flex items-center gap-2 mb-2">
               <span className="label-mono">Eligible base</span>
-              <Chip kind="OBSERVED" title="Bible segment export — active, non-test orgs" />
+              <Chip kind="OBSERVED" title="Bible segment export: active, non-test orgs" />
             </div>
             <p className="figure text-[54px]">{n(t.eligible)}</p>
             <p className="text-[12px] text-muted-foreground mt-2.5 leading-relaxed">
@@ -125,10 +125,10 @@ function Body({ data, org }: { data: Overview; org: string }) {
       <div className="grid grid-cols-12 gap-5 rise d2">
         <ChartFrame
           title="Channel reachability"
-          sub="WhatsApp and email key off the member record. Push needs the app — and most of its reported reach is not real."
+          sub="WhatsApp and email key off the member record. Push needs the app: and most of its reported reach is not real."
           chip="OBSERVED"
           filename="channel-reachability"
-          caption={`Channel reachability across ${n(t.eligible)} eligible users — Crew M`}
+          caption={`Channel reachability across ${n(t.eligible)} eligible users: Crew M`}
           className="col-span-12 lg:col-span-7"
           ground="dot"
         >
@@ -168,7 +168,7 @@ function Body({ data, org }: { data: Overview; org: string }) {
                 <p className="figure text-[27px] text-[color:var(--red)]">{n(stale)}</p>
                 <p className="text-[12px] text-foreground mt-1.5 leading-relaxed">
                   push-reachable users who <strong>cannot receive push</strong>. They sit in the
-                  no-app segment on stale tokens — <code className="text-[11px]">App Uninstalled</code>{" "}
+                  no-app segment on stale tokens: <code className="text-[11px]">App Uninstalled</code>{" "}
                   never fires in this account, so tokens are never invalidated.
                 </p>
               </div>
@@ -179,9 +179,9 @@ function Body({ data, org }: { data: Overview; org: string }) {
             { label: "Stale tokens", value: stale, color: CHART.red },
           ]} />
           <div className="mt-4 pt-4 border-t border-border space-y-3.5">
-            <BarRow label="Push — reported" value={push.count} total={t.eligible} color={CHART.sand}
+            <BarRow label="Push: reported" value={push.count} total={t.eligible} color={CHART.sand}
               note={`${pct(push.of_total)} of the base, per the reachability panel`} />
-            <BarRow label="Push — deliverable" value={realPush} total={t.eligible} color={CHART.red}
+            <BarRow label="Push: deliverable" value={realPush} total={t.eligible} color={CHART.red}
               note={`${pct(realPush / t.eligible)} once stale tokens are removed`} />
           </div>
         </Panel>
@@ -191,10 +191,10 @@ function Body({ data, org }: { data: Overview; org: string }) {
       <div className="grid grid-cols-12 gap-5 rise d3">
         <ChartFrame
           title="Age cohorts"
-          sub="App ownership falls steadily with age — bars are people, the line is the share"
+          sub="App ownership falls steadily with age: bars are people, the line is the share"
           chip="MODELED"
           filename="age-cohorts"
-          caption="Age cohort size and app ownership — cohort split MODELED — Crew M"
+          caption="Age cohort size and app ownership: cohort split MODELED: Crew M"
           className="col-span-12 lg:col-span-8"
         >
           <div className="h-[262px]">
@@ -227,7 +227,7 @@ function Body({ data, org }: { data: Overview; org: string }) {
           <PanelHead title="Composition" sub="Device, gender and suppression" chip="MODELED" />
           <div className="space-y-5">
             <div>
-              <p className="label-mono mb-2.5">Device — app base only</p>
+              <p className="label-mono mb-2.5">Device: app base only</p>
               <SplitRibbon parts={[
                 { label: "Android", value: t.android, color: CHART.ink },
                 { label: "iOS", value: t.ios, color: CHART.red },
@@ -238,7 +238,7 @@ function Body({ data, org }: { data: Overview; org: string }) {
               </p>
             </div>
             <div className="pt-4 border-t border-border">
-              <p className="label-mono mb-2.5">Gender — whole base</p>
+              <p className="label-mono mb-2.5">Gender: whole base</p>
               <SplitRibbon parts={[
                 { label: "Male", value: t.male, color: CHART.ink },
                 { label: "Female", value: t.female, color: CHART.sand },
@@ -248,7 +248,7 @@ function Body({ data, org }: { data: Overview; org: string }) {
               <p className="label-mono mb-2">DND-suppressed</p>
               <p className="figure text-[23px]">{n(t.dnd)}</p>
               <p className="text-[11px] text-muted-foreground mt-1.5 leading-snug">
-                {pct(t.dnd_share)} of the base. Applied at whole-org level — every campaign must
+                {pct(t.dnd_share)} of the base. Applied at whole-org level: every campaign must
                 check the flag itself.
               </p>
             </div>
@@ -300,7 +300,7 @@ function Body({ data, org }: { data: Overview; org: string }) {
         <p className="text-[11px] text-muted-foreground mt-5 pt-4 border-t border-border leading-relaxed relative">
           These counts are account-wide because CleverTap&apos;s{" "}
           <code className="text-[10.5px]">/counts</code> endpoints accept no organisation filter.
-          Do not divide them by the {n(t.eligible)} eligible base —{" "}
+          Do not divide them by the {n(t.eligible)} eligible base ,{" "}
           <Link href="/methodology" className="text-[color:var(--cyan-deep)] hover:underline">
             see methodology
           </Link>.
@@ -331,7 +331,7 @@ function FunnelPanel({
       sub={`120-day window, active and non-test orgs · ${pct(stages[stages.length - 1].cumulative, 2)} of homepage viewers book`}
       chip="OBSERVED"
       filename={title}
-      caption={`${title} — 120-day window, active + non-test orgs — Crew M`}
+      caption={`${title}: 120-day window, active + non-test orgs: Crew M`}
       className={className}
     >
       <div className="h-[212px]">

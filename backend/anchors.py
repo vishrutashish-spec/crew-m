@@ -9,7 +9,7 @@ is recorded in ANCHOR_NOTES rather than averaged away.
 What: aggregate profile/event counts from CleverTap, plus documented segment
 counts from the CT Bible. Why: every figure the product shows must reconcile to
 a source of record. Protection: read-only credentials from the provisioned
-bundle, all API queries bounded to <= 1 year, counts only — no individual
+bundle, all API queries bounded to <= 1 year, counts only, no individual
 profiles are ever fetched and no PII is stored in this repo.
 
 --- SCOPE WARNING (the single most important thing in this file) ---
@@ -26,14 +26,14 @@ garbage:
 397,301 profiles fired App Launched account-wide in the last 364 days, but only
 216,924 people inside the eligible base have an app install signal. Both are
 true. An earlier version of this file "resolved" that by declaring the API the
-winner and reporting a 58.4% no-app share. That was wrong — it compared an
+winner and reporting a 58.4% no-app share. That was wrong, it compared an
 unscoped numerator to a scoped denominator. The correct no-app share is 77.3%.
 """
 
 from datetime import date
 
 # ===========================================================================
-# REFERENCE — data/CREW_M_MASTER_CT_BIBLE.md. Counts as of July 2026.
+# REFERENCE, data/CREW_M_MASTER_CT_BIBLE.md. Counts as of July 2026.
 # Scoped: organisationStatus = ACTIVE and isTestOrganisation != true.
 # ===========================================================================
 
@@ -61,9 +61,9 @@ DND_TH_LOCKED = 13_835
 DND_HC_LOCKED = 5_621
 
 # ---------------------------------------------------------------------------
-# REFERENCE — adoption. [B 1] / [P 3.1]
+# REFERENCE, adoption. [B 1] / [P 3.1]
 # Denominator is ELIGIBLE EMPLOYEES, never app-installed users, and "adopted"
-# means at least one confirmed booking by a unique user — not a page view,
+# means at least one confirmed booking by a unique user, not a page view,
 # not an app install.
 # ---------------------------------------------------------------------------
 
@@ -73,25 +73,25 @@ ACTIVATION_GAP_POINTS = 64        # [B 1] the "64-point gap", stated explicitly
 
 # The old dashboard showed a 92-point gap against "100% org activation". That
 # came from grouping 10,000 synthetic users by their 4 org types and asking
-# "does ANY user in this group have a booking" — which is always true, so org
+# "does ANY user in this group have a booking", which is always true, so org
 # activation was always 1.0. The real, documented gap is 64 points.
 
 ADOPTION_TARGETS = {"M3": 0.15, "M6": 0.25, "M9": 0.35}  # [B 1]
 
 # [B 1] Per-segment adoption is NOT quantified anywhere. Only direction:
 SEGMENT_ADOPTION_NOTES = {
-    "ENT": "Worst adoption — single biggest lever. 1 point here outweighs a "
+    "ENT": "Worst adoption, single biggest lever. 1 point here outweighs a "
            "much larger gain in a smaller segment.",
     "MM":  "Most consistent multi-month improver.",
-    "SMB": "Judge by accounts-activated, not employees — ~65% of accounts but "
+    "SMB": "Judge by accounts-activated, not employees, ~65% of accounts but "
            "only ~14% of employees.",
     "EOR": "Best per-employee performer, ~2x company average at M9.",
 }
 
 # ---------------------------------------------------------------------------
-# REFERENCE — org composition. [B 16] EXPLICITLY LABELLED MODELED, NOT MEASURED.
+# REFERENCE, org composition. [B 16] EXPLICITLY LABELLED MODELED, NOT MEASURED.
 # There is no partner_type property in the CT export, so org type is not
-# directly segmentable — it has to be joined via org ID to warehouse data.
+# directly segmentable, it has to be joined via org ID to warehouse data.
 # ---------------------------------------------------------------------------
 
 ORG_TYPE_SHARES = {"ENT": 0.585, "MM": 0.235, "SMB": 0.139, "EOR": 0.041}
@@ -105,7 +105,7 @@ ORG_SHARE_IS_MODELED = True  # [B 16]: "Label as MODELED, not measured."
 
 
 # ===========================================================================
-# OBSERVED — channel reachability. [B 6], the CT reachability panel.
+# OBSERVED, channel reachability. [B 6], the CT reachability panel.
 #
 # THE DENOMINATOR QUESTION, SETTLED.
 # These percentages are shares of ALL SEGMENT MEMBERS, not of app-installed
@@ -114,7 +114,7 @@ ORG_SHARE_IS_MODELED = True  # [B 16]: "Label as MODELED, not measured."
 # as a share of app-installed users, a no-app segment would read 0%.
 #
 # So push must NOT be re-based by dividing by an app count. Doing that inflates
-# push reach roughly 4x. The old code did something worse — it drew a random
+# push reach roughly 4x. The old code did something worse, it drew a random
 # threshold per user from a (0.11, 0.43) range and compared it to a second
 # random number, yielding a meaningless ~27% unrelated to app ownership.
 # ===========================================================================
@@ -135,11 +135,11 @@ BASE_REACH = {"push": 0.23, "email": 0.80, "whatsapp": 0.80}
 NO_APP_REACH = {"push": 0.11, "email": 0.77, "whatsapp": 0.74}
 
 # ---------------------------------------------------------------------------
-# DERIVED — reachability decomposed into app-installed vs no-app.
+# DERIVED, reachability decomposed into app-installed vs no-app.
 #
 # The Bible gives reach for the whole base and for the no-app segment. Since
 # those two segments partition the base exactly, the app-installed reach falls
-# out by subtraction — and the result is a genuine, checkable finding rather
+# out by subtraction, and the result is a genuine, checkable finding rather
 # than an assumption:
 #
 #   push:     23% of 956,050 = 219,892 total;  11% of 739,126 = 81,304 no-app
@@ -171,21 +171,21 @@ REACH_DECOMPOSED = {ch: _decompose(ch) for ch in ("push", "email", "whatsapp")}
 
 # A real data-integrity anomaly, recorded not smoothed:
 # 11% push reach on a segment defined as having NO install signal in 365 days
-# should be impossible. The schema explains it — `App Uninstalled` has 0 data
+# should be impossible. The schema explains it, `App Uninstalled` has 0 data
 # points (the event never fires, so push tokens are never invalidated) while
 # `Push Unregistered` has 140,442. Stale tokens persist for uninstalled apps.
 # Treat no-app push reach as unreliable deliverability, not real audience.
 REACHABILITY_ANOMALY = (
     "The no-app segment shows 11% push reachability despite being defined as "
     "having no install signal in 365 days. App Uninstalled never fires (0 data "
-    "points in the schema), so push tokens are never invalidated — these are "
+    "points in the schema), so push tokens are never invalidated, these are "
     "stale tokens on uninstalled apps, not reachable people. Push to this "
     "segment will report as sent and land nowhere."
 )
 
 
 # ===========================================================================
-# OBSERVED — funnels. [B 7.1] / [B 7.2]
+# OBSERVED, funnels. [B 7.1] / [B 7.2]
 # 120-day window, filtered to active + non-test orgs. Correctly scoped to the
 # eligible base, which is why these are the primary funnel numbers rather than
 # the account-wide figures a live API pull returns.
@@ -195,7 +195,7 @@ REACHABILITY_ANOMALY = (
 # claims they are character-for-character exact; they are not. Every TH event
 # actually carries an "EmployeeMobileApp_Telehealth_" prefix and every HC event
 # a "healthCheckup" prefix. The old simulator emitted the shorthand forms
-# `DoctorList_Viewed` and `AppointmentSuccessful_Viewed` as segment rules — the
+# `DoctorList_Viewed` and `AppointmentSuccessful_Viewed` as segment rules, the
 # CT API rejects both as 'Invalid event', so those segments matched nobody.
 # ===========================================================================
 
@@ -222,16 +222,16 @@ HC_BOOKED_EVENT = "healthCheckupbooking_confirmed"
 # [B 7.2] Cross-sell: HC report viewed -> TH booking.
 HC_TO_TH_CROSSSELL_RATE = 0.1432
 
-# [B 1] Repeat-use shape. HC is capped at ~1 by design — one free checkup per
-# year — so "book your checkup again" messaging is structurally wrong. [B 14]
+# [B 1] Repeat-use shape. HC is capped at ~1 by design, one free checkup per
+# year, so "book your checkup again" messaging is structurally wrong. [B 14]
 TH_CONSULTS_PER_YEAR = 5.0
 HC_BOOKINGS_PER_USER = 1.0
 
 
 # ===========================================================================
-# OBSERVED — CleverTap live telemetry.
+# OBSERVED, CleverTap live telemetry.
 # Pulled 2026-08-21 via POST /1/counts/profiles.json and /1/counts/events.json.
-# ACCOUNT-WIDE — the counts endpoints accept no org filter, so these are NOT
+# ACCOUNT-WIDE, the counts endpoints accept no org filter, so these are NOT
 # scoped to the eligible base and must never be divided by 956,050.
 # ===========================================================================
 
@@ -255,13 +255,13 @@ CT_LIVE_SCOPE = (
 )
 
 # The DAU bug worth remembering: querying from=today&to=today returns a partial
-# day. It reported 11,703 against a true 16,503 — a 29% understatement that
+# day. It reported 11,703 against a true 16,503, a 29% understatement that
 # drifted upward through the day. Always query the last complete day.
-DAU_METHOD = "last complete day (not today — today returns a partial count)"
+DAU_METHOD = "last complete day (not today, today returns a partial count)"
 
 
 # ===========================================================================
-# AGE COHORTS — the primary organising dimension.
+# AGE COHORTS, the primary organising dimension.
 # ===========================================================================
 
 AGE_COHORTS = [
@@ -273,7 +273,7 @@ AGE_COHORTS = [
     {"key": "51p",   "label": "51+",      "lo": 51, "hi": 120},
 ]
 
-# MODELED. No age distribution exists in any source document — this was
+# MODELED. No age distribution exists in any source document, this was
 # checked exhaustively. The docs offer age bands (18-25/26-35/36-45/46-55/55+)
 # only as an analysis *hypothesis*, with zero counts attached, and state that
 # age is not a CT user property. It is derivable from
@@ -296,20 +296,20 @@ AGE_DATA_PROVENANCE = (
     "single-digit fill against millions of rows, so it is unusable."
 )
 
-# MODELED — relative app-install propensity by cohort. Normalised in
+# MODELED, relative app-install propensity by cohort. Normalised in
 # population.py so the absolute total lands exactly on APP_INSTALLED.
 APP_PROPENSITY = {
     "u20": 1.34, "21_25": 1.28, "26_35": 1.12,
     "36_40": 0.92, "41_50": 0.71, "51p": 0.47,
 }
 
-# MODELED — relative 30-day-active propensity within a cohort's app base.
+# MODELED, relative 30-day-active propensity within a cohort's app base.
 MAU_PROPENSITY = {
     "u20": 1.22, "21_25": 1.16, "26_35": 1.06,
     "36_40": 0.95, "41_50": 0.82, "51p": 0.66,
 }
 
-# MODELED — iOS share of a cohort's app base. Corporate India skews Android
+# MODELED, iOS share of a cohort's app base. Corporate India skews Android
 # heavily; iOS rises with seniority, which tracks age.
 IOS_SHARE = {
     "u20": 0.07, "21_25": 0.11, "26_35": 0.17,
@@ -320,7 +320,7 @@ IOS_MULTIPLIER_BY_ORG = {"ENT": 1.22, "MM": 0.94, "SMB": 0.68, "EOR": 1.05}
 DEVICE_DATA_PROVENANCE = (
     "MODELED. No iOS/Android split exists in any source document. Live API "
     "filtering was attempted and failed: /counts/profiles.json silently "
-    "ignores common_profile_properties — filtering App Launched by platform, "
+    "ignores common_profile_properties, filtering App Launched by platform, "
     "isIOSLogin, isAndroidLogin and gender all returned the identical "
     "unfiltered total of 397,302, meaning the filter is dropped rather than "
     "applied. A real split would have to come from CT OS Version on App "
@@ -328,20 +328,20 @@ DEVICE_DATA_PROVENANCE = (
     "funnel-event `platform` has only ~3% fill."
 )
 
-# MODELED — female share by cohort. No gender split exists in the docs either,
+# MODELED, female share by cohort. No gender split exists in the docs either,
 # though warehouse_production_gender IS Active and already used in 60
-# campaigns, so this one is genuinely pullable — it just never has been.
+# campaigns, so this one is genuinely pullable, it just never has been.
 FEMALE_SHARE = {
     "u20": 0.44, "21_25": 0.42, "26_35": 0.38,
     "36_40": 0.34, "41_50": 0.29, "51p": 0.24,
 }
 
-# MODELED — DND share by org. [B 16] is explicit: DND skews heavily Enterprise,
+# MODELED, DND share by org. [B 16] is explicit: DND skews heavily Enterprise,
 # so this must NOT be modelled as uniform. Calibrated so the base total lands
 # near the documented ~13,221-16,008 P1 range.
 DND_SHARE_BY_ORG = {"ENT": 0.024, "MM": 0.010, "SMB": 0.006, "EOR": 0.008}
 
-# MODELED — reachability multiplier by org. Enterprise HR files are more
+# MODELED, reachability multiplier by org. Enterprise HR files are more
 # complete; SMB and EOR records are patchier. Normalised in population.py so
 # base-wide reach still lands exactly on the OBSERVED BASE_REACH figures.
 REACH_MULTIPLIER_BY_ORG = {"ENT": 1.04, "MM": 1.00, "SMB": 0.93, "EOR": 0.88}
@@ -354,7 +354,7 @@ PEAK_HOUR = {
 
 
 # ===========================================================================
-# CAMPAIGN BENCHMARKS — MODELED, and the honesty here matters.
+# CAMPAIGN BENCHMARKS, MODELED, and the honesty here matters.
 #
 # [B 19.2] flags "Campaign History Export" as CRITICAL and missing: "This is
 # the training data for the prediction models. Without campaign-level
@@ -380,7 +380,7 @@ OBJECTIVE_CONVERSION = {
 BENCHMARKS_ARE_MODELED = True
 BENCHMARK_PROVENANCE = (
     "MODELED industry priors. No real campaign performance data exists in any "
-    "source — the CT Bible names the missing campaign history export as the "
+    "source, the CT Bible names the missing campaign history export as the "
     "single most critical data gap. Simulated funnels are therefore capped at "
     "low confidence and must not be presented as learned predictions."
 )
@@ -401,7 +401,7 @@ ANCHOR_NOTES = [
         "body": (
             "The eligible base is 956,050 people in active, non-test orgs. "
             "CleverTap's live counts are account-wide because the /counts "
-            "endpoints accept no org filter — 397,301 profiles launched the "
+            "endpoints accept no org filter, 397,301 profiles launched the "
             "app in 364 days account-wide, while 216,924 people inside the "
             "eligible base have an install signal. Both are true; dividing one "
             "by the other is not."
@@ -411,7 +411,7 @@ ANCHOR_NOTES = [
         "title": "Push reach is a share of the whole base, not of app users",
         "body": (
             "The 23% base figure already includes everyone. It must not be "
-            "re-based against an app-installed count — that inflates push "
+            "re-based against an app-installed count, that inflates push "
             "reach roughly 4x. Confirmed by the no-app segment showing 11% "
             "push despite having no install signal."
         ),
@@ -433,7 +433,7 @@ ANCHOR_NOTES = [
         "title": "Funnel percentages are cumulative, not step-to-step",
         "body": (
             "TH 12.76% and HC 6.14% are homepage-to-booking conversion over "
-            "120 days — not adoption rates. Adoption is ~10% of the eligible "
+            "120 days, not adoption rates. Adoption is ~10% of the eligible "
             "base and is a different metric with a different denominator. The "
             "HC report-view to download rate is 91.0% step-to-step; the 65%/59% "
             "figures quoted elsewhere are cumulative from booking confirmed."

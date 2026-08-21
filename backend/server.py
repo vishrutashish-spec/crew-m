@@ -49,7 +49,7 @@ def get_model() -> dict:
         _state["model"] = model
         _state["checks"] = checks
         _state["built_at"] = datetime.now(timezone.utc).isoformat()
-        logger.info(f"Cohort model verified — {len(checks)} invariants hold")
+        logger.info(f"Cohort model verified, {len(checks)} invariants hold")
     return _state["model"]
 
 
@@ -237,7 +237,7 @@ def simulate(req: SimRequest):
     """
     Size an audience from the real cohort model, then project a funnel.
 
-    Audience sizing is DERIVED — exact counts out of the model.
+    Audience sizing is DERIVED, exact counts out of the model.
     Funnel projection is PREDICTED and capped at low confidence, because no
     real campaign performance data exists for this account. The Bible names the
     missing campaign history export as the single most critical data gap, so
@@ -287,7 +287,7 @@ def simulate(req: SimRequest):
         pool_desc, pool_is_app = "app installed, never booked a checkup", True
     else:  # hc_crosssell
         pool = s("hc_booked")
-        pool_desc, pool_is_app = "booked a checkup — cross-sell on report view", True
+        pool_desc, pool_is_app = "booked a checkup, cross-sell on report view", True
 
     # -- Channel: pick the one that actually reaches the most of that pool --
     # Reach is taken from the app or no-app component to match the pool, then
@@ -320,7 +320,7 @@ def simulate(req: SimRequest):
     control = round(addressable * A.CONTROL_GROUP_SHARE)
     sent = addressable - control
 
-    # -- Funnel projection — PREDICTED, low confidence by construction -----
+    # -- Funnel projection, PREDICTED, low confidence by construction -----
     b = A.CHANNEL_BENCHMARKS[channel]
     conv = A.OBJECTIVE_CONVERSION[req.objective]
     delivered = round(sent * b["delivery"])
@@ -337,7 +337,7 @@ def simulate(req: SimRequest):
         if not pool_is_app:
             warnings.append(
                 f"This objective targets people without the app, so push has no "
-                f"legitimate audience here — the only push-reachable users in "
+                f"legitimate audience here, the only push-reachable users in "
                 f"that pool are {stale:,} stale tokens on uninstalled apps. "
                 + ("They are excluded." if req.exclude_no_app_for_push
                    else "They are currently INCLUDED and will deliver nothing.")
@@ -357,7 +357,7 @@ def simulate(req: SimRequest):
     if req.objective == "hc_crosssell":
         warnings.append(
             f"Cross-sell converts best triggered on report view, not on a "
-            f"schedule — {A.HC_TO_TH_CROSSSELL_RATE:.1%} convert unprompted "
+            f"schedule, {A.HC_TO_TH_CROSSSELL_RATE:.1%} convert unprompted "
             f"from that moment."
         )
     if not req.exclude_dnd:

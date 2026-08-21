@@ -43,7 +43,7 @@ function Body({ data }: { data: Methodology }) {
         />
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 relative">
           {[
-            ["OBSERVED", "Read off the source of record — a CleverTap count or a documented segment export."],
+            ["OBSERVED", "Read off the source of record: a CleverTap count or a documented segment export."],
             ["DERIVED", "Exact arithmetic on observed facts. No assumptions added."],
             ["MODELED", "A calibrated assumption, used where no measurement exists. Always calibrated so the totals still reconcile."],
             ["PREDICTED", "A forecast. Only the simulator produces these, and only at low confidence."],
@@ -56,7 +56,7 @@ function Body({ data }: { data: Methodology }) {
         </div>
       </Panel>
 
-      {/* Notes — the corrections that matter */}
+      {/* Notes: the corrections that matter */}
       <div className="rise d2">
         <h2 className="text-[19px] mb-4">Things that are easy to get wrong</h2>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -160,7 +160,7 @@ function Body({ data }: { data: Methodology }) {
               </div>
               <p className="text-[10.5px] text-muted-foreground mt-3.5 pt-3.5 border-t border-border leading-relaxed">
                 These are the literal event names, verified against the schema export. The Bible
-                writes them in shorthand — the telehealth events all carry an{" "}
+                writes them in shorthand: the telehealth events all carry an{" "}
                 <code className="text-[10px]">EmployeeMobileApp_Telehealth_</code> prefix and the
                 checkup events a <code className="text-[10px]">healthCheckup</code> prefix. Segments
                 built on the shorthand match nobody.
