@@ -206,17 +206,36 @@ def assign_persona_names(personas: list) -> list:
         if modifier:
             p["name"] = f"{engagement} {product} — {modifier} ({seg})"
 
-    # Deduplicate: if any names collide, append size rank
-    name_counts = {}
+    # Deduplicate: if names collide, differentiate by the metric that varies most
+    name_groups: dict[str, list] = {}
     for p in personas:
-        name_counts[p["name"]] = name_counts.get(p["name"], 0) + 1
+        name_groups.setdefault(p["name"], []).append(p)
 
-    name_seen = {}
-    for p in personas:
-        if name_counts[p["name"]] > 1:
-            idx = name_seen.get(p["name"], 0) + 1
-            name_seen[p["name"]] = idx
-            p["name"] = f"{p['name']} #{idx}"
+    for name, group in name_groups.items():
+        if len(group) <= 1:
+            continue
+        # Find a distinguishing metric
+        diff_options = [
+            ("size", lambda p: p["size"], lambda v: f"{v:,} users"),
+            ("avg_age", lambda p: p["avg_age"], lambda v: f"~{v:.0f}y"),
+            ("avg_tenure_months", lambda p: p["avg_tenure_months"], lambda v: f"{v:.0f}mo tenure"),
+            ("avg_days_since_active", lambda p: p["avg_days_since_active"], lambda v: f"{v:.0f}d inactive"),
+            ("avg_notif_response_rate", lambda p: p["avg_notif_response_rate"], lambda v: f"{v:.0%} response"),
+        ]
+        # Pick the metric with the widest spread among colliding personas
+        best_key, best_fn, best_fmt = diff_options[0]
+        best_spread = 0
+        for key, fn, fmt in diff_options:
+            vals = [fn(p) for p in group]
+            spread = max(vals) - min(vals)
+            if spread > best_spread:
+                best_spread = spread
+                best_key, best_fn, best_fmt = key, fn, fmt
+
+        # Sort group by the distinguishing metric and append a readable label
+        group.sort(key=best_fn, reverse=True)
+        for p in group:
+            p["name"] = f"{p['name']} · {best_fmt(best_fn(p))}"
 
     return personas
 
