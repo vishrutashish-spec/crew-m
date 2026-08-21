@@ -117,12 +117,11 @@ const RADAR_EXPLANATIONS: Record<string, string> = {
 };
 
 const CHANNEL_LABELS: Record<string, string> = {
-  whatsapp: "WhatsApp", push: "Push", email: "Email", sms: "SMS",
+  whatsapp: "WhatsApp", push: "Push", email: "Email",
 };
 
 const CHANNEL_COLORS: Record<string, string> = {
   WhatsApp: "oklch(0.65 0.17 155)",
-  SMS: "oklch(0.75 0.15 65)",
   Email: "oklch(0.35 0.12 320)",
   Push: "oklch(0.65 0.18 15)",
 };
