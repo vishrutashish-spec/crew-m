@@ -356,7 +356,7 @@ export default function Overview() {
                 {key_metrics.no_app_share > 0.5 && (
                   <OpportunityRow
                     title={`${(key_metrics.no_app_share * 100).toFixed(0)}% of users have no app`}
-                    detail="Push notifications can't reach this group. Use SMS and WhatsApp for app-install campaigns."
+                    detail="Push notifications can't reach this group. Use WhatsApp and email for app-install campaigns."
                     impact="high"
                     action="/simulate"
                     actionLabel="Simulate app-install"
