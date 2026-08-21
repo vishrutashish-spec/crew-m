@@ -160,7 +160,7 @@ export default function Overview() {
                     <XAxis type="number" domain={[0, 1]} tickFormatter={(v: number) => `${(v * 100).toFixed(0)}%`} tick={{ fontSize: 11, fill: "oklch(0.5 0.02 320)" }} axisLine={false} tickLine={false} />
                     <YAxis type="category" dataKey="stage" tick={{ fontSize: 12, fill: "oklch(0.5 0.02 320)" }} axisLine={false} tickLine={false} width={70} />
                     <Tooltip
-                      formatter={(v: number) => [`${(v * 100).toFixed(1)}%`, "Rate"]}
+                      formatter={(v) => [`${(Number(v) * 100).toFixed(1)}%`, "Rate"]}
                       contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid oklch(0.91 0.005 320)" }}
                     />
                     <Bar dataKey="rate" fill="oklch(0.35 0.12 320)" radius={[0, 4, 4, 0]} barSize={28} />
