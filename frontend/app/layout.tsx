@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Sidebar } from "@/components/sidebar";
-import { CursorTrail } from "@/components/cursor-trail";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -26,10 +25,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex bg-background text-foreground">
-        <CursorTrail />
         <Sidebar />
-        <main className="flex-1 ml-60 min-h-screen">
-          <div className="max-w-[1400px] mx-auto px-6 lg:px-8 py-6">
+        <main className="flex-1 ml-[220px] min-h-screen">
+          <div className="max-w-[1200px] mx-auto px-8 lg:px-12 py-8">
             {children}
           </div>
         </main>
