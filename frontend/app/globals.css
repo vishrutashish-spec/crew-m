@@ -133,6 +133,102 @@
   --sidebar-border: #e4e1e8;
 
   --radius: 14px;
+
+  /* Theme-aware derivatives. Charts, ticks and soft blocks read these, never
+     raw hexes, so the whole product reskins from one place. */
+  --ink-text: #2b0b21;          /* heading/figure text: flips light in dark */
+  --heading-gradient: linear-gradient(118deg, #2b0b21 0%, #571c3f 52%, #c22742 100%);
+  --series-1: #2b0b21;          /* primary chart series */
+  --series-2: #ff3f52;          /* secondary */
+  --series-3: #f8dbc9;          /* tertiary */
+  --series-4: #6b3a58;
+  --series-5: #e8b899;
+  --tick: #565064;              /* chart axis + label text */
+  --cursor-fill: rgba(43, 11, 33, 0.04);
+  --swatch-border: rgba(0, 0, 0, 0.1);
+  --amber-bg: #fdf2e3;          /* PREDICTED soft blocks */
+  --amber-border: #f2d9b4;
+  --amber-text: #8a4a06;
+  --cyanw-border: #b3e8ee;      /* cyan-wash outlines */
+  --wa-bubble: #f7fef9;         /* WhatsApp preview bubble */
+  --panel-top: #ffffff;         /* panel gradient stops */
+  --panel-bottom: #fdfcfd;
+  --bar-top: #fcfbfd;           /* mac title bar */
+  --bar-bottom: #f4f2f6;
+  --ground-line: rgba(43, 11, 33, 0.045);
+  --ground-dot: rgba(43, 11, 33, 0.075);
+  color-scheme: light;
+}
+
+/* ===========================================================================
+   Dark mode. Not a gray skin: the same brand at night. Deep plum-black
+   surfaces, cream and plum-red carrying the data, cyan still owning
+   interaction. Toggled by .dark on <html>, persisted in localStorage.
+   =========================================================================== */
+
+.dark {
+  --background: #0f0912;
+  --card: #150d18;
+  --card-raised: #170f1a;
+  --popover: #150d18;
+
+  --foreground: #efe9f0;
+  --card-foreground: #efe9f0;
+  --popover-foreground: #efe9f0;
+  --muted-foreground: #a89dae;
+  --muted: #1d1421;
+
+  /* Brand constants stay put (metal surfaces, the logo); text flips. */
+  --ink-text: #f3e9ee;
+  --heading-gradient: linear-gradient(118deg, #fff6ef 0%, #f8dbc9 42%, #ff6273 100%);
+
+  --red: #ff4f62;
+  --red-deep: #e02339;
+  --ink-soft: #b98aa7;
+  --sand-deep: #d9a87f;
+
+  --cyan: #2ac6d4;
+  --cyan-bright: #35d9e7;
+  --cyan-deep: #7bdde8;         /* used as link/text colour: must be light */
+  --cyan-wash: #0d2a2f;
+
+  --primary: #f8dbc9;
+  --primary-foreground: #2b0b21;
+  --secondary: #1d1421;
+  --secondary-foreground: #efe9f0;
+  --accent: var(--cyan-wash);
+  --accent-foreground: var(--cyan-deep);
+  --destructive: #ff4f62;
+  --success: #3ecf9a;
+  --warning: #e0a33e;
+
+  --border: #2a1f2f;
+  --border-strong: #3d2e44;
+  --input: #342839;
+  --ring: var(--cyan);
+
+  --sidebar: #120a15;
+  --sidebar-foreground: #efe9f0;
+  --sidebar-border: #2a1f2f;
+
+  --series-1: #f8dbc9;          /* cream leads on dark ground */
+  --series-2: #ff5468;
+  --series-3: #6b3a58;
+  --tick: #9c90a2;
+  --cursor-fill: rgba(248, 219, 201, 0.06);
+  --swatch-border: rgba(255, 255, 255, 0.14);
+  --amber-bg: #2a1d0d;
+  --amber-border: #4a3517;
+  --amber-text: #e8b46a;
+  --cyanw-border: #1d4d55;
+  --wa-bubble: #0f231a;
+  --panel-top: #160e19;
+  --panel-bottom: #130b16;
+  --bar-top: #1b1220;
+  --bar-bottom: #160e19;
+  --ground-line: rgba(248, 219, 201, 0.05);
+  --ground-dot: rgba(248, 219, 201, 0.08);
+  color-scheme: dark;
 }
 
 @layer base {

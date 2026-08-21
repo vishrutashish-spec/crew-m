@@ -141,9 +141,18 @@ function CohortCompare({ cohorts }: { cohorts: Cohort[] }) {
           </ResponsiveContainer>
         </div>
         <div className="flex items-center gap-5 mt-3 pt-3 border-t border-border flex-wrap">
-          <Legend color={CHART.ink} label="WhatsApp" />
-          <Legend color={CHART.red} label="Email" />
-          <Legend color={CHART.sand} label="Push: deliverable only" />
+          <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+            <span className="w-2.5 h-2.5 rounded-sm border border-black/10" style={{ background: CHART.ink }} />
+            <ChannelGlyph channel="whatsapp" size={14} /> WhatsApp
+          </span>
+          <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+            <span className="w-2.5 h-2.5 rounded-sm border border-black/10" style={{ background: CHART.red }} />
+            <ChannelGlyph channel="email" size={14} /> Gmail
+          </span>
+          <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+            <span className="w-2.5 h-2.5 rounded-sm border border-black/10" style={{ background: CHART.sand }} />
+            <ChannelGlyph channel="push" size={14} /> Plum push, deliverable only
+          </span>
         </div>
       </ChartFrame>
 
@@ -240,11 +249,11 @@ function Detail({ detail, org }: { detail: CohortDetail; org: string }) {
         <Panel className="col-span-12 lg:col-span-5 p-5">
           <PanelHead title="Reachability" sub="Counts first: rates come from them" chip="DERIVED" />
           <div className="space-y-4">
-            <BarRow label="WhatsApp" value={c.reach.whatsapp.count} total={c.total} color={CHART.ink}
+            <BarRow label="WhatsApp" icon={<ChannelGlyph channel="whatsapp" size={15} />} value={c.reach.whatsapp.count} total={c.total} color={CHART.ink}
               note={`${n(c.reach.whatsapp.campaign_ready)} campaign-ready after DND`} />
-            <BarRow label="Email" value={c.reach.email.count} total={c.total} color={CHART.red}
+            <BarRow label="Gmail" icon={<ChannelGlyph channel="email" size={15} />} value={c.reach.email.count} total={c.total} color={CHART.red}
               note={`${n(c.reach.email.campaign_ready)} campaign-ready after DND`} />
-            <BarRow label="Push: deliverable" value={realPush} total={c.total} color={CHART.sand}
+            <BarRow label="Push, deliverable" icon={<ChannelGlyph channel="push" size={15} />} value={realPush} total={c.total} color={CHART.sand}
               note={`${n(push.count)} reported, ${n(stale)} of those are stale tokens`} />
           </div>
           {stale > 0 && (

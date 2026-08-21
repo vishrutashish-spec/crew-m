@@ -1,14 +1,14 @@
-# Crew M — Project Brief
+# Crew M: Project Brief
 
 ## What This Is
 
 An AI-powered campaign intelligence platform for Plum's product marketing team.
-It learns from real CleverTap user data — behavioral events, campaign history,
-engagement patterns — and turns it into actionable campaign decisions backed by
+It learns from real CleverTap user data: behavioral events, campaign history,
+engagement patterns: and turns it into actionable campaign decisions backed by
 evidence, not guesswork.
 
 The system answers: **who** should receive a campaign, through **which channel**,
-at **what time**, with **what message**, and **how well** it will perform — with
+at **what time**, with **what message**, and **how well** it will perform: with
 explainable reasoning behind every recommendation.
 
 ## Who It's For
@@ -36,7 +36,7 @@ The data exists in CleverTap. The intelligence layer does not.
 This is the end-to-end flow that the product must demonstrate:
 
 1. Marketer types: "I want more health checkup bookings"
-2. System parses intent — HC activation, first-time booking
+2. System parses intent: HC activation, first-time booking
 3. System surfaces data-driven personas discovered from real user clustering
 4. System recommends the best-fit audience with scores and reasoning
 5. System predicts conversion through the full funnel: delivery → open → click → convert
@@ -59,20 +59,20 @@ reason. Every prediction must have a confidence level.
 |--------|------|
 | **Overview** | Landing page. Eligible base, app/no-app split, the push-reachability gap, age cohort composition, both product funnels, and deterministic cross-metric insights. |
 | **Age cohorts** | Six cohorts across the eligible base, selected from full-width tiles (no left rail). Per-cohort reachability, device and gender split, org-type drill-down table, both funnels, and cohort-specific insights. |
-| **Simulator** | Cohort selection first, then filters narrow it: objective, org type, channel, send hour, DND and stale-token exclusions. Output is an exact audience size plus a clearly-labelled PREDICTED funnel. |
+| **Simulator** | Cohort selection first, then filters narrow it: objective, org type, channel (picked via real WhatsApp / Gmail / Plum logos), send hour, DND and stale-token exclusions. Output is an exact audience size plus a clearly-labelled PREDICTED funnel. Step 4 is the copy studio: variants assembled from Plum's approved copy library (Master Journey doc + shipped WATI/PN messages), disciplined per channel (WhatsApp Utility vs Marketing classification, per-band emoji ranges, push title/body limits, soft CTAs, no fear framing under 26, no TH friction device in HC copy), each variant carrying a GENERATED label, itemised discipline checks, and a PREDICTED performance versus the channel prior, sized against the simulated send. A paste-your-own analyzer scores custom copy against the same rules. |
 | **Methodology** | Field-level provenance, the reachability decomposition, literal CT event names, and the full list of invariants the model asserts at startup. |
 
 ### Naming
 
 Plain naming throughout. No fantasy/game naming. Campaign Simulator, Persona
-Explorer, Dashboard, Audience Recommender — not The Forge, Persona Guild, The
+Explorer, Dashboard, Audience Recommender: not The Forge, Persona Guild, The
 Watchtower, The Compass.
 
 ### Design language
 
 Three colours carry every chart and nothing else: `#2B0B21` plum violet,
 `#FF3F52` plum red, `#F8DBC9` cream. Metallic cyan is reserved for interaction
-only — focus, active, selection — so data and controls are never confused.
+only: focus, active, selection: so data and controls are never confused.
 Backgrounds are pure white and every panel carries a visible outline.
 
 Vollkorn (serif) sets all headings, large figures and chart labels in plum
@@ -86,8 +86,8 @@ self-describing rather than a fallback-serif mess.
 
 1. **Anchors** are real: documented CT segment exports plus live CleverTap
    aggregate counts, each tagged with its provenance and pull date.
-2. **Composition** is modeled where no measurement exists — age, gender, device,
-   org type — and calibrated so every aggregate reconciles exactly to the anchors.
+2. **Composition** is modeled where no measurement exists: age, gender, device,
+   org type: and calibrated so every aggregate reconciles exactly to the anchors.
 3. **Conflicts are recorded, never averaged.** `backend/anchors.py` carries the
    scope warning that split the two populations apart: the eligible base is
    956,050 in active non-test orgs, while CleverTap's `/counts` endpoints accept
@@ -96,14 +96,14 @@ self-describing rather than a fallback-serif mess.
 
 ### Cohort model (replaces K-Means clustering)
 
-Age cohorts are the primary organising dimension. K-Means personas are gone —
+Age cohorts are the primary organising dimension. K-Means personas are gone ,
 they produced unstable, unexplainable groups whose subtotals did not reconcile.
 
 | Aspect | Approach |
 |--------|----------|
 | Cohorts | Under 20, 21-25, 26-35, 36-40, 41-50, 51+ |
 | Structure | 6 cohorts × 4 org types = 24 cells, every quantity an exact integer |
-| Method | Largest-remainder (Hamilton) apportionment — not sampling |
+| Method | Largest-remainder (Hamilton) apportionment: not sampling |
 | Guarantee | Deterministic: identical inputs always give byte-identical output |
 | Verification | 25 invariants asserted at startup; the API refuses to boot if any anchor disagrees |
 | Rates | Always derived from the counts shown beside them, so a percentage cannot contradict its own bar |
@@ -112,12 +112,12 @@ they produced unstable, unexplainable groups whose subtotals did not reconcile.
 
 | Was wrong | Now |
 |-----------|-----|
-| DAU 11,703 — queried today, a partial day | 16,503 — last complete day |
-| Org activation 100%, gap 92 points — computed as "does any user in this org type have a booking", always true | 74% org vs 10% employee, the documented 64-point gap |
+| DAU 11,703: queried today, a partial day | 16,503: last complete day |
+| Org activation 100%, gap 92 points: computed as "does any user in this org type have a booking", always true | 74% org vs 10% employee, the documented 64-point gap |
 | Push reach ~27% from two unrelated random draws | 23% of base observed, decomposed into 138,588 real and 81,304 stale tokens |
 | Total base 10,000 synthetic users | 956,050 eligible base |
-| Segment rules emitted `DoctorList_Viewed`, `AppointmentSuccessful_Viewed` — both rejected by the API as invalid events, so those segments matched nobody | Literal names with the `EmployeeMobileApp_Telehealth_` and `healthCheckup` prefixes |
-| Simulator intersected an app-install audience with app-installed push reach — two disjoint groups | Reach is measured against the same population the objective's pool is drawn from |
+| Segment rules emitted `DoctorList_Viewed`, `AppointmentSuccessful_Viewed`: both rejected by the API as invalid events, so those segments matched nobody | Literal names with the `EmployeeMobileApp_Telehealth_` and `healthCheckup` prefixes |
+| Simulator intersected an app-install audience with app-installed push reach: two disjoint groups | Reach is measured against the same population the objective's pool is drawn from |
 
 ### Tech Stack
 
@@ -127,9 +127,9 @@ they produced unstable, unexplainable groups whose subtotals did not reconcile.
 | Type | Vollkorn (local, `public/fonts/`) for headings and figures; Inter for body |
 | Charts | Recharts, with PNG export via embedded-font SVG rasterisation |
 | Backend | Python + FastAPI |
-| Cohort model | Pure-Python integer apportionment — no sklearn, no sampling |
+| Cohort model | Pure-Python integer apportionment: no sklearn, no sampling |
 | Data | Documented CT segment exports + live CleverTap aggregate counts (read-only, ≤1yr windows, counts only) |
-| Insights | Deterministic rule engine (`backend/insights.py`) — no LLM in the number path |
+| Insights | Deterministic rule engine (`backend/insights.py`): no LLM in the number path |
 
 ### Backend layout
 
@@ -150,9 +150,9 @@ enforces automatically. They come from the Crew M operational playbooks.
 ### Segment Definitions (Exact CT Event Names)
 
 **AARR funnel:**
-- M0 NEW APP users — gmcMembershipCreatedAtTimestamp 30-60 days ago + inviteCreatedAt 30-60 days ago + App Launched in last 60 days
-- Activations — any of: cultfitoffer_explored, healthCheckuplisting_viewed, Telehealth_DoctorList_Viewed, perks_offer_unlocked
-- Revenue — any of: superTopUp_purchased, topUp_purchased, oPD_purchased, mAternity_purchased
+- M0 NEW APP users: gmcMembershipCreatedAtTimestamp 30-60 days ago + inviteCreatedAt 30-60 days ago + App Launched in last 60 days
+- Activations: any of: cultfitoffer_explored, healthCheckuplisting_viewed, Telehealth_DoctorList_Viewed, perks_offer_unlocked
+- Revenue: any of: superTopUp_purchased, topUp_purchased, oPD_purchased, mAternity_purchased
 
 **Lifecycle segments:**
 - Unacquired: NOT done App Launched in last 180 days + membership exists in last 365 days
@@ -170,12 +170,12 @@ enforces automatically. They come from the Crew M operational playbooks.
 
 | Segment State | Messaging Angle |
 |---------------|----------------|
-| Unacquired — Fresh | Urgency + first action ("get started in the next 30 days") |
-| Unacquired — Lapsing/Dormant | Re-acquisition, remove friction, remind of what's theirs |
-| Unactivated — Fresh | Remove-friction framing, one clear first step |
-| Unactivated — Lapsing/Dormant | Re-surface single highest-converting hook |
-| Retained — Fresh/Lapsing | Habit/streak framing, build on existing engagement |
-| Retained — Dormant | Re-engagement without guilt-tripping |
+| Unacquired: Fresh | Urgency + first action ("get started in the next 30 days") |
+| Unacquired: Lapsing/Dormant | Re-acquisition, remove friction, remind of what's theirs |
+| Unactivated: Fresh | Remove-friction framing, one clear first step |
+| Unactivated: Lapsing/Dormant | Re-surface single highest-converting hook |
+| Retained: Fresh/Lapsing | Habit/streak framing, build on existing engagement |
+| Retained: Dormant | Re-engagement without guilt-tripping |
 
 **HRA-specific angles:**
 - Never started → lead with speed + personalization
@@ -189,16 +189,16 @@ enforces automatically. They come from the Crew M operational playbooks.
 These are enforced in copy scoring. Violations are flagged.
 
 1. **No "not X" negation contrasts.** State the positive claim and stop.
-   - Bad: "Recommendations built around your results — not generic advice."
+   - Bad: "Recommendations built around your results: not generic advice."
    - Good: "Recommendations built specifically from your results."
 
 2. **No ", so you know X" tails.** Land the benefit in the main clause.
    - Bad: "A score across 7 key health areas, so you know exactly what to focus on."
-   - Good: "Your health, scored across 7 key areas — with a clear place to start."
+   - Good: "Your health, scored across 7 key areas: with a clear place to start."
 
 3. **No em dashes.** Rewrite as two sentences or restructure.
 
-4. **Colon definitions must define what the thing IS** — not where it lives or how long it takes.
+4. **Colon definitions must define what the thing IS**: not where it lives or how long it takes.
 
 5. **Never invent stats.** No fabricated percentages or outcome figures. If no real number exists, phrase qualitatively.
 
@@ -310,7 +310,7 @@ above:
 - Real-time CT webhook integration
 
 Campaign drafting, copy generation, and Figma creative rendering ARE in scope
-for the separate AM Campaign Request Bot workstream below — that exclusion
+for the separate AM Campaign Request Bot workstream below: that exclusion
 list is specific to the analytics platform, not the whole project.
 
 ---
@@ -319,7 +319,7 @@ list is specific to the analytics platform, not the whole project.
 
 A second, separate slice of Crew M, running alongside the analytics platform
 above. Origin problem: AMs hit the same friction every time they set up a
-CleverTap campaign for a client — copy, creative, segment, and the fear of
+CleverTap campaign for a client: copy, creative, segment, and the fear of
 getting it wrong. This workstream automates the mechanical setup so the AM
 only supplies intent, and a human (PMM) still approves before anything goes
 out.
@@ -330,7 +330,7 @@ name, campaign type (Welcome/Renewal), and an optional logo → n8n
 submission, stores the raw input for audit, and calls this app's own API
 routes in sequence: generate copy → render creative → build a CleverTap
 campaign **draft only** → reply in Slack with a link to the draft. A PMM
-reviews and publishes the draft directly in CleverTap — this tool never
+reviews and publishes the draft directly in CleverTap: this tool never
 publishes/sends anything itself.
 
 **In scope for this workstream**: campaign drafting in CleverTap (draft
@@ -338,20 +338,20 @@ state only, never published by this tool), copy generation grounded in
 account context, creative rendering, Slack modal intake.
 
 **Out of scope for this workstream**: publishing/sending campaigns (PMM does
-that manually in CleverTap), any UI beyond the Slack modal — this workstream
+that manually in CleverTap), any UI beyond the Slack modal: this workstream
 has no screens of its own in the three above.
 
 **Reference docs**: `CLEVERTAP_CAMPAIGN_SETUP_SKILL.md`,
 `CLEVERTAP_PLATFORM_REFERENCE.md`, `Copy_SKILL.md`.
 
 **Where it lives**: API routes under `frontend/app/api/` (this is what's
-actually deployed at the Vercel domain the n8n workflow calls) — separate
+actually deployed at the Vercel domain the n8n workflow calls): separate
 from `backend/server.py`, which is the Python/FastAPI service for the
 analytics platform's ML pipeline and is not part of this workstream.
 
 **Environment variables needed** (set in `frontend/.env.local` for dev, and
-in the Vercel project settings for the deployed app — never commit values):
-`SLACK_BOT_TOKEN` (requires creating a Slack app — not done yet),
+in the Vercel project settings for the deployed app: never commit values):
+`SLACK_BOT_TOKEN` (requires creating a Slack app: not done yet),
 `ANTHROPIC_API_KEY`, `CT_ACCOUNT_ID`, `CT_PASSCODE`, `CT_REGION`.
 
 **Known gaps**: creative rendering is currently a stub (no real Figma call);
@@ -386,3 +386,16 @@ runs end-to-end until one is created and `SLACK_BOT_TOKEN` is set.
 
 6. **Secrets in env vars, never in code.** CleverTap credentials, API keys, any
    credentials go in `.env` / `.env.local`, never committed to git.
+
+### Design addenda (locked this session)
+
+- No em dashes anywhere: UI, copy output, captions.
+- Channels carry their real brand logos (WhatsApp glyph, Gmail M, Plum p) on
+  charts, legends, pickers and rows. Bar colours stay in the three-colour
+  palette; logos carry identity.
+- macOS chrome (traffic lights, curved tops, hairline bars) on the main page
+  banners and message previews. White surfaces only.
+- Crew M brand mark: geometric M in the plum gradient with a metallic cyan
+  signal node, in components/logos.tsx.
+- backend/copy_engine.py is the deterministic copy engine; /api/copy/options,
+  /api/copy/generate, /api/copy/analyze serve it.

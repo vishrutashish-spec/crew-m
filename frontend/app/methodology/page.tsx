@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { getMethodology, n, pct, type Methodology } from "@/lib/api";
-import { Panel, PanelHead, Chip, ErrorState, Skeleton } from "@/components/kit";
+import { Panel, PanelHead, Chip, ErrorState, Skeleton, PageBanner } from "@/components/kit";
 import { CheckCircle2, AlertTriangle } from "lucide-react";
 
 export default function MethodologyPage() {
@@ -17,13 +17,12 @@ export default function MethodologyPage() {
 
   return (
     <div className="space-y-7">
-      <div className="rise">
-        <h1 className="text-[30px] leading-none">Methodology</h1>
-        <p className="text-[13px] text-muted-foreground mt-2 max-w-2xl">
-          Where every number comes from, what is measured versus modeled, and the invariants
-          the model asserts before it will serve a request.
-        </p>
-      </div>
+      <PageBanner
+        kicker="Methodology"
+        title="Where every number comes from"
+        sub="What is measured versus modeled, and the invariants the model asserts before it will serve a request."
+        window="crewm / methodology"
+      />
 
       {!data ? <Skeleton rows={2} /> : <Body data={data} />}
     </div>
