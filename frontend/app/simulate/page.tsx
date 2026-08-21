@@ -417,7 +417,7 @@ function SimulationResult({ result, prevResult }: { result: SimulationResponse; 
         <div className="grid grid-cols-2 gap-4">
           <div>
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mb-1">Channel</p>
-            <p className="text-sm font-medium capitalize">{result.channel.selected}</p>
+            <p className="text-sm font-medium">{({whatsapp:"WhatsApp",push:"Push",email:"Email",sms:"SMS"} as Record<string,string>)[result.channel.selected] || result.channel.selected}</p>
             <Badge variant="outline" className="text-[10px] font-normal text-muted-foreground mt-1 tracking-wide">
               {result.channel.label}
             </Badge>
