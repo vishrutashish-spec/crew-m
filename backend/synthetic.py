@@ -298,11 +298,11 @@ def generate_campaigns(n_campaigns: int = 50, seed: int = RANDOM_SEED) -> pd.Dat
         clicked = max(0, min(clicked, opened))
         converted = max(0, min(converted, clicked))
 
-        send_hour = rng.choice(range(24), p=[
-            0.01, 0.005, 0.005, 0.005, 0.005, 0.01, 0.02, 0.03, 0.05, 0.08,
-            0.08, 0.06, 0.05, 0.04, 0.04, 0.04, 0.05, 0.06, 0.07, 0.08,
-            0.09, 0.08, 0.05, 0.02
-        ])
+        _sh_w = [0.01, 0.005, 0.005, 0.005, 0.005, 0.01, 0.02, 0.03, 0.05, 0.08,
+                 0.08, 0.06, 0.05, 0.04, 0.04, 0.04, 0.05, 0.06, 0.07, 0.08,
+                 0.09, 0.08, 0.05, 0.02]
+        _sh_w = [w / sum(_sh_w) for w in _sh_w]
+        send_hour = rng.choice(range(24), p=_sh_w)
 
         records.append({
             "campaign_id": f"camp_{i:04d}",
