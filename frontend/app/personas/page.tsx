@@ -60,7 +60,7 @@ export default function PersonaExplorer() {
 
   return (
     <div className="py-6 space-y-6">
-      <div className="flex items-end justify-between">
+      <div className="flex items-end justify-between animate-fade-in">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Persona Explorer</h1>
           <p className="text-sm text-muted-foreground mt-0.5">

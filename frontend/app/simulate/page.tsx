@@ -110,7 +110,7 @@ export default function Simulate() {
 
   return (
     <div className="py-6 space-y-6">
-      <div className="flex items-end justify-between">
+      <div className="flex items-end justify-between animate-fade-in">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Campaign Simulator</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
@@ -312,7 +312,7 @@ function SimulationResult({ result, prevResult }: { result: SimulationResponse; 
   }));
 
   return (
-    <Card>
+    <Card className="animate-fade-in">
       <CardContent className="pt-5 pb-4 space-y-5">
         {/* Header */}
         <div className="flex items-start justify-between">
