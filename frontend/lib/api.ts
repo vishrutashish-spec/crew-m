@@ -343,3 +343,97 @@ export const CHANNEL_COLOR: Record<string, string> = {
   email: CHART.red,
   push: CHART.sand,
 };
+
+/* ---------------------------------------------------------------------------
+   Copy studio
+   --------------------------------------------------------------------------- */
+
+export interface CopyCheck {
+  name: string;
+  status: "pass" | "warn" | "fail";
+  detail: string;
+}
+
+export interface CopyAnalysis {
+  category: "utility" | "marketing";
+  category_basis: string;
+  chars: number;
+  title_chars: number | null;
+  emoji_count: number;
+  emoji_range_for_band: [number, number];
+  personalized: boolean;
+  checks: CopyCheck[];
+  style_score: number;
+  label: string;
+}
+
+export interface CopyPrediction {
+  label: string;
+  confidence: string;
+  confidence_reason: string;
+  baseline: { open: number; click: number; convert: number };
+  predicted: { open: number; click: number; convert: number };
+  delta: { open: number; click: number; convert: number };
+  factors: string[];
+  funnel?: { sent: number; delivered: number; opened: number; clicked: number; converted: number };
+}
+
+export interface CopyVariant {
+  id: string;
+  band: string;
+  band_label: string;
+  channel: string;
+  title: string | null;
+  preheader: string | null;
+  body: string;
+  source: string;
+  analysis: CopyAnalysis;
+  prediction: CopyPrediction;
+  label: string;
+}
+
+export interface CopyGenResponse {
+  label: string;
+  objective: string;
+  channel: string;
+  angle: string | null;
+  groups: { band: string; band_label: string; variants: CopyVariant[] }[];
+  discipline: Record<string, string>;
+}
+
+export interface CopyOptions {
+  angles: Record<string, { key: string; label: string }[]>;
+  bands: { key: string; label: string; emoji_range: [number, number] }[];
+  limits: Record<string, Record<string, number | number[]>>;
+  source: string;
+}
+
+async function post<T>(path: string, body: unknown): Promise<T> {
+  const res = await fetch(`${BASE}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    let detail = res.statusText;
+    try {
+      const b = await res.json();
+      detail = b.detail ?? detail;
+    } catch { /* non-JSON error body */ }
+    throw new Error(detail);
+  }
+  return res.json();
+}
+
+export const getCopyOptions = () => get<CopyOptions>("/api/copy/options");
+
+export const generateCopy = (req: {
+  objective: string; cohort_keys: string[]; channel: string;
+  angle?: string | null; audience_sent?: number | null;
+}) => post<CopyGenResponse>("/api/copy/generate", req);
+
+export const analyzeCopy = (req: {
+  text: string; title?: string | null; channel: string; objective: string;
+  cohort_key: string; audience_sent?: number | null;
+}) => post<{ label: string; analysis: CopyAnalysis; prediction: CopyPrediction }>(
+  "/api/copy/analyze", req);
