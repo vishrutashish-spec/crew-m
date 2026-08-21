@@ -2,11 +2,15 @@
 
 import { useEffect, useState } from "react";
 import { getPersonas, type Persona } from "@/lib/api";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
-import { AlertTriangle, Users } from "lucide-react";
+import {
+  RadarChart, PolarGrid, PolarAngleAxis, Radar, ResponsiveContainer,
+  BarChart, Bar, XAxis, YAxis, Tooltip, Cell,
+} from "recharts";
+import { AlertTriangle } from "lucide-react";
 
 export default function PersonaExplorer() {
   const [personas, setPersonas] = useState<Persona[]>([]);
@@ -24,7 +28,7 @@ export default function PersonaExplorer() {
 
   if (error) {
     return (
-      <div className="py-12">
+      <div className="py-12 max-w-lg">
         <Card className="border-destructive/30">
           <CardContent className="pt-6">
             <div className="flex items-start gap-3">
@@ -32,9 +36,6 @@ export default function PersonaExplorer() {
               <div>
                 <p className="text-sm font-medium">Backend not running</p>
                 <p className="text-sm text-muted-foreground mt-1">Start the API server to load persona data.</p>
-                <code className="block mt-3 text-xs bg-muted px-3 py-2 rounded-md font-mono">
-                  cd backend && python3 server.py
-                </code>
               </div>
             </div>
           </CardContent>
@@ -46,15 +47,10 @@ export default function PersonaExplorer() {
   if (!personas.length) {
     return (
       <div className="py-6 space-y-6">
-        <div className="space-y-1">
-          <div className="h-7 w-40 bg-muted rounded animate-pulse" />
-          <div className="h-4 w-64 bg-muted rounded animate-pulse" />
-        </div>
+        <div className="h-7 w-40 bg-muted rounded animate-pulse" />
         <div className="grid grid-cols-12 gap-6">
           <div className="col-span-4 space-y-3">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="h-16 bg-muted rounded-lg animate-pulse" />
-            ))}
+            {[1, 2, 3, 4].map((i) => <div key={i} className="h-16 bg-muted rounded-lg animate-pulse" />)}
           </div>
           <div className="col-span-8 h-96 bg-muted rounded-lg animate-pulse" />
         </div>
@@ -66,42 +62,42 @@ export default function PersonaExplorer() {
     <div className="py-6 space-y-6">
       <div className="flex items-end justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Personas</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Persona Explorer</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {personas.length} behavioral personas discovered via K-Means clustering
+            {personas.length} behavioral personas from K-Means clustering
           </p>
         </div>
-        <Badge variant="outline" className="text-xs font-normal text-muted-foreground">OBSERVED</Badge>
+        <Badge variant="outline" className="text-[10px] font-normal text-muted-foreground tracking-wide">OBSERVED</Badge>
       </div>
 
       <div className="grid grid-cols-12 gap-6">
-        <div className="col-span-4 space-y-2">
+        {/* Persona List */}
+        <div className="col-span-4 space-y-1.5">
           {personas.map((p) => (
-            <Card
+            <button
               key={p.id}
-              className={`cursor-pointer transition-all ${
-                selected?.id === p.id
-                  ? "border-primary/50 shadow-sm bg-accent"
-                  : "hover:border-border hover:shadow-sm"
-              }`}
               onClick={() => setSelected(p)}
+              className={`w-full text-left rounded-lg border transition-all p-3 flex items-center gap-3 ${
+                selected?.id === p.id
+                  ? "border-primary/50 bg-primary/5"
+                  : "border-transparent hover:bg-muted"
+              }`}
             >
-              <CardContent className="py-3 px-4 flex items-center gap-3">
-                <PixelAvatar personaId={p.id} size={36} />
-                <div className="flex-1 min-w-0">
-                  <p className={`text-sm truncate ${selected?.id === p.id ? "font-medium text-primary" : "font-medium"}`}>
-                    {p.name}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {p.size.toLocaleString()} users · {(p.share * 100).toFixed(1)}%
-                  </p>
-                </div>
-                <span className="text-xs text-muted-foreground">#{p.rank}</span>
-              </CardContent>
-            </Card>
+              <PersonaAvatar personaId={p.id} size={36} />
+              <div className="flex-1 min-w-0">
+                <p className={`text-xs truncate ${selected?.id === p.id ? "font-medium text-primary" : "font-medium"}`}>
+                  {p.name}
+                </p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  {p.size.toLocaleString()} users · {(p.share * 100).toFixed(1)}%
+                </p>
+              </div>
+              <span className="text-[10px] text-muted-foreground tabular-nums">#{p.rank}</span>
+            </button>
           ))}
         </div>
 
+        {/* Detail Panel */}
         <div className="col-span-8">
           {selected && <PersonaDetail persona={selected} />}
         </div>
@@ -111,165 +107,218 @@ export default function PersonaExplorer() {
 }
 
 function PersonaDetail({ persona: p }: { persona: Persona }) {
+  const radarData = [
+    { axis: "App installed", v: p.app_installed_share },
+    { axis: "TH adoption", v: p.th_adoption_rate },
+    { axis: "HC adoption", v: p.hc_adoption_rate },
+    { axis: "Notif response", v: p.avg_notif_response_rate },
+    { axis: "Recency", v: Math.max(0, 1 - p.avg_days_since_active / 180) },
+    { axis: "Low fatigue", v: 1 - p.avg_campaign_fatigue },
+  ];
+
+  const channelData = Object.entries(p.channel_reach)
+    .sort(([, a], [, b]) => b - a)
+    .map(([ch, val]) => ({ channel: ch.charAt(0).toUpperCase() + ch.slice(1), reach: val }));
+
+  const CHANNEL_COLORS: Record<string, string> = {
+    Whatsapp: "oklch(0.65 0.17 155)",
+    Sms: "oklch(0.75 0.15 65)",
+    Email: "oklch(0.35 0.12 320)",
+    Push: "oklch(0.65 0.18 15)",
+  };
+
   return (
     <div className="space-y-4">
+      {/* Header */}
       <Card>
         <CardContent className="pt-5 pb-4">
           <div className="flex items-start gap-5">
-            <PixelAvatar personaId={p.id} size={64} />
+            <PersonaAvatar personaId={p.id} size={56} />
             <div className="flex-1">
-              <h2 className="text-xl font-semibold tracking-tight">{p.name}</h2>
+              <h2 className="text-lg font-semibold tracking-tight">{p.name}</h2>
               <p className="text-sm text-muted-foreground mt-0.5">
-                {p.size.toLocaleString()} users · {(p.share * 100).toFixed(1)}% of analyzed base
+                {p.size.toLocaleString()} users · {(p.share * 100).toFixed(1)}% of base
               </p>
               <div className="flex flex-wrap gap-2 mt-3">
-                <Badge variant="secondary" className="text-xs font-normal">Age {p.avg_age}</Badge>
-                <Badge variant="secondary" className="text-xs font-normal">{(p.female_share * 100).toFixed(0)}% female</Badge>
-                <Badge variant="secondary" className="text-xs font-normal">Tenure {p.avg_tenure_months.toFixed(0)}mo</Badge>
-                <Badge variant="secondary" className="text-xs font-normal">Peak {p.peak_hour_mode}:00</Badge>
+                <Badge variant="secondary" className="text-[10px] font-normal">Age {p.avg_age}</Badge>
+                <Badge variant="secondary" className="text-[10px] font-normal">{(p.female_share * 100).toFixed(0)}% female</Badge>
+                <Badge variant="secondary" className="text-[10px] font-normal">Tenure {p.avg_tenure_months.toFixed(0)}mo</Badge>
+                <Badge variant="secondary" className="text-[10px] font-normal">Peak {p.peak_hour_mode}:00</Badge>
+                {p.avg_campaign_fatigue > 0.5 && <Badge variant="destructive" className="text-[10px] font-normal">High fatigue</Badge>}
+                {p.dnd_share > 0.05 && <Badge variant="destructive" className="text-[10px] font-normal">DND {(p.dnd_share * 100).toFixed(0)}%</Badge>}
               </div>
             </div>
           </div>
         </CardContent>
       </Card>
 
+      {/* Radar + Channel */}
       <div className="grid grid-cols-2 gap-4">
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Engagement</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2.5">
-            <StatRow label="App Installed" value={`${(p.app_installed_share * 100).toFixed(0)}%`} />
-            <StatRow label="App Launches (30d)" value={p.avg_app_launches_30d.toFixed(1)} />
-            <StatRow label="Days Since Active" value={`${p.avg_days_since_active.toFixed(0)}d`} />
-            <StatRow label="Notif Response" value={`${(p.avg_notif_response_rate * 100).toFixed(1)}%`} />
-            <StatRow label="Campaign Fatigue" value={`${(p.avg_campaign_fatigue * 100).toFixed(0)}%`} alert={p.avg_campaign_fatigue > 0.5} />
-            <StatRow label="DND Share" value={`${(p.dnd_share * 100).toFixed(1)}%`} alert={p.dnd_share > 0.05} />
+          <CardContent className="pt-4 pb-3">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mb-1">Behavioral profile</p>
+            <div className="h-48">
+              <ResponsiveContainer width="100%" height="100%">
+                <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="70%">
+                  <PolarGrid stroke="oklch(0.91 0.005 320)" />
+                  <PolarAngleAxis
+                    dataKey="axis"
+                    tick={{ fontSize: 10, fill: "oklch(0.5 0.02 320)" }}
+                  />
+                  <Radar
+                    dataKey="v"
+                    stroke="oklch(0.35 0.12 320)"
+                    fill="oklch(0.35 0.12 320)"
+                    fillOpacity={0.15}
+                    strokeWidth={1.5}
+                  />
+                </RadarChart>
+              </ResponsiveContainer>
+            </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Product Usage</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2.5">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Telehealth</p>
-            <StatRow label="Adoption" value={`${(p.th_adoption_rate * 100).toFixed(1)}%`} />
-            <StatRow label="Avg Consults" value={p.avg_th_consults.toFixed(1)} />
-            <StatRow label="Funnel Depth" value={`${p.avg_th_funnel_depth.toFixed(1)} / 5`} />
-            <Separator />
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Health Checkup</p>
-            <StatRow label="Adoption" value={`${(p.hc_adoption_rate * 100).toFixed(1)}%`} />
-            <StatRow label="Avg Bookings" value={p.avg_hc_bookings.toFixed(2)} />
-            <StatRow label="Funnel Depth" value={`${p.avg_hc_funnel_depth.toFixed(1)} / 5`} />
-            <Separator />
-            <StatRow label="Wallet Expiry" value={`${p.avg_wallet_expiry_days.toFixed(0)} days`} />
+          <CardContent className="pt-4 pb-3">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mb-2">Channel reachability</p>
+            <div className="h-48">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={channelData} layout="vertical" margin={{ left: 10, right: 30, top: 5, bottom: 5 }}>
+                  <XAxis type="number" domain={[0, 1]} tickFormatter={(v: number) => `${(v * 100).toFixed(0)}%`} tick={{ fontSize: 10, fill: "oklch(0.5 0.02 320)" }} axisLine={false} tickLine={false} />
+                  <YAxis type="category" dataKey="channel" tick={{ fontSize: 11, fill: "oklch(0.5 0.02 320)" }} axisLine={false} tickLine={false} width={65} />
+                  <Tooltip formatter={(v: number) => [`${(v * 100).toFixed(0)}%`, "Reach"]} contentStyle={{ fontSize: 11, borderRadius: 8 }} />
+                  <Bar dataKey="reach" radius={[0, 4, 4, 0]} barSize={22}>
+                    {channelData.map((d) => (
+                      <Cell key={d.channel} fill={CHANNEL_COLORS[d.channel] || "oklch(0.5 0 0)"} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </CardContent>
         </Card>
       </div>
 
+      {/* Product Usage */}
       <div className="grid grid-cols-2 gap-4">
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Channel Reachability</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {Object.entries(p.channel_reach)
-              .sort(([, a], [, b]) => b - a)
-              .map(([ch, val]) => (
-                <div key={ch}>
-                  <div className="flex justify-between text-sm mb-1.5">
-                    <span className="text-muted-foreground capitalize">{ch}</span>
-                    <span className="font-medium">{(val * 100).toFixed(0)}%</span>
-                  </div>
-                  <Progress value={val * 100} className="h-1.5" />
+          <CardContent className="pt-4 pb-3 space-y-3">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Telehealth</p>
+            <div className="grid grid-cols-3 gap-3">
+              <MiniStat label="Adoption" value={`${(p.th_adoption_rate * 100).toFixed(1)}%`} />
+              <MiniStat label="Avg consults" value={p.avg_th_consults.toFixed(1)} />
+              <MiniStat label="Funnel depth" value={`${p.avg_th_funnel_depth.toFixed(1)}/5`} />
+            </div>
+            {Object.keys(p.top_th_specialties).length > 0 && (
+              <>
+                <Separator />
+                <p className="text-[10px] text-muted-foreground">Top specialties</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {Object.entries(p.top_th_specialties).map(([spec, count]) => (
+                    <Badge key={spec} variant="secondary" className="text-[10px] font-normal">
+                      {spec} ({count})
+                    </Badge>
+                  ))}
                 </div>
-              ))}
+              </>
+            )}
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Segment Mix</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="pt-4 pb-3 space-y-3">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Health checkup</p>
+            <div className="grid grid-cols-3 gap-3">
+              <MiniStat label="Adoption" value={`${(p.hc_adoption_rate * 100).toFixed(1)}%`} />
+              <MiniStat label="Avg bookings" value={p.avg_hc_bookings.toFixed(1)} />
+              <MiniStat label="Funnel depth" value={`${p.avg_hc_funnel_depth.toFixed(1)}/5`} />
+            </div>
+            <Separator />
+            <p className="text-[10px] text-muted-foreground">Wallet expiry</p>
+            <div className="flex items-center gap-2">
+              <Progress value={Math.min((p.avg_wallet_expiry_days / 365) * 100, 100)} className="h-1.5 flex-1" />
+              <span className="text-xs tabular-nums font-medium">{p.avg_wallet_expiry_days.toFixed(0)}d</span>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Engagement + Segments */}
+      <div className="grid grid-cols-3 gap-4">
+        <Card>
+          <CardContent className="pt-4 pb-3 space-y-2">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mb-1">Engagement</p>
+            <StatRow label="App installed" value={`${(p.app_installed_share * 100).toFixed(0)}%`} />
+            <StatRow label="App launches (30d)" value={p.avg_app_launches_30d.toFixed(1)} />
+            <StatRow label="Days since active" value={`${p.avg_days_since_active.toFixed(0)}d`} alert={p.avg_days_since_active > 60} />
+            <StatRow label="Notif response" value={`${(p.avg_notif_response_rate * 100).toFixed(0)}%`} />
+            <StatRow label="Campaign fatigue" value={`${(p.avg_campaign_fatigue * 100).toFixed(0)}%`} alert={p.avg_campaign_fatigue > 0.5} />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-4 pb-3 space-y-2">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mb-1">Segment mix</p>
             {Object.entries(p.segment_mix)
               .sort(([, a], [, b]) => b - a)
               .map(([seg, val]) => (
                 <div key={seg}>
-                  <div className="flex justify-between text-sm mb-1.5">
+                  <div className="flex justify-between text-xs mb-1">
                     <span className="text-muted-foreground">{seg}</span>
-                    <span className="font-medium">{(val * 100).toFixed(0)}%</span>
+                    <span className="font-medium tabular-nums">{(val * 100).toFixed(0)}%</span>
                   </div>
-                  <Progress value={val * 100} className="h-1.5" />
+                  <Progress value={val * 100} className="h-1" />
                 </div>
               ))}
-            <Separator />
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mt-2">Top Lifecycle States</p>
-            {Object.entries(p.lifecycle_distribution)
-              .slice(0, 3)
-              .map(([state, pct]) => (
-                <div key={state} className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">{state.replace(/_/g, " ")}</span>
-                  <span>{(pct * 100).toFixed(0)}%</span>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-4 pb-3 space-y-2">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mb-1">HRA status</p>
+            {Object.entries(p.hra_distribution)
+              .sort(([, a], [, b]) => b - a)
+              .map(([status, pct]) => (
+                <div key={status} className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">{status.replace(/_/g, " ")}</span>
+                  <span className="tabular-nums">{(pct * 100).toFixed(0)}%</span>
                 </div>
               ))}
           </CardContent>
         </Card>
       </div>
+    </div>
+  );
+}
 
-      {(Object.keys(p.top_th_specialties).length > 0 || Object.keys(p.hra_distribution).length > 0) && (
-        <div className="grid grid-cols-2 gap-4">
-          {Object.keys(p.top_th_specialties).length > 0 && (
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Top TH Specialties</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {Object.entries(p.top_th_specialties).map(([spec, count]) => (
-                  <div key={spec} className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">{spec}</span>
-                    <span>{count}</span>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          )}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">HRA Status</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {Object.entries(p.hra_distribution)
-                .sort(([, a], [, b]) => b - a)
-                .map(([status, pct]) => (
-                  <div key={status} className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">{status.replace(/_/g, " ")}</span>
-                    <span>{(pct * 100).toFixed(0)}%</span>
-                  </div>
-                ))}
-            </CardContent>
-          </Card>
-        </div>
-      )}
+function MiniStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="text-lg font-semibold tabular-nums tracking-tight">{value}</p>
+      <p className="text-[10px] text-muted-foreground">{label}</p>
     </div>
   );
 }
 
 function StatRow({ label, value, alert }: { label: string; value: string; alert?: boolean }) {
   return (
-    <div className="flex justify-between text-sm">
+    <div className="flex justify-between text-xs">
       <span className="text-muted-foreground">{label}</span>
-      <span className={alert ? "text-warning font-medium" : ""}>{value}</span>
+      <span className={`tabular-nums ${alert ? "text-warning font-medium" : ""}`}>{value}</span>
     </div>
   );
 }
 
-function PixelAvatar({ personaId, size = 48 }: { personaId: number; size?: number }) {
+function PersonaAvatar({ personaId, size = 36 }: { personaId: number; size?: number }) {
   const palettes = [
-    ["#7c3aed", "#ede9fe"], ["#059669", "#d1fae5"], ["#d97706", "#fef3c7"],
-    ["#dc2626", "#fee2e2"], ["#7c3aed", "#f3e8ff"], ["#db2777", "#fce7f3"],
-    ["#0891b2", "#cffafe"], ["#65a30d", "#ecfccb"],
+    ["oklch(0.45 0.12 320)", "oklch(0.95 0.02 320)"],
+    ["oklch(0.45 0.15 155)", "oklch(0.95 0.02 155)"],
+    ["oklch(0.55 0.15 65)", "oklch(0.96 0.02 65)"],
+    ["oklch(0.55 0.18 15)", "oklch(0.96 0.02 15)"],
+    ["oklch(0.45 0.12 280)", "oklch(0.95 0.02 280)"],
+    ["oklch(0.45 0.15 200)", "oklch(0.95 0.02 200)"],
+    ["oklch(0.55 0.12 100)", "oklch(0.96 0.02 100)"],
+    ["oklch(0.45 0.18 340)", "oklch(0.95 0.02 340)"],
   ];
   const [fg, bg] = palettes[personaId % palettes.length];
   const seed = personaId * 7919 + 1;
@@ -285,7 +334,7 @@ function PixelAvatar({ personaId, size = 48 }: { personaId: number; size?: numbe
   const px = size / 8;
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="rounded-md flex-shrink-0">
-      <rect width={size} height={size} fill={bg} />
+      <rect width={size} height={size} fill={bg} rx={3} />
       {pixels.map((row, y) =>
         row.map((on, x) => on ? <rect key={`${x}-${y}`} x={x * px} y={y * px} width={px} height={px} fill={fg} /> : null)
       )}
