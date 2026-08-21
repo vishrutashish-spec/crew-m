@@ -333,16 +333,27 @@ def simulate(req: SimRequest):
 
     warnings = []
     if channel == "push":
-        stale = s("reach_push") - s("reach_push_app")
-        if stale > 0:
+        stale = s("reach_push_no_app")
+        if not pool_is_app:
             warnings.append(
-                f"Push reachability for this selection reads "
-                f"{s('reach_push'):,} but only {s('reach_push_app'):,} have an "
-                f"app install signal. {stale:,} are stale tokens that will "
-                f"report as sent and land nowhere."
-                + ("" if req.exclude_no_app_for_push
-                   else " Stale tokens are currently INCLUDED in this estimate.")
+                f"This objective targets people without the app, so push has no "
+                f"legitimate audience here — the only push-reachable users in "
+                f"that pool are {stale:,} stale tokens on uninstalled apps. "
+                + ("They are excluded." if req.exclude_no_app_for_push
+                   else "They are currently INCLUDED and will deliver nothing.")
             )
+        elif stale > 0:
+            warnings.append(
+                f"Push reachability across this selection reads "
+                f"{s('reach_push'):,}, but {stale:,} of those sit in the no-app "
+                f"segment as stale tokens. This estimate uses only the "
+                f"{s('reach_push_app'):,} with an app install signal."
+            )
+    if addressable == 0:
+        warnings.append(
+            f"{A.CHANNEL_LABELS[channel]} reaches nobody in this pool. Pick a "
+            f"different channel or a different objective."
+        )
     if req.objective == "hc_crosssell":
         warnings.append(
             f"Cross-sell converts best triggered on report view, not on a "
