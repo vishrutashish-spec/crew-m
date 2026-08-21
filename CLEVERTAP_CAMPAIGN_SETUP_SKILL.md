@@ -563,6 +563,326 @@ This makes campaigns searchable and filterable in CleverTap's campaign list.
 
 ---
 
+## 11. Email Visual Design System — Extracted from Production Emails
+
+> Audited from live Plum emails: "Introducing the Plum CD account",
+> "1% healthier, everyday" (Day 2 onboarding), and "Investigating Heart
+> Disease" (Data Labs). These patterns are the ground truth for how Plum
+> emails look and feel.
+
+### 11.1 Typography
+
+| Element | Font | Size | Weight | Color | Line Height |
+|---------|------|------|--------|-------|-------------|
+| Banner headline (baked into image) | GT Alpina (serif) | Large (varies) | Bold | White or dark plum | — |
+| Body text | Inter / system sans-serif | 16px | Regular (400) | Dark plum `#571541` | 1.5–1.6 |
+| Section sub-header | Inter | 16–18px | Bold (700) | Dark plum or coral `#ee4f5e` | 1.4 |
+| Bold lead-in within list | Inter | 16px | Bold (700) | Dark plum | 1.5 |
+| CTA button text | Inter | 18px | Regular (400) | White `#ffffff` | 1.5 |
+| Footer / legal text | Inter | 12–13px | Regular | Muted gray | 1.4 |
+
+**Key rules:**
+- Body text is **never pure black** — always dark plum/maroon (`#571541`)
+- GT Alpina (serif) is used for display-level headlines only, and always
+  baked into banner images (not live HTML text, because email clients
+  cannot load custom web fonts reliably)
+- Italic serif is used for emphasis words in headlines ("1% healthier,
+  *everyday*")
+- Bold is used sparingly within body: for key phrases ("**Plum health and
+  wellness benefits are funded and activated**") and for lead-in labels
+  in numbered lists ("1. **Instant activation**: When you add...")
+- Bold lead-ins are followed by a colon, then regular weight continues
+  on the same line — never an all-bold paragraph
+
+### 11.2 Spacing System
+
+**Vertical spacing (top to bottom):**
+
+| Gap | Measurement | Where |
+|-----|-------------|-------|
+| Banner → first body text | 24–32px | After header image to opening "Hi [name]" |
+| Between paragraphs | 16–20px | Between body text blocks (≈ 1 line-height) |
+| Between major sections | 32–40px | E.g. "What's getting better" → "The one change you need to make" |
+| Section header → its content | 8–12px | Sub-header to the first line of that section |
+| Before CTA button | 24–32px | Breathing room above the primary action |
+| After CTA button | 24–32px | Before closing copy or next section |
+| Body → sign-off | 32–40px | "Regards, Prayat Shah" or "With care, Team Plum" |
+| Sign-off → footer | 40–48px | Clear separation before the fixed footer artwork |
+
+**Horizontal spacing:**
+
+| Context | Left/Right Padding |
+|---------|-------------------|
+| Desktop content area | 32–40px each side |
+| Mobile content area | 16–20px each side |
+| CTA button internal | 16px horizontal, 13px vertical |
+
+**General principles:**
+- Generous whitespace between sections — emails breathe, never feel packed
+- Major thematic shifts get a **coral divider line** (1–2px, full content
+  width) plus extra vertical space
+- Bullet lists and numbered lists have consistent indent and spacing
+  between items
+
+### 11.3 Color Palette
+
+| Color | Hex | Usage |
+|-------|-----|-------|
+| Dark plum | `#571541` | All body text, plum-variant CTA buttons |
+| Coral/red | `#ee4f5e` | Accent CTAs, links, divider lines, Data Labs branding |
+| White | `#ffffff` | Content area background, button text |
+| Soft pink | `#FFBFC5` | Header banner backgrounds (onboarding emails) |
+| Light gray | `#f5f5f5` – `#f0f0f0` | Outer email background (visible in inbox apps around the white content) |
+
+**Color application rules:**
+- **Text** is always dark plum — never black, never gray
+- **Links** are coral/red, matching the accent CTAs
+- **CTA buttons** use either plum (HRA, product) or coral (HC, engagement,
+  Data Labs) — never both in the same email
+- **Divider lines** between sections are always coral/red, thin (1–2px)
+- **Background** of the content area is always white; outer email
+  background (the strip visible in some clients) is light gray or white
+
+### 11.4 Button Design
+
+**Two CTA color variants:**
+
+| Variant | Background | Use for |
+|---------|-----------|---------|
+| Plum | `#571541` | HRA, product feature, benefits |
+| Coral | `#ee4f5e` | Health checkup, engagement, Data Labs |
+
+**Button specs (both variants):**
+
+| Property | Value |
+|----------|-------|
+| Text color | `#ffffff` |
+| Font size | 18px |
+| Font weight | Regular (400) |
+| Border radius | 8px (moderate, not pill-shaped) |
+| Padding | 13px top/bottom, 16px left/right |
+| Alignment | Centered in content column |
+| Width | Auto (fits text) |
+| Border | None |
+
+**Button text patterns:**
+- Action verb + what they'll get: "Take the health risk assessment"
+- Short and direct: "Book your free health checkup"
+- With arrow for directional cue: "Speak to us →"
+- **One primary CTA per email** — never multiple competing buttons
+  (exception: "Download the Plum app" in footer is secondary, not
+  competing)
+
+**CTA card pattern (alternative to buttons):**
+The "1% healthier" onboarding email uses bordered card CTAs instead of
+filled buttons for multiple options within a section:
+- Thin border container
+- Coral/red text (not white-on-color)
+- Small icon on the right side of the card
+- Used when offering 2–3 related choices within one section
+  (e.g. "Sign up for a Cult.fit membership", "Book a physiotherapy
+  session")
+- These are **not primary CTAs** — they're secondary actions within a
+  content section
+
+### 11.5 Layout Patterns
+
+**Single column always:**
+- Content is never laid out in side-by-side columns for body text
+- Max content width: 600px (email standard)
+- Header images go full-bleed (edge-to-edge within the 600px container)
+- Body text, buttons, and sign-offs are inset with the padding above
+
+**Vertical stacking order (standard template):**
+1. Full-width header banner (with baked-in headline + visuals)
+2. Greeting with personalization
+3. Opening paragraph
+4. Body sections with sub-headers
+5. Numbered/bulleted list (if applicable)
+6. Primary CTA button (centered)
+7. Closing copy
+8. Personal sign-off ("Regards, Prayat Shah" or "With care, Team Plum")
+9. Footer (dual desktop/mobile versions via "Hide on")
+10. App download badges
+11. Unsubscribe link
+
+**Section dividers:**
+- Used between major thematic sections
+- Coral/red thin line (1–2px)
+- Full content width (within padding)
+- **Not** used between every paragraph — only at thematic shifts
+
+### 11.6 Template Archetypes
+
+From the audited emails, three distinct template archetypes:
+
+**1. Product Announcement (CD Account email)**
+- Illustrated header banner (scenic, artistic — not a screenshot)
+- Plum logo in banner
+- Long-form body with multiple sections
+- Numbered list for feature breakdown
+- Bold lead-ins: "1. **Instant activation**: ..."
+- Plum purple CTA button
+- Professional sign-off
+
+**2. Engagement / Onboarding Series (Day 2 email)**
+- Branded header: "Day 2 of plum" in coral
+- Serif headline with italic emphasis word
+- Phone mockup showing app notification
+- Coral divider lines between sections
+- Section headers in large serif (GT Alpina, baked into image or
+  styled as display text)
+- CTA cards (bordered containers, not filled buttons) for multiple
+  action options
+- Grouped by theme: "Get moving", "Feed yourself better",
+  "Learn something useful"
+- "PLUM STORIES" badge for content links
+
+**3. Data / Research (Data Labs email)**
+- Full-bleed coral/red header with bold uppercase headline
+- "plum DATA LABS" branding
+- Personal sign-off from a named leader ("Prayat Shah, Head of
+  Healthcare at Plum")
+- External links (datalabs.plumhq.com)
+- Bullet list for data findings
+- Single coral CTA: "Speak to us →"
+- Academic/authoritative tone, still warm
+
+### 11.7 Mobile Rendering Observations
+
+From the CT editor mobile preview:
+- Content blocks reflow correctly within the narrower viewport
+- Images scale to fit
+- Buttons are full-width or near-full-width on mobile
+- Footer stacks vertically (logo, then social icons, then app badges)
+- The "Hide on" pattern ensures desktop-optimized blocks are replaced
+  with mobile-optimized versions — not just reflowed
+- Social icon rows: desktop has horizontal layout (logo + icons in
+  one row), mobile has stacked layout (logo above, icons below)
+
+### 11.8 Banner Co-Branding Lockup & Layout
+
+> Extracted from Figma banner screenshots showing HC and TH banners
+> with partner logos (teikametrics, WeWork), including correct sizing,
+> a documented sizing fuckup, and element positioning.
+
+**Banner dimensions (confirmed):**
+- Desktop: **944 × 422px**
+- Mobile: 514 × 828px (stacked variant, see Section 2.3)
+
+**Two-zone layout:**
+
+```
+┌──────────────────────────┬───────────────────────────┐
+│                          │                           │
+│   Co-branding lockup     │     Phone mockup          │
+│   (plum | partner)       │     showing app screen    │
+│                          │                           │
+│   "Hey There!"           │     (+ illustration       │
+│       ✦                  │      if applicable)       │
+│   Subtitle/value prop    │                           │
+│                          │                           │
+└──────────────────────────┴───────────────────────────┘
+     Left half (~45%)            Right half (~55%)
+```
+
+- **Left half**: text content zone — co-branding lockup at top, greeting,
+  decorative sparkle, subtitle
+- **Right half**: visual zone — phone mockup showing the relevant app
+  screen (Health Checkup Report, TeleHealth card), sometimes with an
+  illustrated character (doctor)
+- **Background**: pink gradient (left) → mint/teal gradient (right),
+  with particle/dot texture at the transition
+
+**Co-branding lockup structure:**
+
+```
+  plum  │  partnerlogo
+```
+
+- Plum wordmark (coral/red) + thin vertical divider + partner logo
+- Divider is a light/subtle line, ~1px, slightly shorter than logo height
+- Positioned at the top of the left zone, centered horizontally within it
+- If the partner's org also has standalone branding, it appears
+  **independently above** the lockup (see WeWork example: large "wework"
+  at top, then the "plum | wework" lockup below it)
+
+**Logo sizing — the critical rule:**
+
+| Partner logo size | Status | Why |
+|-------------------|--------|-----|
+| ~104 × 27px | CORRECT | Visually proportional to the Plum wordmark — neither dominates |
+| ~208 × 54px | WRONG | 2× the correct size. Partner logo visually overwhelms Plum's wordmark, breaking brand hierarchy |
+
+**The rule:** The partner logo must be **visually equal to or slightly
+smaller** than the Plum wordmark. Plum sets the sizing baseline. When in
+doubt, scale the partner logo DOWN until it feels balanced — never up.
+The co-branding lockup should read as "Plum + Partner", not
+"partner (and also plum)".
+
+**Text positioning within left zone:**
+
+| Element | Style | Position |
+|---------|-------|----------|
+| Co-branding lockup | Logo images | Top of left zone, horizontally centered |
+| Greeting | Large serif (GT Alpina), dark plum | Below lockup, ~24px gap |
+| Decorative sparkle | Small star/sparkle icon, muted | Below greeting, centered under text |
+| Subtitle / value prop | Medium serif, dark plum, 2–3 lines max | Below sparkle, ~16px gap |
+
+**Greeting text varies by email type:**
+- "Hey There!" — general (HC, TH activation)
+- "Welcome!" — onboarding / enrollment
+- Never personalized in the banner (personalization happens in body text below)
+
+**Subtitle examples:**
+- "Your Comprehensive Health Checkup is ready to book"
+- "Personalised care from a doctor is just a call away"
+- "Enroll to access your insurance benefits"
+
+**Right zone — phone mockup rules:**
+- Phone frame uses a realistic iOS chrome (status bar: 9:00, signal, wifi, battery)
+- Screen content matches the campaign's product (HC report with biomarker
+  gauge, TeleHealth card with description)
+- If an illustrated character is used (e.g. doctor), it sits below/beside
+  the phone, slightly overlapping, inside a circular mask in Figma
+- The phone mockup is slightly rotated or angled for visual interest
+- Mockup extends to the right edge of the banner (can bleed off-edge)
+
+**Common banner mistakes (from screenshots):**
+
+1. **Partner logo too large** — at 208×54 the teikametrics logo dominated
+   the lockup. The correct size was 104×27. Always check that the
+   partner logo doesn't visually outweigh Plum's wordmark.
+
+2. **Text misalignment** — greeting and subtitle should be left-aligned
+   within the left zone, centered as a group. Don't center each line
+   independently (creates a ragged mess).
+
+3. **Wrong aspect ratio for phone mockup** — the mockup should show a
+   real app screen at phone proportions, not a stretched or cropped
+   screenshot.
+
+4. **Missing co-branding divider** — the thin vertical line between
+   logos is subtle but structurally important. Without it, the two
+   logos look accidentally adjacent.
+
+### 11.9 Anti-Patterns (What Plum Does NOT Do)
+
+- **No dark backgrounds** for body content — always white
+- **No multiple competing CTAs** in the body — one primary per email
+- **No centered body text** — always left-aligned
+- **No all-caps body text** (only in banner headlines baked into images)
+- **No animated GIFs** in production emails (editor supports them, Plum
+  doesn't use them)
+- **No pure black text** — always the warm plum/maroon
+- **No pill-shaped buttons** (border-radius: 50%) — moderate radius (8px)
+- **No background colors on text sections** — no colored callout boxes
+- **No more than one font** in body copy (serif is reserved for
+  display-level headlines in images)
+
+---
+
 > **Sources**: Plum's actual CleverTap email editor (screenshots from Aug 2026),
+> live Plum email renders (CD Account, Day 2 Onboarding, Data Labs Heart Disease),
 > CleverTap product docs, EMAIL-DESIGN-PLAYBOOK.md, Copy_SKILL.md.
 > Last updated: 21 August 2026.

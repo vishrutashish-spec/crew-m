@@ -7,6 +7,7 @@ results to the frontend. All data access is logged for audit compliance.
 
 import time
 import logging
+from datetime import datetime, timezone
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -31,6 +32,28 @@ app.add_middleware(
 _state = {}
 
 
+def _compute_key_metrics(users) -> dict:
+    """Derive key metrics from actual data, not hardcoded numbers."""
+    n = len(users)
+    no_app = (~users["has_app"]).mean()
+    has_any_booking = (users["has_th_booking"] | users["has_hc_booking"])
+    employee_activation = has_any_booking.mean()
+
+    # Org-level: what share of unique segments have at least one active user
+    org_groups = users.groupby("partner_segment")["has_th_booking"].apply(lambda x: x.any())
+    org_activation = org_groups.mean()
+
+    gap = round((org_activation - employee_activation) * 100)
+
+    return {
+        "total_eligible_users": n,
+        "no_app_share": round(no_app, 3),
+        "org_activation_rate": round(org_activation, 3),
+        "employee_activation_rate": round(employee_activation, 3),
+        "structural_gap": f"{gap} points between org and employee activation",
+    }
+
+
 def get_state():
     if not _state:
         logger.info("Generating synthetic data...")
@@ -47,6 +70,7 @@ def get_state():
         _state["cluster_result"] = result
         _state["personas"] = personas
 
+        _state["generated_at"] = datetime.now(timezone.utc).isoformat()
         logger.info(f"Pipeline complete in {time.time() - t0:.1f}s — {len(personas)} personas discovered")
     return _state
 
@@ -108,13 +132,8 @@ def dashboard():
             "avg_click_rate": round(campaigns["click_rate"].mean(), 3),
             "channels_used": campaigns["channel"].value_counts().to_dict(),
         },
-        "key_metrics": {
-            "total_eligible_users": 956_050,
-            "no_app_share": 0.773,
-            "org_activation_rate": 0.74,
-            "employee_activation_rate": 0.10,
-            "structural_gap": "64 points between org and employee activation",
-        },
+        "key_metrics": _compute_key_metrics(state["users"]),
+        "generated_at": state.get("generated_at"),
     }
 
 
@@ -176,20 +195,23 @@ def simulate_campaign(req: SimulationRequest):
 
     logger.info(f"DATA_ACCESS: simulation requested — objective={req.objective}, channel={req.channel}")
 
-    # Filter historical campaigns by objective
+    # Filter historical campaigns — cascade: objective+channel → objective → all
     relevant = campaigns[campaigns["objective"] == req.objective]
+    evidence_note = f"objective '{req.objective}'"
+
     if req.channel:
         channel_relevant = relevant[relevant["channel"] == req.channel]
-        if len(channel_relevant) > 0:
+        if len(channel_relevant) >= 3:
             relevant = channel_relevant
+            evidence_note = f"objective '{req.objective}' + channel '{req.channel}'"
 
     if len(relevant) < 3:
-        return {
-            "label": "PREDICTED",
-            "confidence": "low",
-            "warning": "Insufficient historical campaigns for reliable prediction. Fewer than 3 matching campaigns found.",
-            "funnel": None,
-        }
+        relevant = campaigns[campaigns["objective"] == req.objective]
+        evidence_note = f"objective '{req.objective}' (all channels)"
+
+    if len(relevant) < 3:
+        relevant = campaigns
+        evidence_note = "all campaigns (limited objective-specific data)"
 
     # Get target personas
     target_personas = personas
@@ -243,7 +265,7 @@ def simulate_campaign(req: SimulationRequest):
     return {
         "label": "PREDICTED",
         "confidence": confidence,
-        "evidence_basis": f"Based on {n_historical} historical campaigns with objective '{req.objective}'",
+        "evidence_basis": f"Based on {n_historical} historical campaigns ({evidence_note})",
         "audience_size": total_audience,
         "funnel": {
             "sent": total_audience,

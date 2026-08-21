@@ -95,6 +95,7 @@ export interface DashboardResponse {
     employee_activation_rate: number;
     structural_gap: string;
   };
+  generated_at?: string;
 }
 
 export interface PersonasResponse {

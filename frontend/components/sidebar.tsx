@@ -2,23 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  LayoutDashboard,
-  FlaskConical,
-  Users,
-  Target,
-  BarChart3,
-  Lightbulb,
-  Settings,
-} from "lucide-react";
 
 const NAV_ITEMS = [
-  { href: "/", label: "Overview", icon: LayoutDashboard },
-  { href: "/simulate", label: "Simulate", icon: FlaskConical },
-  { href: "/audience", label: "Build Audience", icon: Target },
-  { href: "/personas", label: "Personas", icon: Users },
-  { href: "/campaigns", label: "Campaigns", icon: BarChart3 },
-  { href: "/insights", label: "Insights", icon: Lightbulb },
+  { href: "/", label: "Dashboard", icon: DashboardIcon },
+  { href: "/simulate", label: "Campaign Simulator", icon: SimulatorIcon },
+  { href: "/personas", label: "Persona Explorer", icon: PersonasIcon },
 ];
 
 export function Sidebar() {
@@ -55,7 +43,7 @@ export function Sidebar() {
                   : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
               }`}
             >
-              <Icon className="w-4 h-4 flex-shrink-0" strokeWidth={isActive ? 2 : 1.5} />
+              <Icon active={isActive} />
               {item.label}
             </Link>
           );
@@ -67,7 +55,7 @@ export function Sidebar() {
           href="/settings"
           className="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors"
         >
-          <Settings className="w-4 h-4 flex-shrink-0" strokeWidth={1.5} />
+          <SettingsIcon active={false} />
           Settings
         </Link>
         <div className="px-3 pt-3 pb-1">
@@ -80,5 +68,43 @@ export function Sidebar() {
         </div>
       </div>
     </aside>
+  );
+}
+
+function DashboardIcon({ active }: { active: boolean }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2 : 1.5} strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
+      <rect x="3" y="3" width="7" height="9" rx="1" />
+      <rect x="14" y="3" width="7" height="5" rx="1" />
+      <rect x="14" y="12" width="7" height="9" rx="1" />
+      <rect x="3" y="16" width="7" height="5" rx="1" />
+    </svg>
+  );
+}
+
+function SimulatorIcon({ active }: { active: boolean }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2 : 1.5} strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
+      <path d="M10 2v7.527a2 2 0 0 1-.211.896L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.069-10.127A2 2 0 0 1 14 9.527V2" />
+      <path d="M8.5 2h7" /><path d="M7 16h10" />
+    </svg>
+  );
+}
+
+function PersonasIcon({ active }: { active: boolean }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2 : 1.5} strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
+      <path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
+  );
+}
+
+function SettingsIcon({ active }: { active: boolean }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2 : 1.5} strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
+      <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
   );
 }
