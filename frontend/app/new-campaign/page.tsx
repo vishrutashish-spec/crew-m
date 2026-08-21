@@ -94,7 +94,9 @@ function NewCampaignForm() {
 
       setResult(draft);
       setStatus("done");
-      router.replace(`/new-campaign?d=${encodeResult(draft)}`, { scroll: false });
+      if (draft.id) {
+        router.replace(`/new-campaign?id=${draft.id}`, { scroll: false });
+      }
     } catch (err) {
       setErrorMessage(err instanceof Error ? err.message : "Something went wrong. Try again.");
       setStatus("error");
@@ -114,6 +116,8 @@ function NewCampaignForm() {
     setTimeout(() => setCopied(false), 2000);
   }
 
+  const isLoadingSharedLink = status === "loading" && Boolean(searchParams.get("id")) && !result;
+
   return (
     <div className="py-6 space-y-6 max-w-2xl">
       <div>
@@ -123,7 +127,16 @@ function NewCampaignForm() {
         </p>
       </div>
 
-      {status !== "done" && (
+      {isLoadingSharedLink && (
+        <Card>
+          <CardContent className="py-8 flex items-center justify-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            Loading campaign…
+          </CardContent>
+        </Card>
+      )}
+
+      {status !== "done" && !isLoadingSharedLink && (
         <Card>
           <CardHeader className="pb-3">
             <div className="flex items-center gap-2">
