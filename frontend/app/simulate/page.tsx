@@ -553,17 +553,17 @@ function SimulationResult({ result, prevResult }: { result: SimulationResponse; 
   const hasPrev = prevResult?.funnel !== null && prevResult !== null;
 
   const funnelStages = hasFunnel ? [
-    { label: "Sent", count: result.funnel!.sent, rate: 1, prev: hasPrev ? prevResult!.funnel!.sent : null },
-    { label: "Delivered", count: result.funnel!.delivered, rate: result.funnel!.delivery_rate, prev: hasPrev ? prevResult!.funnel!.delivery_rate : null },
-    { label: "Opened", count: result.funnel!.opened, rate: result.funnel!.open_rate, prev: hasPrev ? prevResult!.funnel!.open_rate : null },
-    { label: "Clicked", count: result.funnel!.clicked, rate: result.funnel!.click_rate, prev: hasPrev ? prevResult!.funnel!.click_rate : null },
-    { label: "Converted", count: result.funnel!.converted, rate: result.funnel!.conversion_rate, prev: hasPrev ? prevResult!.funnel!.conversion_rate : null },
+    { label: "Sent", count: result.funnel!.sent, rate: 1, prevCount: hasPrev ? prevResult!.funnel!.sent : null, prevRate: null as number | null },
+    { label: "Delivered", count: result.funnel!.delivered, rate: result.funnel!.delivery_rate, prevCount: hasPrev ? prevResult!.funnel!.delivered : null, prevRate: hasPrev ? prevResult!.funnel!.delivery_rate : null },
+    { label: "Opened", count: result.funnel!.opened, rate: result.funnel!.open_rate, prevCount: hasPrev ? prevResult!.funnel!.opened : null, prevRate: hasPrev ? prevResult!.funnel!.open_rate : null },
+    { label: "Clicked", count: result.funnel!.clicked, rate: result.funnel!.click_rate, prevCount: hasPrev ? prevResult!.funnel!.clicked : null, prevRate: hasPrev ? prevResult!.funnel!.click_rate : null },
+    { label: "Converted", count: result.funnel!.converted, rate: result.funnel!.conversion_rate, prevCount: hasPrev ? prevResult!.funnel!.converted : null, prevRate: hasPrev ? prevResult!.funnel!.conversion_rate : null },
   ] : [];
 
   const chartData = funnelStages.map((s) => ({
     name: s.label,
     current: s.count,
-    ...(hasPrev && s.prev !== null ? { previous: Math.round((s.prev as number) * (prevResult?.audience_size || 0)) } : {}),
+    ...(s.prevCount !== null ? { previous: s.prevCount } : {}),
   }));
 
   return (
