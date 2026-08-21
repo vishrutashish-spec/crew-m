@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Megaphone, Loader2, ExternalLink } from "lucide-react";
+import { Megaphone, Loader2, ExternalLink, Copy, Check } from "lucide-react";
 
 type CampaignType = "welcome" | "renewal";
 
@@ -19,7 +20,22 @@ interface DraftResult {
   reviewUrl: string;
 }
 
-export default function NewCampaignPage() {
+function encodeResult(result: DraftResult): string {
+  return encodeURIComponent(btoa(encodeURIComponent(JSON.stringify(result))));
+}
+
+function decodeResult(encoded: string): DraftResult | null {
+  try {
+    return JSON.parse(decodeURIComponent(atob(decodeURIComponent(encoded))));
+  } catch {
+    return null;
+  }
+}
+
+function NewCampaignForm() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
   const [amName, setAmName] = useState("");
   const [accountName, setAccountName] = useState("");
   const [campaignType, setCampaignType] = useState<CampaignType>("welcome");
@@ -28,6 +44,18 @@ export default function NewCampaignPage() {
   const [status, setStatus] = useState<"idle" | "loading" | "error" | "done">("idle");
   const [errorMessage, setErrorMessage] = useState("");
   const [result, setResult] = useState<DraftResult | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  // Load a shared result straight from the URL, e.g. /new-campaign?d=...
+  useEffect(() => {
+    const encoded = searchParams.get("d");
+    if (!encoded) return;
+    const decoded = decodeResult(encoded);
+    if (decoded) {
+      setResult(decoded);
+      setStatus("done");
+    }
+  }, [searchParams]);
 
   const canSubmit = amName.trim().length > 0 && accountName.trim().length > 0;
 
@@ -68,6 +96,7 @@ export default function NewCampaignPage() {
 
       setResult(draft);
       setStatus("done");
+      router.replace(`/new-campaign?d=${encodeResult(draft)}`, { scroll: false });
     } catch (err) {
       setErrorMessage(err instanceof Error ? err.message : "Something went wrong. Try again.");
       setStatus("error");
@@ -78,6 +107,13 @@ export default function NewCampaignPage() {
     setStatus("idle");
     setResult(null);
     setErrorMessage("");
+    router.replace("/new-campaign", { scroll: false });
+  }
+
+  async function handleCopyLink() {
+    await navigator.clipboard.writeText(window.location.href);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   }
 
   return (
@@ -171,7 +207,7 @@ export default function NewCampaignPage() {
                 {status === "loading" ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    Drafting…
+                    Drafting… this can take up to 30 seconds
                   </>
                 ) : (
                   "Draft campaign"
@@ -187,9 +223,24 @@ export default function NewCampaignPage() {
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-medium">{result.campaignName}</CardTitle>
-              <Button variant="ghost" size="sm" onClick={handleReset}>
-                New request
-              </Button>
+              <div className="flex items-center gap-1">
+                <Button variant="ghost" size="sm" onClick={handleCopyLink}>
+                  {copied ? (
+                    <>
+                      <Check className="w-3.5 h-3.5" />
+                      Copied
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3.5 h-3.5" />
+                      Copy link
+                    </>
+                  )}
+                </Button>
+                <Button variant="ghost" size="sm" onClick={handleReset}>
+                  New request
+                </Button>
+              </div>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -255,5 +306,13 @@ export default function NewCampaignPage() {
         </Card>
       )}
     </div>
+  );
+}
+
+export default function NewCampaignPage() {
+  return (
+    <Suspense>
+      <NewCampaignForm />
+    </Suspense>
   );
 }
