@@ -10,8 +10,13 @@ type CampaignType = "welcome" | "renewal";
 
 interface DraftResult {
   campaignName: string;
+  channel: string;
+  subject: string;
+  body: string;
+  creativeUrl: string;
+  creativeIsStub: boolean;
+  segmentSuggestion: string;
   reviewUrl: string;
-  summary: string;
 }
 
 export default function NewCampaignPage() {
@@ -188,9 +193,54 @@ export default function NewCampaignPage() {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <pre className="text-sm whitespace-pre-wrap font-sans bg-muted rounded-lg p-4">
-              {result.summary}
-            </pre>
+            <p className="text-xs text-muted-foreground">
+              {result.channel} campaign — this is a brief, not a live CleverTap draft.
+              CleverTap doesn&apos;t expose an API to create campaigns, so paste this in
+              to create the real draft.
+            </p>
+
+            <div className="space-y-1">
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Subject
+              </span>
+              <p className="text-sm font-medium">{result.subject}</p>
+            </div>
+
+            <div className="space-y-1">
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Body
+              </span>
+              <p className="text-sm whitespace-pre-wrap bg-muted rounded-lg p-4">
+                {result.body}
+              </p>
+            </div>
+
+            <div className="space-y-1">
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Creative
+              </span>
+              {result.creativeUrl && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={result.creativeUrl}
+                  alt="Campaign creative"
+                  className="w-full rounded-lg border border-border"
+                />
+              )}
+              {result.creativeIsStub && (
+                <p className="text-xs text-muted-foreground">
+                  Placeholder — real creative rendering isn&apos;t wired up yet.
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-1">
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Suggested audience
+              </span>
+              <p className="text-sm">{result.segmentSuggestion}</p>
+            </div>
+
             <Separator />
             <a
               href={result.reviewUrl}
