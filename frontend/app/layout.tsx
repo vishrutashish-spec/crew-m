@@ -1,33 +1,34 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Sidebar } from "@/components/sidebar";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+// Inter carries body copy; Vollkorn is loaded from /public/fonts via @font-face
+// in globals.css and owns every heading, figure and chart label.
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
+  display: "swap",
 });
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
   title: "Crew M",
-  description: "AI-powered campaign intelligence for Plum",
+  description: "Campaign intelligence for Plum product marketing",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex bg-background text-foreground">
+    <html lang="en" className={`${inter.variable} ${geistMono.variable} h-full`}>
+      <body className="min-h-full bg-background text-foreground">
         <Sidebar />
-        <main className="flex-1 ml-[220px] min-h-screen">
-          <div className="max-w-[1200px] mx-auto px-8 lg:px-12 py-8">
+        <main className="ml-[236px] min-h-screen">
+          <div className="mx-auto w-full max-w-[1500px] px-8 xl:px-12 py-9">
             {children}
           </div>
         </main>

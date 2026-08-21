@@ -2,68 +2,80 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Beaker, Users, Settings } from "lucide-react";
+import { LayoutDashboard, Users, FlaskConical, BookOpen } from "lucide-react";
 
-const NAV_ITEMS = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/simulate", label: "Simulator", icon: Beaker },
-  { href: "/personas", label: "Personas", icon: Users },
+const NAV = [
+  { href: "/", label: "Overview", icon: LayoutDashboard },
+  { href: "/cohorts", label: "Age cohorts", icon: Users },
+  { href: "/simulate", label: "Simulator", icon: FlaskConical },
+  { href: "/methodology", label: "Methodology", icon: BookOpen },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="fixed inset-y-0 left-0 w-[220px] border-r border-border/60 bg-sidebar flex flex-col z-40">
-      <div className="h-16 flex items-center px-6">
-        <Link href="/" className="flex items-center gap-2.5 group">
-          <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center transition-transform group-hover:scale-105">
-            <span className="text-primary-foreground text-sm font-semibold tracking-tight">M</span>
+    <aside className="fixed inset-y-0 left-0 w-[236px] bg-sidebar border-r border-border flex flex-col z-40">
+      {/* Brand */}
+      <div className="h-[74px] flex items-center px-6 border-b border-border relative grid-ground">
+        <Link href="/" className="flex items-center gap-3 group relative">
+          <div className="w-9 h-9 rounded-[10px] metal-ink flex items-center justify-center">
+            <span className="font-heading text-white text-[15px] leading-none">M</span>
           </div>
-          <div>
-            <span className="text-[15px] font-semibold tracking-tight text-foreground">Crew M</span>
+          <div className="leading-tight">
+            <div className="font-heading text-[16px] text-[color:var(--ink)]">Crew M</div>
+            <div className="text-[10px] text-muted-foreground">Campaign intelligence</div>
           </div>
         </Link>
       </div>
 
-      <nav className="flex-1 px-3 pt-2 space-y-0.5">
-        <p className="text-[10px] font-medium text-muted-foreground/60 uppercase tracking-[0.08em] px-3 pb-2 pt-2">Navigation</p>
-        {NAV_ITEMS.map((item) => {
-          const isActive = item.href === "/"
-            ? pathname === "/"
-            : pathname.startsWith(item.href);
-          const Icon = item.icon;
-
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] transition-all duration-200 ${
-                isActive
-                  ? "bg-primary/8 text-primary font-medium"
-                  : "text-foreground/50 hover:text-foreground hover:bg-muted/60"
-              }`}
-            >
-              <Icon className={`w-[18px] h-[18px] ${isActive ? "text-primary" : "text-foreground/40"}`} strokeWidth={1.75} />
-              {item.label}
-            </Link>
-          );
-        })}
+      {/* Nav */}
+      <nav className="flex-1 px-3.5 pt-5">
+        <p className="label-mono px-2.5 pb-2.5">Navigate</p>
+        <div className="space-y-1">
+          {NAV.map((item) => {
+            const active =
+              item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`relative flex items-center gap-3 px-2.5 py-2.5 rounded-[10px] text-[13px] transition-all duration-150 ${
+                  active
+                    ? "bg-[color:var(--cyan-wash)] text-[color:var(--cyan-deep)] font-medium border border-[color:#b3e8ee]"
+                    : "text-foreground/75 hover:text-foreground hover:bg-[color:var(--muted)] border border-transparent"
+                }`}
+              >
+                {active && (
+                  <span className="absolute left-0 top-2.5 bottom-2.5 w-[2.5px] rounded-r metal-cyan" />
+                )}
+                <Icon
+                  className="w-[17px] h-[17px] flex-shrink-0"
+                  strokeWidth={active ? 2.2 : 1.8}
+                />
+                {item.label}
+              </Link>
+            );
+          })}
+        </div>
       </nav>
 
-      <div className="px-3 pb-4 space-y-1">
-        <Link
-          href="/settings"
-          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] text-foreground/50 hover:text-foreground hover:bg-muted/60 transition-all duration-200"
-        >
-          <Settings className="w-[18px] h-[18px] text-foreground/40" strokeWidth={1.75} />
-          Settings
-        </Link>
-        <div className="px-3 pt-3 pb-1 border-t border-border/40">
-          <p className="text-[11px] text-muted-foreground/70">
-            Plum Product Marketing
+      {/* Footer — the scope caveat lives here so it is always in view */}
+      <div className="px-3.5 pb-4">
+        <div className="panel-flush p-3 bg-[color:var(--muted)]">
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-[color:var(--success)] live-dot" />
+            <span className="label-mono !text-[9px]">Eligible base</span>
+          </div>
+          <p className="figure text-[15px]">956,050</p>
+          <p className="text-[10px] text-muted-foreground mt-1 leading-snug">
+            Active, non-test organisations
           </p>
         </div>
+        <p className="text-[10px] text-muted-foreground mt-3 px-1">
+          Plum Product Marketing
+        </p>
       </div>
     </aside>
   );
