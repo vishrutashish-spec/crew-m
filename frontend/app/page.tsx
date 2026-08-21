@@ -81,7 +81,7 @@ export default function Overview() {
   ];
 
   const channelData = Object.entries(campaign_summary.channels_used).map(([ch, count]) => ({
-    channel: ch.charAt(0).toUpperCase() + ch.slice(1),
+    channel: CHANNEL_LABELS[ch] || ch,
     count,
     key: ch,
   }));
@@ -249,8 +249,8 @@ export default function Overview() {
                       <div className="mt-3 pt-2 border-t border-border/50">
                         <div className="flex justify-between text-[10px]">
                           <span className="text-muted-foreground">Best channel</span>
-                          <span className="font-medium capitalize">
-                            {persona.channel_reach ? Object.entries(persona.channel_reach).sort(([,a],[,b]) => b - a)[0]?.[0] : "—"}
+                          <span className="font-medium">
+                            {persona.channel_reach ? CHANNEL_LABELS[Object.entries(persona.channel_reach).sort(([,a],[,b]) => b - a)[0]?.[0]] || "—" : "—"}
                           </span>
                         </div>
                       </div>

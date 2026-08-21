@@ -116,13 +116,17 @@ function PersonaDetail({ persona: p }: { persona: Persona }) {
     { axis: "Low fatigue", v: 1 - p.avg_campaign_fatigue },
   ];
 
+  const CHANNEL_LABELS: Record<string, string> = {
+    whatsapp: "WhatsApp", push: "Push", email: "Email", sms: "SMS",
+  };
+
   const channelData = Object.entries(p.channel_reach)
     .sort(([, a], [, b]) => b - a)
-    .map(([ch, val]) => ({ channel: ch.charAt(0).toUpperCase() + ch.slice(1), reach: val }));
+    .map(([ch, val]) => ({ channel: CHANNEL_LABELS[ch] || ch, reach: val }));
 
   const CHANNEL_COLORS: Record<string, string> = {
-    Whatsapp: "oklch(0.65 0.17 155)",
-    Sms: "oklch(0.75 0.15 65)",
+    WhatsApp: "oklch(0.65 0.17 155)",
+    SMS: "oklch(0.75 0.15 65)",
     Email: "oklch(0.35 0.12 320)",
     Push: "oklch(0.65 0.18 15)",
   };
