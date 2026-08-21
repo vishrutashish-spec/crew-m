@@ -44,13 +44,23 @@ BUILD-SHEET-prochant-welcome.md — do not regenerate them).
    `x >= 19000` → rename `GEN — <campaignType> — <accountName> — <desktop|mobile>`
    (+ `[VOLLKORN sub for GT Alpina]` suffix if applicable). Never modify or
    rename the source templates.
-4. **Set copy**: heading + one-line subtitle. Do not invent benefit specifics
-   (no numbers, no coverage details) — this queue only carries account name
-   and campaign type, nothing else. Use:
+4. **Set copy**: heading, one-line subtitle, AND the button label — the
+   header template embeds its own CTA button as part of its layout (see
+   §5.3's typography spec, which lists a "Button label" row for the header
+   itself, and §4.3 "Changes per email" which lists it alongside heading and
+   logo). **Find every text node in the cloned header whose content is
+   still a template placeholder (e.g. "Button text", "Button CTA in 4-5
+   words", "Heading that fits in 2 lines") and replace it — a shipped
+   placeholder string is always a bug, never leave one.** Do not invent
+   benefit specifics (no numbers, no coverage details) — this queue only
+   carries account name and campaign type, nothing else. Use:
    - Welcome: heading `"Welcome!"`, subtitle `"Your health and wellness
-     benefits are on their way"`
+     benefits are on their way"`, button `"Explore your benefits"`
    - Renewal: heading `"Welcome back!"`, subtitle `"Your health and wellness
-     benefits for the year ahead"`
+     benefits for the year ahead"`, button `"Explore your benefits"`
+   Before exporting, walk every TEXT node in the cloned header and assert
+   none of its `characters` matches a known placeholder string — treat a
+   match as a failed row, not a shippable one.
    Assert `heading.height <= 100` after setting text (§5.3 "heading length is
    geometry, not taste") — if it wraps past 2 lines, drop the size, don't
    change the copy.
