@@ -550,6 +550,425 @@ Architecture must abstract data source — real CT and synthetic are interchange
 
 ---
 
+## 10. Campaign Setup — Step-by-Step Guide
+
+This section covers the complete process of creating, configuring, testing, and launching a campaign in CleverTap's dashboard.
+
+### 10.1 Campaign Creation Flow
+
+1. Navigate to **Messages > Campaigns** in the left nav
+2. Click **+ Campaign**
+3. Select a **Messaging Channel** (Push, Email, SMS, WhatsApp, In-App, Web Push, App Inbox, Webhook)
+4. The campaign builder opens with five sections:
+
+| Section | What You Configure |
+|---------|-------------------|
+| **Start Here** | Qualification criteria, conversion goal, service provider |
+| **Who** | Target audience (segment, filters, control group) |
+| **What** | Message content, A/B variants, personalization |
+| **When** | Schedule, delivery preferences, DND, frequency caps |
+| **Publish** | Review summary and launch |
+
+### 10.2 Start Here — Qualification & Goals
+
+**Qualification Criteria** — how users enter the campaign:
+
+| Type | Behavior |
+|------|----------|
+| Past behavior / Custom list | Target based on historical actions or uploaded user lists |
+| Live behavior | Real-time trigger when user performs or fails to perform an event |
+| External trigger | Campaign delivery triggered via API call (Push, Email, Webhook only) |
+
+**Conversion Goal** (optional but recommended):
+- Select a **Conversion Event** (e.g. "Charged", "healthCheckupbooking_confirmed")
+- Set a **Conversion Time** window: 1 minute to 5 months (Minutes / Hours / Days / Weeks / Months)
+- Conversion counted once per user per campaign
+
+**Service Provider** — select the configured provider for the chosen channel (e.g. which SMS provider, which Email ESP).
+
+### 10.3 Campaign Types
+
+#### By Delivery Type
+
+| Type | Description | When to Use |
+|------|-------------|-------------|
+| **One Time** | Sends once to qualifying users at a specific time | Announcements, one-off promotions |
+| **Recurring** | Repeats daily / every N days / weekly / monthly | Weekly digests, regular nudges |
+| **Action (Triggered)** | Fires in real-time when user performs a specific event | Welcome messages, feature usage triggers |
+| **Inaction** | Fires when user does NOT perform an expected action within a time window | Cart abandonment, incomplete onboarding |
+| **On a Date/Time** | Fires based on a date property on the user profile | Birthday campaigns, renewal reminders |
+| **Multiple Date** | Sends on several specified dates/times | Multi-day events, phased rollouts |
+| **API (External Trigger)** | Triggered by server-side API call with dynamic payload | Order confirmations, server-side events |
+
+#### By Message Structure
+
+| Type | Description |
+|------|-------------|
+| **Single Message** | One message to all qualifying users (per-user personalization still works) |
+| **A/B Test** | Up to 3 variants tested; winner auto-deployed to remaining audience |
+| **Split Delivery** | Percentage-based distribution across variants, no winner selection |
+| **Message on User Property** | Up to 50 variants based on user property values (language, tier, etc.) |
+
+### 10.4 Audience Targeting (The "Who" Section)
+
+#### Segment Types Available
+
+**Past Behavior Segments (PBS):** Historical actions, inactions, and user properties combined. Example: "Users who launched the app in the last 30 days AND have not booked a consultation."
+
+**Live User Segments (6 sub-types):**
+- User Actions — triggers the moment a user performs a specific event
+- Inaction in Time Frame — user does event A but NOT event B within X minutes
+- On a Date or Time — segments by date/time property values
+- Page Visit — triggers on specific URL visit
+- Referrer Entry — segments by referring source
+- Page Count — segments by number of pages visited
+
+**Custom List Segments:** Upload CSV (50MB via dashboard, 5GB via API). Two required columns: Type (`g` for CleverTap ID, `i` for Identity) and the Identity value.
+
+**Intent-Based Segments:** ML-predicted likelihood of conversion/churn. Three micro-segments: Most Likely, Moderately Likely, Least Likely. Takes up to 24 hours to generate. Advanced/Cutting Edge plans only.
+
+**System Segments (pre-built):** All Users, Test Users, First-time App Users, Engaged Users (4+ weekly interactions).
+
+#### Filter Rule Builder
+
+Three rule families, combinable with AND/OR logic:
+
+| Rule Family | What It Filters On |
+|-------------|-------------------|
+| **User Property** | Custom attributes, demographics, geography, technographics, reachability (MSG-push/sms/email/whatsapp), app fields, segment membership |
+| **User Behavior** | Event Did / Have Not Done / Combination (any-of OR logic), with count, sum, average operators |
+| **User Interest** | Event property values, time of day patterns, day of week — "Predominantly" or "At Least %" threshold |
+
+#### Control Groups
+
+| Type | Scope | Size |
+|------|-------|------|
+| System Control Group | All campaigns, entire user base | 2–5% (1 per account) |
+| Custom Control Group | Selected campaigns, entire user base | 2–5% (up to 10 per account) |
+| Campaign Control Group | This campaign's audience only | 2–99% |
+
+#### Targeting Caps
+
+- All qualifying users (with optional safety: "Don't send if segment exceeds X users")
+- Send to at most X qualified users total
+- Send to at most X qualified users per day (Live Behavior only) with optional lifetime cap
+- Minimum: 100 users
+
+Click **Calculate** to preview estimated reach (total users, platform breakdown, device count).
+
+### 10.5 Message Content (The "What" Section)
+
+#### Content Fields by Channel
+
+**Push:** Title, Body, Image (rich push), Deep Link, Custom Key-Value Pairs, Action Buttons
+
+**Email:**
+- From (sender name) — mandatory
+- Subject line — mandatory
+- Preheader (summary text after subject in inbox) — optional
+- Plain-text body (fallback for non-HTML clients) — optional
+- CC/BCC (up to 20 total, Private Beta) — optional
+- Template selection: rich editor, drag-and-drop, or HTML
+
+**SMS:** Message body, URL shortening (max 5 per variant), Template ID (mandatory for India/MSG91), click tracking
+
+**WhatsApp:** Pre-approved template, personalization variables, Quick Reply buttons (up to 3, 128 chars each), CTA buttons, media headers (image/video/document/location)
+
+**In-App:** Template type (header, footer, interstitial, half-interstitial, cover, custom HTML), images/GIFs/videos, action buttons
+
+**Web Push:** Title, body, icon, image, action URL, action buttons
+
+**App Inbox:** Template type (Simple, Carousel, Message with Icon), tags for categories, CTA (link, copy-to-clipboard, open URL, key-value)
+
+#### Personalization
+
+**Inline (@):** Type `@` or `{{}}` in any text field to open the personalization menu. Works in media URLs, deep links, button text.
+
+**Liquid Tags:** Full scripting for dynamic content:
+
+```liquid
+{{ Profile.PropertyName | default: "fallback" }}
+{{ Event.PropertyName | default: "fallback" }}
+
+{% if Profile.Language == "Hindi" %}
+  नमस्ते!
+{% else %}
+  Hello!
+{% endif %}
+
+{% abort %}  ← prevents delivery if condition fails
+```
+
+**Linked Content:** Send-time API calls to external sources (weather, product catalogs).
+
+**Catalog Personalization:** Pull product info from uploaded CSV catalogs.
+
+Note: Event properties are only available for live user segments (triggered campaigns). Profile properties work for all segment types.
+
+#### A/B Testing
+
+- Up to **3 variants**
+- Minimum recommended audience: 5,000 users (optimal: 10,000+)
+- Past Behavior segments: set test % or absolute count; variants distribute equally
+- Live segments: set fixed test audience size; system alternates variants
+- Winner declared by: clicks (push/SMS) or views (email/WhatsApp). Ties default to Variant A
+- Winning variant auto-deploys to remaining audience
+- **Split Delivery** alternative: percentage distribution, no winner selection
+
+### 10.6 Scheduling & Delivery (The "When" Section)
+
+#### Schedule Options
+
+**For Past Behavior / Custom List campaigns:**
+- Send Now — immediate, account timezone
+- Schedule for Later — specific date/time
+- Multiple Dates — fires on several dates
+- Recurring — Daily (every N days), Weekly, Monthly
+
+**For Live Behavior (Action/Inaction) campaigns:**
+- Start: "Now" or specific date/time
+- End: "Never" (runs until stopped) or specific date/time
+- Delay: configurable wait before delivery (seconds → days)
+
+#### Timezone Delivery
+
+Check **"Timezone"** in delivery preferences. Delivers at the scheduled time in each user's local timezone (requires "Tz" key in user profiles). If the user's timezone has already passed the scheduled time:
+- "Drop the campaign" — no message sent
+- "Deliver the next day" — queued for tomorrow
+
+#### IntelliTime (Best Time to Send)
+
+Configured at: Settings > Setup > IntelliTime
+
+- Splits day into **12 two-hour buckets**
+- Assigns users based on **180 days** of activity history
+- Up to 10 IntelliTime configs per account
+- **Fallback time** (manually set) for users without enough history — cannot overlap with DND
+- Supported on: Email, SMS, Push, WhatsApp, Web Push
+- DND overrides IntelliTime — messages discarded, not delayed
+- Incompatible with global throttle limits
+
+#### DND (Do Not Disturb)
+
+Check **"Do Not Disturb (DND)"** in delivery preferences. Select inactive days/hours (e.g. 9 PM – 9 AM). Per-day customization supported. "Copy Time To All" applies the same window to every day.
+
+When a message qualifies during DND:
+- **Discard** — permanently dropped
+- **Send After DND / Delay** — held and delivered when DND ends
+
+#### Frequency Capping (Two Tiers)
+
+**Global** (Settings > Setup > Campaign Limits):
+- Max messages per user per channel across all campaigns (e.g. "3 push in 7 days")
+- Dwell Time: minimum gap between messages (15 min – 7 days)
+
+**Per-Campaign** (in the When section):
+- "Send every time user qualifies" (default)
+- "Send with minimum gap of" (5 min – 30 days)
+
+**Recurring engagement limits:** Send each time / Max N sends ever (1–250) / interval-based
+
+Stricter of global vs campaign always wins. Clear the **"Global Campaign Limit"** checkbox in the Who section to exempt a priority campaign.
+
+#### TTL, Cut-off, Throttle
+
+- **TTL (Time to Live):** Relative (duration from send) or Absolute (specific expiry date/time)
+- **Cut-off Time:** Prevents delivery after a timestamp; undelivered messages resume at midnight
+- **Global Throttle:** Settings > Setup > Campaign Limits — controls delivery rate per interval (e.g. 100K per 15 min)
+- **Ad Hoc Throttle:** Per-campaign override in When section (minimum > 100)
+
+### 10.7 Conversion Tracking
+
+Defined in the **Start Here** section:
+
+1. Select a **Conversion Event** (any tracked event)
+2. Set a **Conversion Time** (attribution window: 1 minute to 5 months)
+
+**Attribution types tracked:**
+- **Click-Through:** User clicked the message then converted
+- **View-Through (Influenced):** User was sent the message and converted without clicking
+- **Control Group:** Baseline from users who didn't receive the message
+
+Counting: once per user per conversion event. Multi-campaign: if a user converts across multiple active campaigns, each gets credit. Conversion window and event are editable post-campaign.
+
+### 10.8 Testing & QA
+
+#### Test Sends
+
+In the **What** section, click **Preview & Test**:
+
+| Method | How |
+|--------|-----|
+| Test Profiles | Select from users marked as "Test profile" in the dashboard |
+| All Profiles | Select by email, CleverTap ID, or Identity |
+| Device Token | Manual entry of Android/iOS device tokens |
+
+Test response window shows: delivery status, errors, Linked Content responses, Liquid Tag errors.
+
+#### Email-Specific Testing
+
+**Inbox Previews** (Email add-on): Preview rendering across email clients and devices. Spam analysis report.
+
+**Seed Testing:** Send to seed list (dummy addresses across ISPs) to measure inbox placement. Seed providers: Validity, Email on Acid, Litmus, InboxMonster. Upload via CSV or API. Send separately from real audience to prevent metric distortion.
+
+#### Validation
+
+- Real-time Liquid Tag syntax checking in the editor
+- Campaign summary review screen before publishing
+- Estimated reach calculation
+
+### 10.9 Campaign Approval Workflow
+
+Enable at: Settings > Security > Campaign Approval > Toggle ON
+
+| Role | Can Do |
+|------|--------|
+| Creator | Drafts and submits; cannot publish without approval |
+| Approver | Reviews, approves, or rejects with comments |
+| Admin | Has approver capabilities by default |
+
+Flow: Creator submits → email notification to approvers → Approver reviews segment/timing/content → Approve or Reject (with comments) → Creator can edit and resubmit if rejected.
+
+If not approved by scheduled send time: campaign expires (must clone and reschedule). Recurring campaigns return to pending status after copy edits.
+
+### 10.10 Post-Launch Monitoring
+
+#### Live Stats by Channel
+
+| Channel | Metrics Available |
+|---------|------------------|
+| Push | Qualified, Sent, Impressions (SDK 3.5.1+), Clicks, CTR, Conversions (view-through + click-through), Errors |
+| Email | Sent, Viewed (opens), Clicks, CTR, Conversions, Soft Bounces (temporary), Hard Bounces (permanent), Subscribe/Unsubscribe |
+| SMS | Sent, Delivered, Clicks (shortened URLs), Errors |
+| WhatsApp | Sent, Delivered, Read, Clicks, Errors |
+
+#### Analytics Views
+
+- **Message Trend:** Daily/weekly/monthly performance charts
+- **Conversion Performance:** Revenue metrics and funnel analysis
+- **Users Conversion Funnel:** Drop-offs across Sent → Viewed → Clicked → Converted
+- **Split of Clicks:** Per-link click distribution (email)
+- **OS/Device Split:** Breakdown by platform and device type
+- **Error Reporting:** Stats > Errors tab
+
+#### Campaign Reports (Subscription-Based)
+
+Campaigns page > select campaigns > **"Subscribe to reports"**
+
+- **One-Time Reports:** Snapshot for selected campaigns
+- **Recurring Reports:** Daily (previous day) or Weekly (last 7 days)
+- Delivery: email or partner export (S3 / GCS / Azure Blob)
+- Limits: stats for max 2,500 campaigns; detailed stats for max 2,000
+
+#### Campaign Lifecycle
+
+| Status | Meaning |
+|--------|---------|
+| Draft | Created but not published |
+| Scheduled | Published, waiting for send time |
+| Running | Currently delivering |
+| Awaiting Next Run | Recurring campaign between runs |
+| Stopped | Manually stopped (permanent — cannot pause/resume) |
+| Completed | Finished all deliveries |
+| Approval Pending | Awaiting approver |
+| Rejected | Rejected by approver |
+
+**Operations:** Stop (permanent), Clone (to same or different project, as draft), Archive (remove from active view).
+
+**Message Labels:** Up to 900 labels for categorization, recorded on "Notification Sent" events. Cannot contain: `"`, `,`, `%`, `>`, `<`, `!`.
+
+---
+
+## 11. Channel Setup Requirements
+
+What needs to be configured before each channel can send campaigns.
+
+### Push Notifications
+
+**Dashboard:** Settings > Channels > Mobile push
+
+**Android:** FCM Server Key or Firebase service account JSON (for HTTP v1 API). Optional: Xiaomi (Package Name, App ID, App Key, App Secret), Baidu, Huawei.
+
+**iOS (Auth Key recommended):** Upload .p8 file from Apple Developer portal. Alternative: .p12 push certificate. Bundle ID must match.
+
+**Push Impressions:** Settings > Schema > Events > "Push Impressions" > toggle on "Mobile Push" (requires SDK 3.5.1+).
+
+### Email
+
+**Dashboard:** Settings > Engage > Channels > Email > + Provider
+
+**Supported:** Amazon SES, SendGrid, Postmark, Mandrill, Gmail/Google Apps, Generic SMTP.
+
+**Required fields:** Provider, Nickname (unique), Host, Port, API Key/credentials, Default From Address, Default Reply Address.
+
+**DNS:** SPF, DKIM, DMARC must be configured. Required by Gmail/Yahoo for senders over 5,000 daily emails.
+
+**Provider-specific:**
+- Amazon SES: SMTP settings from SES Dashboard; From Address must be verified in SES; configure SNS Topic for bounces
+- SendGrid: API Key only (since Dec 2020); configure Event Notification webhook
+
+### SMS
+
+**Dashboard:** Settings > Engage > Channels > SMS > + Add Provider
+
+**18+ providers:** Twilio, Nexmo/Vonage, MSG91, Exotel, Infobip, Kaleyra, Plivo, Route Mobile, Sinch, TextLocal, and more. Generic SMS for any HTTP-capable provider.
+
+**India-specific:** DLT registration required; Template IDs mandatory for MSG91.
+
+**Provider Groups (Failover):** Group up to 10 providers with priority ordering for automatic failover.
+
+### WhatsApp
+
+**Dashboard:** Settings > Channels > WhatsApp. **Paid add-on** — contact sales@clevertap.com.
+
+**Three integration paths:**
+
+| Path | Setup |
+|------|-------|
+| CleverTap BSP (Direct) | Settings > WhatsApp Direct > + Provider > "CleverTap BSP" > Continue with Facebook. Requires verified Facebook Business Manager, dedicated phone number |
+| Third-Party BSP (No-Code) | Supported: Gupshup, Nexmo, ValueFirst, Exotel. Settings > WhatsApp Connect > + Provider |
+| Generic WhatsApp API | For any unsupported BSP. Configure HTTP Endpoint, Auth, Max Concurrent Requests (30–1000) |
+
+User opt-in: all profiles opted out by default. Enable with `"MSG-whatsapp": true` profile property.
+
+Template Management: Settings > WhatsApp > Provider > Templates tab. Types: Standard Text, Media (image/video/document/location header), Interactive (CTA + Quick Reply buttons).
+
+### In-App
+
+**No dashboard channel setup required.** SDK-driven (requires CleverTap SDK 3.3.0+). Templates: header, footer, interstitial, half-interstitial, cover, custom HTML.
+
+### Web Push
+
+**Dashboard:** Settings > Channels > Web push. VAPID-based only (legacy FCM tokens must be migrated). Supports Chrome, Firefox, Safari, KaiOS. Soft prompt options: Card Popup, Bell Icon.
+
+### App Inbox
+
+**SDK:** CleverTap SDK 3.4.0+. Templates: Simple Message, Carousel (with/without content), Message with Icon.
+
+**Web Inbox:** Settings > Channels > Web Inbox. Configure: Panel Title, Categories (up to 10), Element ID (mandatory), Display Limit.
+
+---
+
+## 12. Journeys (Multi-Step Campaign Orchestration)
+
+Journeys are separate from single campaigns — they provide multi-step, multi-channel orchestration.
+
+**Creation flow:** Set Up > Define Goals > Define Entry Segment > Define Journey Path > Personalize Content > Publish > Monitor
+
+**Node types:**
+
+| Category | Nodes |
+|----------|-------|
+| Segment | Action, Inaction, Past Behavior, Date Time, Journey Trigger, Custom List, Page Visit, Referrer Entry, Page Count |
+| Engagement | Push, SMS, Email, Webhook, Web Push, Web Pop-up, WhatsApp, Exit Intent, In-App, Web Native Display, Inbox, Facebook, Google, Amazon EventBridge |
+| Controller | Force Exit, User Profile Update, IntelliNODE (A/B path testing with up to 7 paths) |
+
+**Sleep Time:** Configurable delays between nodes (minutes, hours, days).
+
+**Key difference from campaigns:** Journeys combine channels in sequence, support reactive branching, and have limited API access (no "list journeys" endpoint).
+
+---
+
 > **Sources**: developer.clevertap.com (API reference), docs.clevertap.com (product docs).
 > Cross-referenced with CREW_M_MASTER_CT_BIBLE.md Sections 2-4, 13, 19.
 > Last updated: 21 August 2026.

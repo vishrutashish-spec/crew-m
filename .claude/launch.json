@@ -3,8 +3,8 @@
   "configurations": [
     {
       "name": "crew-m-frontend",
-      "runtimeExecutable": "/tmp/node-v20.17.0-darwin-arm64/bin/npx",
-      "runtimeArgs": ["next", "dev"],
+      "runtimeExecutable": "/bin/bash",
+      "runtimeArgs": ["-c", "export PATH=/tmp/node-v20.17.0-darwin-arm64/bin:$PATH && cd /Users/vishrut/insurwreck/frontend && npx next dev"],
       "port": 3000,
       "url": "http://localhost:3000"
     }
