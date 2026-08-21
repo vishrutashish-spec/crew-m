@@ -53,13 +53,14 @@ reason. Every prediction must have a confidence level.
 
 ## Architecture Decisions (Locked)
 
-### Three Screens
+### Screens
 
 | Screen | Role |
 |--------|------|
-| **Dashboard** | Landing page. Model confidence, top personas with pixel avatars, recent simulations, opportunity areas. Entry point into the simulator. |
-| **Persona Explorer** | Grid of persona cards with pixel avatars. Click-through to full behavioral detail: demographics, product usage, channel preferences, timing patterns, friction points, historical evidence. All personas discovered via real clustering. |
-| **Campaign Simulator** | The centerpiece. Campaign inputs on the left (objective, copy, channel, persona selection, timing). Simulation output on the right (funnel predictions, confidence, SHAP drivers). Includes audience recommender panel (ranked personas with fit scores), what-if comparison panel, and copy scoring. |
+| **Overview** | Landing page. Eligible base, app/no-app split, the push-reachability gap, age cohort composition, both product funnels, and deterministic cross-metric insights. |
+| **Age cohorts** | Six cohorts across the eligible base, selected from full-width tiles (no left rail). Per-cohort reachability, device and gender split, org-type drill-down table, both funnels, and cohort-specific insights. |
+| **Simulator** | Cohort selection first, then filters narrow it: objective, org type, channel, send hour, DND and stale-token exclusions. Output is an exact audience size plus a clearly-labelled PREDICTED funnel. |
+| **Methodology** | Field-level provenance, the reachability decomposition, literal CT event names, and the full list of invariants the model asserts at startup. |
 
 ### Naming
 
