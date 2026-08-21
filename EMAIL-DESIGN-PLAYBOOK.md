@@ -155,15 +155,22 @@ a mobile export.
 
 | Node | Size |
 |---|---|
-| `1:738` Desktop footer | 600 × 325 |
-| `1:784` Mobile footer | 376 × 214 |
+| `104:445` "Footer desktop" | 597 × 295 |
+| `104:408` "Footer mobile" | 376 × 186 |
 
-Both live inside `1:730` "All Email Footers". Contents: "Download the Plum
-app" block + QR, illustrated band, dark plum bar (`#571541`-family) with the
-Plum wordmark, social icons, unsubscribe line.
+Both live inside `1:730` "All Email Footers".
 
-**Footers are fixed artwork — never recoloured.** The desktop band is
-lavender, the mobile band pink. They do not follow any accent.
+> **Updated 2026-08-21.** These replace the earlier `1:738` (600 × 325) and
+> `1:784` (376 × 214). The new artwork drops the social icons and the baked-in
+> unsubscribe line, so **unsubscribe must now be live HTML text below the
+> footer image**, not part of it. Dimensions changed too — do not reuse the old
+> sizes. Re-verify node IDs each session; these moved once already.
+
+Contents of the current artwork: a "Download the Plum app" block with QR code
+over a soft pink illustrated band, then a dark plum bar (`#571541`-family)
+carrying the Plum wordmark. No social icons and no unsubscribe line.
+
+**Footers are fixed artwork — never recoloured.** They do not follow any accent.
 
 ### 3.3 CTA button
 
@@ -365,6 +372,39 @@ Consequences:
 Mobile ships correct — don't touch it. **Only the desktop co-branded
 subheading needs fixing (30 → 18px).**
 
+### ⚠️ Heading length is limited by geometry, not taste
+
+The heading node is **fixed-width** with `textAutoResize = 'HEIGHT'` (394px
+desktop, 429px mobile). Longer copy cannot widen it, so it wraps and the node
+grows **taller**. That node sits in a vertical auto-layout, so its growth
+pushes the divider and subheading down — and the parent frame is 944 × 422
+with `clipsContent: true`, so anything past the bottom edge is silently cut
+off. The symptom looks like "the creative is distorted"; the cause is a
+clipped subheading.
+
+It behaves as a cliff, not a gradient. Measured with
+"Your health and wellness benefits for 2026-27":
+
+| Heading size | Node height | Lines |
+|---|---|---|
+| 45px (template default) | 168 | 4 |
+| 40px | 168 | 4 |
+| 37px | 156 | 4 |
+| **34px** | **94** | **2** |
+
+At 37px "wellness" no longer fits line one, forcing four lines; at 34px it
+fits and collapses to two.
+
+**Rules:**
+- Keep the heading node **≤ ~100px tall** (two lines).
+- 45px holds roughly 20 characters per line. Longer headings need a smaller size.
+- **Assert the height in code after setting copy** — don't eyeball it:
+  ```js
+  h.characters = HEADING;
+  if (h.height > 100) throw new Error('heading wraps past 2 lines: ' + h.height);
+  ```
+- Either shorten the copy or drop the size. Never let it run to 3+ lines.
+
 ---
 
 # PART 6 — THE CO-BRANDING LOCKUP
@@ -496,31 +536,40 @@ The lockup structure is:
 
 ---
 
-# PART 7 — SOURCING THE CLIENT LOGO
+# PART 7 — THE CLIENT LOGO
 
-**The AM supplies the client's website URL**, not just the name. Name-only
-lookup is unreliable and fails silently into the *wrong company's* logo —
-tested: `openfinancial.com` and `capillarytech.com` were both wrong guesses
-returning 404.
+## RULE: the AM supplies the logo asset
 
-Extraction order:
-1. Fetch the homepage, grep for `og:image`, `rel=icon`, `apple-touch-icon`,
-   and any `*logo*.svg|png` URLs.
-2. **Prefer an SVG wordmark** — exact vector, exact brand hex in the fills.
-3. Fall back to `apple-touch-icon` (usually 256px, transparent).
-4. Google favicon service (`https://www.google.com/s2/favicons?domain=X&sz=256`)
-   works sometimes but returns a small square *icon*, not a wordmark.
+**If the AM chooses co-branded, they must attach the client's logo file.**
+Do not scrape it. Ask for it.
 
-**Clearbit's logo API is dead** (HTTP 000, retired post-HubSpot). Don't use it.
+This replaces an earlier approach of fetching the logo from the client's
+website. That was tried properly and is not reliable enough for client-facing
+email. What went wrong, so nobody re-litigates it:
 
-Worked example — Groww:
-- `groww.in` → `og:image` = `groww-logo-270.png`, a 270 × 270 circular mark
-- brand colours from the icon: `#5064FA` (52.8%) + `#00F0B4` (46.8%)
-- Plum's own: `#FC3C48` (from the app icon; the wordmark SVG is `#FFFAF2`,
-  i.e. the white-on-dark version — don't sample that one for brand colour)
+| Problem | Evidence |
+|---|---|
+| Name → domain guessing fails silently into the **wrong company's** logo | `openfinancial.com`, `capillarytech.com` both wrong guesses, 404 |
+| Clearbit's logo API is dead | HTTP 000, retired post-HubSpot |
+| Favicons are icons, not wordmarks | Google favicon service returned 48 × 48 for `prochant.com` — far too small for a client email |
+| Sites block scraping | prochant.com returns **403** to curl |
+| The published logo is often the **wrong colour variant** | Prochant ships only a *white* wordmark (352 × 69, avg luminance 230). Invisible on our cream header. No dark variant exists on their site — `logo-dark`, `logo-black`, `logo-color` all 404 |
 
-**The AM must approve the fetched logo before send.** An auto-fetched logo can
-be the wrong company; the review step is the safeguard.
+So: ask the AM. It is one attachment and it removes every failure above.
+
+**Spec to request:** PNG or SVG, transparent background, **dark-on-light**
+variant (the header is cream), wordmark rather than icon-only where possible.
+The slot is natively 95 × 27.
+
+If the client's mark is square rather than a wordmark, resize the slot to
+27 × 27 — that preserves aspect without altering the template layout.
+
+**The AM still approves the final creative before send.**
+
+Sampling brand colour is no longer needed (accent is fixed, §4.4), but if it
+ever is: sample the *app icon*, not the wordmark SVG. Plum's wordmark SVG is
+`#FFFAF2` (the white-on-dark version) while the real brand red `#FC3C48`
+only shows in the icon.
 
 ---
 
@@ -528,10 +577,17 @@ be the wrong company; the review step is the safeguard.
 
 ### 8.1 Inputs from the AM
 
-1. Client name
-2. Client website URL
-3. Single or co-branded
-4. New client or renewal (changes the copy: "Welcome!" vs "Welcome back!")
+1. **Client name**
+2. **Single or co-branded**
+3. **Client logo file** — required if co-branded (§7). PNG/SVG, transparent,
+   dark-on-light, wordmark preferred.
+4. **New client or renewal** — changes the copy framing
+5. **Benefit specifics not in the warehouse** — ambulance cap, LASIK, Ayush,
+   family-definition wording. Omit rather than invent if not supplied.
+
+Everything else is derived: insurer, TPA, sum insured, coverage dates,
+maternity limits, coverage type all come from `policy_schedule` /
+`iw_policy_si`. (changes the copy: "Welcome!" vs "Welcome back!")
 
 ### 8.2 Steps
 
@@ -594,11 +650,35 @@ for f, x, y, w, h in [
     base.convert('RGB').save(f.replace('.png', '-logo.png'), 'PNG')
 ```
 
-**Always verify the logo is actually in the pixels** before handing over:
+### ⚠️ Measure the slot LAST, and verify the pixels
+
+Two failures, both hit for real:
+
+**1. Stale coordinates.** The logo sits inside a **vertical auto-layout**. Any
+change to heading size or copy length reflows that stack and *moves the logo
+row*. Measuring the slot before a text change and compositing after puts the
+logo in the wrong place. Observed: changing the mobile heading 49.6 → 34px
+moved the slot from y 39.1 to **y 95.6**, a 56px error. Desktop was unaffected
+by the same edit, so checking one and assuming the other is not safe.
+
+> **Rule: re-measure `absoluteBoundingBox` immediately before compositing,
+> after every layout or copy change. Never reuse a coordinate across edits.
+> Measure desktop and mobile separately.**
+
+**2. Silent misses.** A composite at the wrong offset produces a valid-looking
+PNG with the logo in dead space. Always assert the pixels, per variant:
+
 ```python
-crop = Image.open(out).convert('RGB').crop((x-5, y-5, x+w+5, y+h+5))
-# count pixels matching the brand hue; 0 means the composite silently missed
+def verify(path, x, y, w, h):
+    crop = Image.open(path).convert('RGB').crop((int(x)-3, int(y)-3, int(x+w)+3, int(y+h)+3))
+    brand = dark = 0
+    for (r, g, b) in crop.getdata():
+        if <brand-hue test>: brand += 1
+        if r < 70 and g < 70 and b < 70: dark += 1   # wordmark
+    assert brand > 20 and dark > 50, f'logo missing in {path}'
 ```
+
+Never hand over an export whose logo hasn't been asserted in pixels.
 
 ---
 
