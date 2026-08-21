@@ -128,7 +128,7 @@ function PersonaDetail({ persona: p }: { persona: Persona }) {
   };
 
   return (
-    <div className="space-y-4">
+    <div key={p.id} className="space-y-4 animate-fade-in">
       {/* Header */}
       <Card>
         <CardContent className="pt-5 pb-4">

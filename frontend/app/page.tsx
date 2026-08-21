@@ -346,7 +346,7 @@ function HeroMetric({ label, value, sub, alert }: {
   label: string; value: string; sub: string; alert?: boolean;
 }) {
   return (
-    <Card>
+    <Card className="transition-shadow hover:shadow-md">
       <CardContent className="pt-4 pb-3">
         <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mb-1.5">{label}</p>
         <p className={`text-2xl font-semibold tracking-tight tabular-nums ${alert ? "text-warning" : ""}`}>{value}</p>
