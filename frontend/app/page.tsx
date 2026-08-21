@@ -19,6 +19,10 @@ const CHANNEL_COLORS: Record<string, string> = {
   sms: "oklch(0.75 0.15 65)",
 };
 
+const CHANNEL_LABELS: Record<string, string> = {
+  whatsapp: "WhatsApp", push: "Push", email: "Email", sms: "SMS",
+};
+
 export default function Overview() {
   const [data, setData] = useState<DashboardResponse | null>(null);
   const [personas, setPersonas] = useState<Persona[]>([]);
