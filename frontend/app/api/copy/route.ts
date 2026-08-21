@@ -35,7 +35,9 @@ Note: no account-specific behavioral or claims data is available to this request
 Respond with ONLY a raw JSON object (no markdown fences, no commentary) shaped exactly like:
 {"subject": "...", "body": "..."}`;
 
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
+  const apiBase = process.env.ANTHROPIC_BASE_URL ?? "https://api.anthropic.com";
+
+  const res = await fetch(`${apiBase}/v1/messages`, {
     method: "POST",
     headers: {
       "x-api-key": apiKey,
