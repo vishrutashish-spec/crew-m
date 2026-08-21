@@ -14,6 +14,7 @@ from pydantic import BaseModel
 from typing import Optional
 from synthetic import generate_users, generate_campaigns
 from pipeline import cluster_users, assign_persona_names, score_audience_fit
+from ct_connector import get_live_metrics
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("crewm")
@@ -72,6 +73,18 @@ def get_state():
 
         _state["generated_at"] = datetime.now(timezone.utc).isoformat()
         logger.info(f"Pipeline complete in {time.time() - t0:.1f}s — {len(personas)} personas discovered")
+
+        try:
+            ct_live = get_live_metrics()
+            if ct_live:
+                _state["ct_live"] = ct_live
+                logger.info(f"CleverTap live metrics loaded: {list(ct_live.keys())}")
+            else:
+                _state["ct_live"] = None
+                logger.info("No CleverTap credentials — using synthetic data only")
+        except Exception as e:
+            _state["ct_live"] = None
+            logger.warning(f"CleverTap fetch failed: {e}")
     return _state
 
 
@@ -134,6 +147,7 @@ def dashboard():
         },
         "key_metrics": _compute_key_metrics(state["users"]),
         "generated_at": state.get("generated_at"),
+        "ct_live": state.get("ct_live"),
     }
 
 
