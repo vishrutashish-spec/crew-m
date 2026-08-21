@@ -282,21 +282,41 @@ function NewCampaignForm() {
           <CardContent className="space-y-4">
             <p className="text-xs text-muted-foreground">
               {result.channel} campaign — this is a brief, not a live CleverTap draft.
-              CleverTap doesn&apos;t expose an API to create campaigns, so paste this in
-              to create the real draft.
+              CleverTap doesn&apos;t expose an API to create campaigns, so someone with
+              Creator access pastes this in to build the real draft.
             </p>
 
             <div className="space-y-1">
-              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                Subject
-              </span>
-              <p className="text-sm font-medium">{result.subject}</p>
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Campaign name
+                </span>
+                <FieldCopyButton field="name" value={result.campaignName} />
+              </div>
+              <p className="text-sm font-mono bg-muted rounded-lg px-3 py-2">
+                {result.campaignName}
+              </p>
             </div>
 
             <div className="space-y-1">
-              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                Body
-              </span>
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Subject
+                </span>
+                <FieldCopyButton field="subject" value={result.subject} />
+              </div>
+              <p className="text-sm font-medium bg-muted rounded-lg px-3 py-2">
+                {result.subject}
+              </p>
+            </div>
+
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Body
+                </span>
+                <FieldCopyButton field="body" value={result.body} />
+              </div>
               <p className="text-sm whitespace-pre-wrap bg-muted rounded-lg p-4">
                 {result.body}
               </p>
@@ -322,22 +342,50 @@ function NewCampaignForm() {
             </div>
 
             <div className="space-y-1">
-              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                Suggested audience
-              </span>
-              <p className="text-sm">{result.segmentSuggestion}</p>
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Suggested audience
+                </span>
+                <FieldCopyButton field="audience" value={result.segmentSuggestion} />
+              </div>
+              <p className="text-sm bg-muted rounded-lg px-3 py-2">{result.segmentSuggestion}</p>
             </div>
 
             <Separator />
-            <a
-              href={result.reviewUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
-            >
-              Open CleverTap to build the real draft
-              <ExternalLink className="w-3.5 h-3.5" />
-            </a>
+
+            <div className="space-y-2">
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                To create the real draft in CleverTap
+              </span>
+              <ol className="text-sm space-y-1 list-decimal list-inside text-foreground">
+                <li>
+                  Open CleverTap and start a new campaign under{" "}
+                  <strong>Campaigns → {result.channel}</strong>.
+                </li>
+                <li>
+                  <strong>Start Here:</strong> paste the campaign name above.
+                </li>
+                <li>
+                  <strong>Who:</strong> build the segment described above.
+                </li>
+                <li>
+                  <strong>What:</strong> paste the subject and body above into the editor.
+                </li>
+                <li>
+                  <strong>When / Publish:</strong> leave it as a draft — do not schedule
+                  or publish. A PMM reviews and publishes it from here.
+                </li>
+              </ol>
+              <a
+                href={result.reviewUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+              >
+                Open CleverTap
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            </div>
           </CardContent>
         </Card>
       )}
