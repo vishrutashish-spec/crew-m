@@ -25,6 +25,7 @@ from pydantic import BaseModel
 import anchors as A
 import population as P
 import insights as I
+import copy_engine as CE
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("crewm")
@@ -51,6 +52,18 @@ def get_model() -> dict:
         _state["built_at"] = datetime.now(timezone.utc).isoformat()
         logger.info(f"Cohort model verified, {len(checks)} invariants hold")
     return _state["model"]
+
+
+SEGMENT_LABELS = {
+    "base": "Full eligible base",
+    "no_app": "No app (365d)",
+    "hc_never_booked": "HC eligible, never booked",
+    "th_never_booked": "TH eligible, never booked",
+    "p0_dark_both": "P0 dark on both",
+    "p0_dark_either": "P0 dark on either",
+    "p1_dark_both": "P1 dark on both (DND)",
+    "p1_dark_either": "P1 dark on either (DND)",
+}
 
 
 def _org(org: Optional[str]) -> Optional[str]:
@@ -122,6 +135,12 @@ def overview(org: Optional[str] = Query(None)):
             "dau_method": A.DAU_METHOD,
             "label": "OBSERVED",
         },
+        # The documented reachability panel, straight from the source table.
+        "segment_reachability": [
+            {"key": k, "label": SEGMENT_LABELS[k], "users": v[0],
+             "push": v[1], "email": v[2], "whatsapp": v[3]}
+            for k, v in A.SEGMENT_REACHABILITY.items()
+        ],
         "built_at": _state["built_at"],
     }
 
