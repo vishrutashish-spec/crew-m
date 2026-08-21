@@ -11,6 +11,7 @@ import {
   PieChart, Pie, Cell,
 } from "recharts";
 import { ArrowRight, AlertTriangle } from "lucide-react";
+import { PersonaAvatar } from "@/components/persona-avatar";
 
 const CHANNEL_COLORS: Record<string, string> = {
   whatsapp: "oklch(0.65 0.17 155)",
@@ -230,7 +231,7 @@ export default function Overview() {
                 <Card className="hover:border-primary/30 transition-all cursor-pointer group h-full">
                   <CardContent className="pt-4 pb-3 px-4">
                     <div className="flex items-start gap-3 mb-3">
-                      <PersonaAvatar personaId={p.id} size={32} />
+                      <PersonaAvatar personaId={p.id} personaName={p.name} size={32} />
                       <div className="min-w-0 flex-1">
                         <p className="text-xs font-medium truncate group-hover:text-primary transition-colors leading-tight">
                           {p.name}
@@ -398,35 +399,3 @@ function OpportunityRow({ title, detail, impact, action, actionLabel }: {
   );
 }
 
-function PersonaAvatar({ personaId, size = 36 }: { personaId: number; size?: number }) {
-  const palettes = [
-    ["oklch(0.45 0.12 320)", "oklch(0.95 0.02 320)"],
-    ["oklch(0.45 0.15 155)", "oklch(0.95 0.02 155)"],
-    ["oklch(0.55 0.15 65)", "oklch(0.96 0.02 65)"],
-    ["oklch(0.55 0.18 15)", "oklch(0.96 0.02 15)"],
-    ["oklch(0.45 0.12 280)", "oklch(0.95 0.02 280)"],
-    ["oklch(0.45 0.15 200)", "oklch(0.95 0.02 200)"],
-    ["oklch(0.55 0.12 100)", "oklch(0.96 0.02 100)"],
-    ["oklch(0.45 0.18 340)", "oklch(0.95 0.02 340)"],
-  ];
-  const [fg, bg] = palettes[personaId % palettes.length];
-  const seed = personaId * 7919 + 1;
-  const pixels: boolean[][] = [];
-  for (let y = 0; y < 8; y++) {
-    const row: boolean[] = [];
-    for (let x = 0; x < 4; x++) {
-      const hash = ((seed + y * 31 + x * 17) * 2654435761) >>> 0;
-      row.push(hash % 3 !== 0);
-    }
-    pixels.push([...row, ...[...row].reverse()]);
-  }
-  const px = size / 8;
-  return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="rounded-md flex-shrink-0">
-      <rect width={size} height={size} fill={bg} rx={3} />
-      {pixels.map((row, y) =>
-        row.map((on, x) => on ? <rect key={`${x}-${y}`} x={x * px} y={y * px} width={px} height={px} fill={fg} /> : null)
-      )}
-    </svg>
-  );
-}
