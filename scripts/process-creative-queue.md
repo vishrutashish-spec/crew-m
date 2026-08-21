@@ -42,7 +42,9 @@ BUILD-SHEET-prochant-welcome.md — do not regenerate them).
 3. **Clone** desktop + mobile variants per §8.2: load fonts → `src.clone()`
    → swap fonts on the clone's TEXT nodes → `appendChild` → position at
    `x >= 19000` → rename `GEN — <campaignType> — <accountName> — <desktop|mobile>`
-   (+ `[VOLLKORN sub for GT Alpina]` suffix if applicable). Never modify or
+   (+ `[Vollkorn]` suffix if applicable — states the font, doesn't flag it
+   as a mistake; Vollkorn is the accepted standing choice, not a stopgap).
+   Never modify or
    rename the source templates.
    **Before cloning, search the page for any existing frame with that exact
    target name and delete it first.** This file is shared and every retry
