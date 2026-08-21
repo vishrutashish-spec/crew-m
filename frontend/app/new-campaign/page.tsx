@@ -78,7 +78,11 @@ export default function NewCampaignPage() {
       const creativeRes = await fetch("/api/creative", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ requestId, copy: { ...copyData, campaignType } }),
+        body: JSON.stringify({
+          requestId,
+          copy: { ...copyData, campaignType },
+          logoUrl: logoUrl.trim() || undefined,
+        }),
       });
       if (!creativeRes.ok) throw new Error(`Creative rendering failed (HTTP ${creativeRes.status}).`);
       const creativeData: CreativeResult = await creativeRes.json();
