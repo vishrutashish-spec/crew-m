@@ -222,18 +222,23 @@ export function BarRow({
   total,
   color,
   note,
+  icon,
 }: {
   label: string;
   value: number;
   total: number;
   color: string;
   note?: string;
+  icon?: ReactNode;
 }) {
   const share = total > 0 ? value / total : 0;
   return (
     <div>
       <div className="flex items-baseline justify-between gap-3 mb-1.5">
-        <span className="text-[12.5px] text-foreground font-medium">{label}</span>
+        <span className="text-[12.5px] text-foreground font-medium inline-flex items-center gap-1.5">
+          {icon}
+          {label}
+        </span>
         <span className="text-[12.5px] tnum">
           <span className="font-semibold">{n(value)}</span>
           <span className="text-muted-foreground ml-1.5">{pct(share)}</span>
@@ -420,3 +425,59 @@ export const AXIS = {
   axisLine: false as const,
   tickLine: false as const,
 };
+
+/* --------------------------------------------------------------------------
+   macOS window chrome + the premium page banner
+   -------------------------------------------------------------------------- */
+
+export function MacBar({ title }: { title: string }) {
+  return (
+    <div className="mac-bar">
+      <span className="mac-dot mac-dot-r" />
+      <span className="mac-dot mac-dot-y" />
+      <span className="mac-dot mac-dot-g" />
+      <span className="mac-title">{title}</span>
+    </div>
+  );
+}
+
+/**
+ * The main text banner every page opens with: mac window chrome on top,
+ * engineered grid + warm aurora behind a large Vollkorn title. White only.
+ */
+export function PageBanner({
+  kicker,
+  title,
+  sub,
+  right,
+  children,
+  window: windowTitle,
+}: {
+  kicker: string;
+  title: string;
+  sub?: string;
+  right?: ReactNode;
+  children?: ReactNode;
+  window?: string;
+}) {
+  return (
+    <section className="mac-panel rise">
+      <MacBar title={windowTitle ?? `crewm / ${kicker.toLowerCase()}`} />
+      <div className="grid-ground aurora px-8 pt-7 pb-7">
+        <div className="relative flex items-end justify-between gap-8 flex-wrap">
+          <div className="min-w-0">
+            <span className="banner-kicker">{kicker}</span>
+            <h1 className="banner-title mt-2.5">{title}</h1>
+            {sub && (
+              <p className="text-[13.5px] text-muted-foreground mt-3 max-w-2xl leading-relaxed">
+                {sub}
+              </p>
+            )}
+          </div>
+          {right && <div className="flex-shrink-0 relative">{right}</div>}
+        </div>
+        {children && <div className="relative mt-7">{children}</div>}
+      </div>
+    </section>
+  );
+}

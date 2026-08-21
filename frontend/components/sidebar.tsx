@@ -17,15 +17,9 @@ export function Sidebar() {
   return (
     <aside className="fixed inset-y-0 left-0 w-[236px] bg-sidebar border-r border-border flex flex-col z-40">
       {/* Brand */}
-      <div className="h-[74px] flex items-center px-6 border-b border-border relative grid-ground">
-        <Link href="/" className="flex items-center gap-3 group relative">
-          <div className="w-9 h-9 rounded-[10px] metal-ink flex items-center justify-center">
-            <span className="font-heading text-white text-[15px] leading-none">M</span>
-          </div>
-          <div className="leading-tight">
-            <div className="font-heading text-[16px] text-[color:var(--ink)]">Crew M</div>
-            <div className="text-[10px] text-muted-foreground">Campaign intelligence</div>
-          </div>
+      <div className="h-[78px] flex items-center px-5 border-b border-border relative grid-ground">
+        <Link href="/" className="relative">
+          <CrewMLogo />
         </Link>
       </div>
 
