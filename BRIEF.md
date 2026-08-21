@@ -68,28 +68,56 @@ Plain naming throughout. No fantasy/game naming. Campaign Simulator, Persona
 Explorer, Dashboard, Audience Recommender — not The Forge, Persona Guild, The
 Watchtower, The Compass.
 
-### Pixel Avatars
+### Design language
 
-Each persona gets a unique pixel art character. Visual traits map to behavioral
-characteristics: color palette reflects engagement level, accessories reflect
-product affinity, expression reflects conversion tendency. Deterministic — the
-same persona always renders the same character.
+Three colours carry every chart and nothing else: `#2B0B21` plum violet,
+`#FF3F52` plum red, `#F8DBC9` cream. Metallic cyan is reserved for interaction
+only — focus, active, selection — so data and controls are never confused.
+Backgrounds are pure white and every panel carries a visible outline.
+
+Vollkorn (serif) sets all headings, large figures and chart labels in plum
+violet; Inter sets body copy in near-black. Panels use layered grounds
+(engineered grid, dot field, warm aurora) and blueprint corner ticks.
+
+Every chart exports to PNG with the font embedded, so an exported image is
+self-describing rather than a fallback-serif mess.
 
 ### Data Strategy
 
-1. **Primary**: Real CleverTap data via API (user profiles, events, segments, campaigns)
-2. **Fallback**: Synthetic data generator calibrated from Plum's real distributions
-3. Architecture abstracts the data source — real and synthetic are interchangeable
+1. **Anchors** are real: documented CT segment exports plus live CleverTap
+   aggregate counts, each tagged with its provenance and pull date.
+2. **Composition** is modeled where no measurement exists — age, gender, device,
+   org type — and calibrated so every aggregate reconciles exactly to the anchors.
+3. **Conflicts are recorded, never averaged.** `backend/anchors.py` carries the
+   scope warning that split the two populations apart: the eligible base is
+   956,050 in active non-test orgs, while CleverTap's `/counts` endpoints accept
+   no org filter and so report account-wide. Dividing one by the other is the
+   single easiest way to produce a wrong number here.
 
-### ML Pipeline (Real, Not Faked)
+### Cohort model (replaces K-Means clustering)
 
-| Step | Method |
-|------|--------|
-| Feature engineering | Recency, frequency, intensity, engagement scores, channel preference, intent signals, communication fatigue, temporal behavior — all derived from CT events |
-| Clustering | K-Means or HDBSCAN on user feature space → ~8-10 natural personas |
-| Prediction | XGBoost/LightGBM for each funnel stage: P(open), P(click given open), P(convert given click) |
-| Explainability | SHAP values for every prediction |
-| Training data | CT campaign history + user-campaign interaction events |
+Age cohorts are the primary organising dimension. K-Means personas are gone —
+they produced unstable, unexplainable groups whose subtotals did not reconcile.
+
+| Aspect | Approach |
+|--------|----------|
+| Cohorts | Under 20, 21-25, 26-35, 36-40, 41-50, 51+ |
+| Structure | 6 cohorts × 4 org types = 24 cells, every quantity an exact integer |
+| Method | Largest-remainder (Hamilton) apportionment — not sampling |
+| Guarantee | Deterministic: identical inputs always give byte-identical output |
+| Verification | 25 invariants asserted at startup; the API refuses to boot if any anchor disagrees |
+| Rates | Always derived from the counts shown beside them, so a percentage cannot contradict its own bar |
+
+### Corrections this rebuild landed
+
+| Was wrong | Now |
+|-----------|-----|
+| DAU 11,703 — queried today, a partial day | 16,503 — last complete day |
+| Org activation 100%, gap 92 points — computed as "does any user in this org type have a booking", always true | 74% org vs 10% employee, the documented 64-point gap |
+| Push reach ~27% from two unrelated random draws | 23% of base observed, decomposed into 138,588 real and 81,304 stale tokens |
+| Total base 10,000 synthetic users | 956,050 eligible base |
+| Segment rules emitted `DoctorList_Viewed`, `AppointmentSuccessful_Viewed` — both rejected by the API as invalid events, so those segments matched nobody | Literal names with the `EmployeeMobileApp_Telehealth_` and `healthCheckup` prefixes |
+| Simulator intersected an app-install audience with app-installed push reach — two disjoint groups | Reach is measured against the same population the objective's pool is drawn from |
 
 ### Tech Stack
 
