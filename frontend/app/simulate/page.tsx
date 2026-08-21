@@ -643,7 +643,7 @@ function SimulationResult({ result, prevResult }: { result: SimulationResponse; 
                     <YAxis tick={{ fontSize: 10, fill: "oklch(0.5 0.02 320)" }} axisLine={false} tickLine={false} width={50} tickFormatter={(v: number) => v >= 1000 ? `${(v / 1000).toFixed(0)}K` : String(v)} />
                     <Tooltip
                       contentStyle={{ fontSize: 11, borderRadius: 8, border: "1px solid oklch(0.91 0.005 320)" }}
-                      formatter={(v: number, name: string) => [v.toLocaleString(), name === "current" ? "Current" : "Previous"]}
+                      formatter={(v, name) => [(v as number).toLocaleString(), name === "current" ? "Current" : "Previous"]}
                     />
                     {hasPrev && <Bar dataKey="previous" fill="oklch(0.35 0.12 320 / 0.2)" radius={[4, 4, 0, 0]} barSize={20} />}
                     <Bar dataKey="current" radius={[4, 4, 0, 0]} barSize={20}>

@@ -228,13 +228,7 @@ function PersonaDetail({ persona: p }: { persona: Persona }) {
                   <PolarGrid stroke="oklch(0.91 0.005 320)" />
                   <PolarAngleAxis
                     dataKey="axis"
-                    tick={({ x, y, payload }: { x: number; y: number; payload: { value: string } }) => (
-                      <g transform={`translate(${x},${y})`}>
-                        <text x={0} y={0} dy={4} textAnchor="middle" fontSize={10} fill="oklch(0.5 0.02 320)">
-                          {payload.value}
-                        </text>
-                      </g>
-                    )}
+                    tick={{ fontSize: 10, fill: "oklch(0.5 0.02 320)" }}
                   />
                   <Radar
                     dataKey="v"
