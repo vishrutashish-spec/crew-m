@@ -44,6 +44,11 @@ BUILD-SHEET-prochant-welcome.md — do not regenerate them).
    `x >= 19000` → rename `GEN — <campaignType> — <accountName> — <desktop|mobile>`
    (+ `[VOLLKORN sub for GT Alpina]` suffix if applicable). Never modify or
    rename the source templates.
+   **Before cloning, search the page for any existing frame with that exact
+   target name and delete it first.** This file is shared and every retry
+   or re-run otherwise leaves an orphaned duplicate behind — it must never
+   accumulate stray clones. One row → at most one desktop + one mobile frame
+   in the file at any time, no matter how many times this job has run.
 4. **Set copy**: heading, one-line subtitle, AND the button label — the
    header template embeds its own CTA button as part of its layout (see
    §5.3's typography spec, which lists a "Button label" row for the header
@@ -66,8 +71,17 @@ BUILD-SHEET-prochant-welcome.md — do not regenerate them).
    change the copy.
 5. **Fix desktop co-branded subheading to 18px** if that variant was used
    (template ships 30px, which the playbook says is always wrong).
-6. **Apply the fixed accent** `#FFBFC5` to the gradient's last stop and the
-   largest ellipse (select by size, not name — see §4.4).
+6. **Apply the fixed accent** `#FFBFC5` — but only to two specific nodes,
+   never anything else:
+   - Desktop: the `Rectangle 3` VECTOR node's last gradient stop.
+   - Mobile: the `02_doc` frame's last gradient stop.
+   - Both: the largest ELLIPSE by width (select by size, not name — §4.4).
+   **Do not touch the heading, subtitle, or button text nodes' fills at
+   all** — leave whatever gradient/color they cloned from the template
+   exactly as-is. A past run mistakenly recolored the heading's own text
+   gradient instead of the background, which is exactly the mistake this
+   step exists to prevent — if you're not certain a node is one of the
+   three listed above, don't touch its fill.
 7. **If co-branded**: download `logoUrl` locally, then **re-measure the logo
    slot's `absoluteBoundingBox` right now** (after the copy/layout changes
    above, never reuse an earlier measurement — §8.3 warns this exact mistake
