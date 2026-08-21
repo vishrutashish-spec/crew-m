@@ -262,8 +262,8 @@ def generate_campaigns(n_campaigns: int = 50, seed: int = RANDOM_SEED) -> pd.Dat
     """Generate synthetic campaign history with performance metrics."""
     rng = np.random.default_rng(seed + 1)
 
-    channels = ["whatsapp", "push", "email", "sms"]
-    channel_weights = [0.35, 0.25, 0.25, 0.15]
+    channels = ["whatsapp", "push", "email"]
+    channel_weights = [0.45, 0.30, 0.25]
     objectives = ["th_activation", "hc_activation", "app_install", "reengagement", "hc_crosssell"]
     obj_weights = [0.30, 0.30, 0.15, 0.15, 0.10]
 
