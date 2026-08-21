@@ -144,6 +144,17 @@ def dashboard():
             "avg_open_rate": round(campaigns["open_rate"].mean(), 3),
             "avg_click_rate": round(campaigns["click_rate"].mean(), 3),
             "channels_used": campaigns["channel"].value_counts().to_dict(),
+            "by_channel": {
+                ch: {
+                    "count": int(len(ch_df)),
+                    "avg_delivery_rate": round(ch_df["delivery_rate"].mean(), 3),
+                    "avg_open_rate": round(ch_df["open_rate"].mean(), 3),
+                    "avg_click_rate": round(ch_df["click_rate"].mean(), 3),
+                    "avg_conversion_rate": round(ch_df["conversion_rate"].mean(), 3),
+                }
+                for ch in campaigns["channel"].unique()
+                for ch_df in [campaigns[campaigns["channel"] == ch]]
+            },
         },
         "key_metrics": _compute_key_metrics(state["users"]),
         "generated_at": state.get("generated_at"),
@@ -269,7 +280,7 @@ def simulate_campaign(req: SimulationRequest):
     # Best channel recommendation
     if not req.channel:
         channel_scores = {}
-        for ch in ["whatsapp", "sms", "email", "push"]:
+        for ch in ["whatsapp", "email", "push"]:
             reach = sum(p["channel_reach"][ch] * p["size"] for p in target_personas) / max(total_audience, 1)
             channel_scores[ch] = reach
         recommended_channel = max(channel_scores, key=channel_scores.get)

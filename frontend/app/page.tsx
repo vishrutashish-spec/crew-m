@@ -18,11 +18,10 @@ const CHANNEL_COLORS: Record<string, string> = {
   whatsapp: "oklch(0.65 0.17 155)",
   push: "oklch(0.65 0.18 15)",
   email: "oklch(0.35 0.12 320)",
-  sms: "oklch(0.75 0.15 65)",
 };
 
 const CHANNEL_LABELS: Record<string, string> = {
-  whatsapp: "WhatsApp", push: "Push", email: "Email", sms: "SMS",
+  whatsapp: "WhatsApp", push: "Push", email: "Email",
 };
 
 export default function Overview() {
