@@ -67,12 +67,13 @@ TH_SPECIALTIES = [
     "Sexologist", "Physiotherapist", "Oncologist", "Geriatrics",
     "Veterinary Medicine",
 ]
-# Approximate relative weights (GP dominates)
-TH_SPECIALTY_WEIGHTS = [
+# Approximate relative weights (GP dominates), normalized to sum=1
+_raw_weights = [
     0.35, 0.12, 0.10, 0.07, 0.06, 0.05, 0.04, 0.03, 0.03, 0.03,
     0.02, 0.02, 0.01, 0.01, 0.01, 0.01, 0.01, 0.005, 0.005, 0.003,
     0.002, 0.001, 0.001, 0.001,
 ]
+TH_SPECIALTY_WEIGHTS = [w / sum(_raw_weights) for w in _raw_weights]
 
 # Lifecycle segments (Bible Section 8)
 LIFECYCLE_STATES = [
