@@ -36,6 +36,26 @@ export async function POST(request: Request) {
             label: { type: "plain_text", text: "Your name" },
             element: { type: "plain_text_input", action_id: "am_name_input" },
           },
+          {
+            type: "input",
+            block_id: "account_block",
+            label: { type: "plain_text", text: "Account name" },
+            element: { type: "plain_text_input", action_id: "account_input" },
+          },
+          {
+            type: "input",
+            block_id: "campaign_type_block",
+            label: { type: "plain_text", text: "Campaign type" },
+            element: {
+              type: "static_select",
+              action_id: "campaign_type_select",
+              placeholder: { type: "plain_text", text: "Choose one" },
+              options: [
+                { text: { type: "plain_text", text: "Welcome" }, value: "welcome" },
+                { text: { type: "plain_text", text: "Renewal" }, value: "renewal" },
+              ],
+            },
+          },
         ],
       }
     : {
