@@ -247,9 +247,17 @@
   }
   h1, h2, h3, h4, .font-heading {
     font-family: var(--font-serif);
-    color: var(--ink);
+    color: var(--ink-text);
     letter-spacing: -0.015em;
     font-weight: 700;
+  }
+  /* Headings carry the brand gradient. The solid --ink-text above stays as
+     the paint-order fallback for engines without background-clip: text. */
+  h1, h2, h3, h4 {
+    background-image: var(--heading-gradient);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
   }
   ::selection {
     background: var(--cyan-bright);
@@ -267,7 +275,7 @@
 
 .panel {
   position: relative;
-  background: linear-gradient(180deg, #ffffff 0%, var(--card-raised) 100%);
+  background: linear-gradient(180deg, var(--panel-top) 0%, var(--panel-bottom) 100%);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   box-shadow:
@@ -277,7 +285,7 @@
 }
 
 .panel-flush {
-  background: #ffffff;
+  background: var(--card);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
 }
@@ -313,8 +321,8 @@
   position: absolute;
   inset: 0;
   background-image:
-    linear-gradient(to right, rgba(43, 11, 33, 0.045) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(43, 11, 33, 0.045) 1px, transparent 1px);
+    linear-gradient(to right, var(--ground-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--ground-line) 1px, transparent 1px);
   background-size: 26px 26px;
   mask-image: radial-gradient(ellipse 85% 70% at 50% 0%, #000 20%, transparent 78%);
   -webkit-mask-image: radial-gradient(ellipse 85% 70% at 50% 0%, #000 20%, transparent 78%);
@@ -326,7 +334,7 @@
   content: "";
   position: absolute;
   inset: 0;
-  background-image: radial-gradient(circle, rgba(43, 11, 33, 0.075) 1px, transparent 1px);
+  background-image: radial-gradient(circle, var(--ground-dot) 1px, transparent 1px);
   background-size: 15px 15px;
   mask-image: radial-gradient(ellipse 70% 90% at 100% 0%, #000 10%, transparent 72%);
   -webkit-mask-image: radial-gradient(ellipse 70% 90% at 100% 0%, #000 10%, transparent 72%);
@@ -379,7 +387,7 @@
 
 .mac-panel {
   position: relative;
-  background: #ffffff;
+  background: var(--card);
   border: 1px solid var(--border);
   border-radius: 16px;
   overflow: hidden;
@@ -395,7 +403,7 @@
   gap: 7px;
   height: 38px;
   padding: 0 14px;
-  background: linear-gradient(180deg, #fcfbfd 0%, #f4f2f6 100%);
+  background: linear-gradient(180deg, var(--bar-top) 0%, var(--bar-bottom) 100%);
   border-bottom: 1px solid var(--border);
   position: relative;
 }
@@ -424,7 +432,7 @@
 .banner-title {
   font-family: var(--font-serif);
   font-weight: 700;
-  color: var(--ink);
+  color: var(--ink-text);
   font-size: 42px;
   line-height: 1.02;
   letter-spacing: -0.022em;
@@ -477,7 +485,7 @@
 .figure {
   font-family: var(--font-serif);
   font-weight: 700;
-  color: var(--ink);
+  color: var(--ink-text);
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
   line-height: 1;
@@ -518,7 +526,7 @@
   font-weight: 500;
   border-radius: var(--radius-md);
   border: 1px solid var(--border-strong);
-  background: #fff;
+  background: var(--card);
   color: var(--foreground);
   padding: 9px 14px;
   transition: all 0.16s cubic-bezier(0.22, 1, 0.36, 1);
@@ -573,8 +581,8 @@
 }
 .seg button:hover { color: var(--foreground); }
 .seg button[data-active="true"] {
-  background: #fff;
-  color: var(--ink);
+  background: var(--card);
+  color: var(--ink-text);
   box-shadow: 0 1px 2px rgba(43, 11, 33, 0.1);
   border: 1px solid var(--border);
   margin: -1px;
@@ -582,7 +590,7 @@
 
 select.field, input.field, textarea.field {
   width: 100%;
-  background: #fff;
+  background: var(--card);
   border: 1px solid var(--input);
   border-radius: var(--radius-md);
   padding: 9px 12px;
@@ -602,14 +610,14 @@ select.field:focus, input.field:focus, textarea.field:focus {
   text-align: left;
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  background: #fff;
+  background: var(--card);
   padding: 13px 15px;
   transition: all 0.18s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .tile:hover { border-color: var(--border-strong); transform: translateY(-1px); }
 .tile[data-selected="true"] {
   border-color: var(--cyan);
-  background: linear-gradient(180deg, var(--cyan-wash) 0%, #ffffff 78%);
+  background: linear-gradient(180deg, var(--cyan-wash) 0%, var(--card) 78%);
   box-shadow: 0 0 0 1px var(--cyan), 0 6px 18px -10px rgba(14, 154, 167, 0.45);
 }
 .tile[data-selected="true"]::after {
@@ -648,7 +656,7 @@ select.field:focus, input.field:focus, textarea.field:focus {
 /* Recharts: kill the focus rectangle, set chart type */
 .recharts-wrapper text {
   font-family: var(--font-serif);
-  fill: var(--ink);
+  fill: var(--tick);
 }
 .recharts-surface:focus, .recharts-wrapper:focus { outline: none; }
 .recharts-cartesian-axis-line, .recharts-cartesian-axis-tick-line { stroke: var(--border); }
@@ -657,8 +665,120 @@ select.field:focus, input.field:focus, textarea.field:focus {
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: #d8d4de;
+  background: var(--border-strong);
   border-radius: 999px;
-  border: 3px solid #fff;
+  border: 3px solid var(--background);
 }
-::-webkit-scrollbar-thumb:hover { background: #bdb7c7; }
+::-webkit-scrollbar-thumb:hover { background: var(--input); }
+
+/* ===========================================================================
+   Dark-mode refinements. Tokens carry most of the reskin; these are the
+   pieces where dark needs different physics, not just different colours.
+   =========================================================================== */
+
+/* Panels: highlights come from light leaking in, so invert the inset. */
+.dark .panel {
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.045) inset,
+    0 1px 2px rgba(0, 0, 0, 0.4),
+    0 12px 32px -14px rgba(0, 0, 0, 0.6);
+}
+.dark .mac-panel {
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.05) inset,
+    0 2px 8px rgba(0, 0, 0, 0.45),
+    0 22px 52px -24px rgba(0, 0, 0, 0.7);
+}
+
+/* Aurora at night: the same three glows, embers instead of daylight. */
+.dark .aurora::before {
+  background:
+    radial-gradient(closest-side, rgba(248, 219, 201, 0.12), transparent 72%) 12% 40% / 55% 100% no-repeat,
+    radial-gradient(closest-side, rgba(255, 63, 82, 0.14), transparent 70%) 72% 30% / 48% 100% no-repeat,
+    radial-gradient(closest-side, rgba(42, 198, 212, 0.1), transparent 70%) 48% 70% / 44% 100% no-repeat;
+  filter: blur(30px);
+}
+
+/* Primary action flips to metallic cream: unmissable on plum-black, and the
+   plum gradient would otherwise sink into the ground it sits on. */
+.dark .btn-primary {
+  color: #2b0b21;
+  background: linear-gradient(135deg, #fff3e8 0%, #f8dbc9 55%, #eec3a4 100%);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.6) inset,
+    0 -1px 0 rgba(43, 11, 33, 0.18) inset,
+    0 8px 20px -8px rgba(248, 219, 201, 0.35);
+}
+.dark .btn-primary:hover:not(:disabled) {
+  color: #2b0b21;
+  background: linear-gradient(135deg, #fff8f1 0%, #fbe3d2 55%, #f2ccae 100%);
+}
+
+/* Metal ink needs a seam against near-black surfaces. */
+.dark .metal-ink {
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.18) inset,
+    0 0 0 1px rgba(248, 219, 201, 0.16),
+    0 2px 10px -3px rgba(0, 0, 0, 0.6);
+}
+
+/* Provenance chips, night palette. Same hue logic, inverted luminance. */
+.dark .chip-observed    { color: #6fe3bd; background: #0c2a20; border-color: #1c4a3a; }
+.dark .chip-derived     { color: #7bdde8; background: #0d272b; border-color: #1d4d55; }
+.dark .chip-predicted   { color: #ecb96b; background: #2a1d0d; border-color: #4a3517; }
+.dark .chip-recommended { color: #f0b9d5; background: #2a1522; border-color: #4a2740; }
+.dark .chip-modeled     { color: #b3a8bd; background: #221b28; border-color: #3a3044; }
+
+.dark ::selection {
+  background: var(--cyan-bright);
+  color: #06282c;
+}
+
+/* Focus ring stays cyan; give fields a subtle lift instead of a shadow. */
+.dark select.field:focus, .dark input.field:focus, .dark textarea.field:focus {
+  box-shadow: 0 0 0 3px rgba(42, 198, 212, 0.22);
+}
+
+/* Traffic lights read as glass at night. */
+.dark .mac-dot { box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5) inset, 0 0.5px 0 rgba(255, 255, 255, 0.18); }
+
+/* ===========================================================================
+   Theme toggle: a metallic pill. The knob slides between sun and moon.
+   =========================================================================== */
+
+.theme-pill {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  width: 66px;
+  height: 30px;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: var(--muted);
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+.theme-pill:hover { border-color: var(--cyan); }
+.theme-pill .knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.theme-pill[data-dark="true"] .knob { transform: translateX(36px); }
+.theme-pill .hint {
+  position: absolute;
+  top: 0; bottom: 0;
+  display: flex; align-items: center; justify-content: center;
+  width: 28px;
+  color: var(--muted-foreground);
+  opacity: 0.7;
+}
+.theme-pill .hint-l { left: 3px; }
+.theme-pill .hint-r { right: 3px; }
