@@ -191,12 +191,11 @@ def generate_users(n_users: int = 10_000, seed: int = RANDOM_SEED) -> pd.DataFra
     days_since_active[lapsed] = rng.integers(31, 181, lapsed.sum())
 
     # Peak activity hour (8-11 PM peak for many segments)
-    peak_hour = rng.choice(
-        range(24), size=n_users,
-        p=[0.01, 0.005, 0.005, 0.005, 0.005, 0.01, 0.02, 0.03, 0.05, 0.06,
-           0.06, 0.05, 0.05, 0.04, 0.04, 0.04, 0.05, 0.06, 0.07, 0.08,
-           0.09, 0.08, 0.05, 0.02]
-    )
+    _hour_w = [0.01, 0.005, 0.005, 0.005, 0.005, 0.01, 0.02, 0.03, 0.05, 0.06,
+               0.06, 0.05, 0.05, 0.04, 0.04, 0.04, 0.05, 0.06, 0.07, 0.08,
+               0.09, 0.08, 0.05, 0.02]
+    _hour_w = [w / sum(_hour_w) for w in _hour_w]
+    peak_hour = rng.choice(range(24), size=n_users, p=_hour_w)
 
     # Notification response rate (0-1)
     notif_response_rate = np.clip(rng.beta(2, 5, n_users), 0, 1)
