@@ -658,7 +658,7 @@ function SimulationResult({ result, prevResult }: { result: SimulationResponse; 
                   <div key={s.label} className="text-center">
                     <p className="text-lg font-semibold tabular-nums">{(s.rate * 100).toFixed(1)}%</p>
                     <p className="text-[10px] text-muted-foreground">{s.label} rate</p>
-                    {s.prev !== null && <DeltaBadge current={s.rate} prev={s.prev as number} />}
+                    {s.prevRate !== null && <DeltaBadge current={s.rate} prev={s.prevRate} />}
                   </div>
                 ))}
               </div>
