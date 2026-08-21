@@ -1,180 +1,229 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+/**
+ * Crew M API client.
+ *
+ * Types mirror the cohort model exactly. Counts are always integers and rates
+ * are always derived from those counts server-side, so a percentage shown in
+ * the UI can never disagree with the number beside it.
+ */
 
-async function fetchAPI<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, {
-    ...options,
-    headers: { "Content-Type": "application/json", ...options?.headers },
-  });
-  if (!res.ok) throw new Error(`API error: ${res.status}`);
-  return res.json();
+const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+
+export type Provenance = "OBSERVED" | "DERIVED" | "PREDICTED" | "RECOMMENDED" | "MODELED";
+
+export interface ChannelReach {
+  count: number;
+  of_total: number;
+  campaign_ready: number;
+  app_portion?: number;
+  no_app_portion?: number;
+  with_app?: number;
+  stale_tokens?: number;
+  basis?: string;
 }
 
-export async function getDashboard() {
-  return fetchAPI<DashboardResponse>("/api/dashboard");
+export interface FunnelStage {
+  stage: string;
+  event: string;
+  count: number;
+  from_prev: number;
+  cumulative: number;
+  of_app: number;
 }
 
-export async function getPersonas() {
-  return fetchAPI<PersonasResponse>("/api/personas");
-}
-
-export async function getPersona(id: number) {
-  return fetchAPI<{ label: string; persona: Persona }>(`/api/personas/${id}`);
-}
-
-export async function getAudienceRecommendation(objective: string) {
-  return fetchAPI<AudienceResponse>(`/api/audience/recommend?objective=${objective}`);
-}
-
-export async function simulateCampaign(params: SimulationParams) {
-  return fetchAPI<SimulationResponse>("/api/simulate", {
-    method: "POST",
-    body: JSON.stringify(params),
-  });
-}
-
-export async function getCtLive() {
-  return fetchAPI<CtLiveResponse>("/api/ct-live");
-}
-
-export async function refreshCtLive() {
-  return fetchAPI<CtLiveResponse>("/api/ct-refresh", { method: "POST" });
-}
-
-// Types
-
-export interface Persona {
-  id: number;
-  rank: number;
-  name: string;
-  size: number;
-  share: number;
-  avg_age: number;
-  female_share: number;
-  segment_mix: Record<string, number>;
-  app_installed_share: number;
-  avg_app_launches_30d: number;
-  avg_days_since_active: number;
-  avg_notif_response_rate: number;
-  avg_campaign_fatigue: number;
-  peak_hour_mode: number;
-  th_adoption_rate: number;
-  avg_th_consults: number;
-  avg_th_funnel_depth: number;
-  hc_adoption_rate: number;
-  avg_hc_bookings: number;
-  avg_hc_funnel_depth: number;
+export interface OrgBreakdown {
+  label: string;
+  total: number;
+  share_of_cohort: number;
+  app: number;
+  app_share: number;
+  mau: number;
+  th_booked: number;
+  hc_booked: number;
+  dnd: number;
   dnd_share: number;
-  avg_tenure_months: number;
-  avg_wallet_expiry_days: number;
-  channel_reach: Record<string, number>;
-  lifecycle_distribution: Record<string, number>;
-  top_th_specialties: Record<string, number>;
-  hra_distribution: Record<string, number>;
-  age_distribution: Record<string, number>;
-  male_count: number;
-  female_count: number;
-  app_installed_count: number;
-  app_not_installed_count: number;
-  org_type_counts: Record<string, number>;
+  reach: Record<string, number>;
+  ready: Record<string, number>;
+  ios: number;
+  android: number;
+  note?: string | null;
 }
 
-export interface DashboardResponse {
+export interface Cohort {
+  key: string;
   label: string;
-  model_confidence: {
-    silhouette_score: number;
-    n_users_analyzed: number;
-    n_personas: number;
-    data_source: string;
+  age_range: { lo: number; hi: number };
+  org_filter: string | null;
+
+  total: number;
+  share_of_base: number;
+
+  app: number;
+  app_share: number;
+  no_app: number;
+  no_app_share: number;
+  mau: number;
+  mau_share_of_app: number;
+  app_dormant: number;
+
+  ios: number;
+  android: number;
+  ios_share_of_app: number;
+  android_share_of_app: number;
+
+  male: number;
+  female: number;
+  female_share: number;
+
+  reach: Record<string, ChannelReach>;
+  dnd: number;
+  dnd_share: number;
+
+  th_funnel: FunnelStage[];
+  hc_funnel: FunnelStage[];
+  th_booked: number;
+  hc_booked: number;
+  th_booked_of_base: number;
+  hc_booked_of_base: number;
+  th_booked_of_app: number;
+  hc_booked_of_app: number;
+
+  org_breakdown: Record<string, OrgBreakdown>;
+  peak_hour: number;
+}
+
+export interface Totals {
+  eligible: number;
+  app: number;
+  app_share: number;
+  no_app: number;
+  no_app_share: number;
+  mau: number;
+  mau_share_of_app: number;
+  app_dormant: number;
+  ios: number;
+  android: number;
+  ios_share_of_app: number;
+  android_share_of_app: number;
+  male: number;
+  female: number;
+  female_share: number;
+  dnd: number;
+  dnd_share: number;
+  reach: Record<string, ChannelReach>;
+  th_funnel: FunnelStage[];
+  hc_funnel: FunnelStage[];
+  th_booked: number;
+  hc_booked: number;
+}
+
+export interface Insight {
+  id: string;
+  kind: Provenance;
+  severity: "high" | "medium" | "low";
+  title: string;
+  body: string;
+  arithmetic: string;
+  action: string;
+  modeled?: boolean;
+}
+
+export interface Leader {
+  cohort: string;
+  value: number;
+  key: string;
+}
+
+export interface Overview {
+  label: string;
+  org_filter: string | null;
+  totals: Totals;
+  cohorts: Cohort[];
+  comparison: Record<string, Leader>;
+  insights: Insight[];
+  activation: {
+    employee_rate: number;
+    org_rate: number;
+    gap_points: number;
+    targets: Record<string, number>;
+    label: string;
   };
-  top_personas: {
-    id: number;
-    name: string;
-    size: number;
-    share: number;
-    th_adoption: number;
-    hc_adoption: number;
-    app_installed: number;
-  }[];
-  campaign_summary: {
-    total_campaigns: number;
-    avg_delivery_rate: number;
-    avg_open_rate: number;
-    avg_click_rate: number;
-    channels_used: Record<string, number>;
-    by_channel?: Record<string, {
-      count: number;
-      avg_delivery_rate: number;
-      avg_open_rate: number;
-      avg_click_rate: number;
-      avg_conversion_rate: number;
-    }>;
+  ct_live: {
+    metrics: Record<string, number>;
+    scope: string;
+    pulled_at: string;
+    window_days: number;
+    dau_method: string;
+    label: string;
   };
-  key_metrics: {
-    total_eligible_users: number;
-    no_app_share: number;
-    org_activation_rate: number;
-    employee_activation_rate: number;
-    structural_gap: string;
-  };
-  generated_at?: string;
-  ct_live?: CtLiveMetrics | null;
+  built_at: string;
 }
 
-export interface CtLiveMetrics {
-  dau?: number;
-  mau?: number;
-  new_installs_30d?: number;
-  ytd_active_users?: number;
-  ytd_installs?: number;
-  total_sessions_30d?: number;
-  uninstalls_90d?: number;
-  pulled_at?: string;
-  date_range?: string;
-}
-
-export interface CtLiveResponse {
+export interface CohortDetail {
   label: string;
-  status: "live" | "unavailable" | "error";
-  metrics?: CtLiveMetrics;
-  reason?: string;
+  cohort: Cohort;
+  insights: Insight[];
+  base_totals: Totals;
 }
 
-export interface PersonasResponse {
+export interface OrgType {
+  key: string;
   label: string;
-  personas: Persona[];
-  silhouette_score: number;
-  features_used: string[];
+  share?: number;
+  note?: string | null;
 }
 
-export interface AudienceScore {
-  persona_id: number;
-  persona_name: string;
-  score: number;
-  reasons: string[];
-  best_channel: string;
+export interface CohortsResponse {
   label: string;
+  org_filter: string | null;
+  cohorts: Cohort[];
+  org_types: OrgType[];
+  org_share_is_modeled: boolean;
 }
 
-export interface AudienceResponse {
-  label: string;
+export interface SimOptions {
+  objectives: { key: string; label: string; desc: string }[];
+  cohorts: { key: string; label: string }[];
+  org_types: { key: string; label: string }[];
+  channels: { key: string; label: string }[];
+  control_group_share: number;
+}
+
+export interface SimRequest {
   objective: string;
-  rankings: AudienceScore[];
+  cohort_keys: string[];
+  org?: string | null;
+  channel?: string | null;
+  send_hour?: number | null;
+  exclude_dnd?: boolean;
+  exclude_no_app_for_push?: boolean;
 }
 
-export interface SimulationParams {
-  objective: string;
-  channel?: string;
-  persona_ids?: number[];
-  copy_text?: string;
-  send_hour?: number;
-}
-
-export interface SimulationResponse {
+export interface SimResult {
   label: string;
   confidence: string;
-  evidence_basis: string;
-  audience_size: number;
-  warning?: string;
+  confidence_reason: string;
+  selection: {
+    cohorts: string[];
+    org: string;
+    cohort_total: number;
+    app_in_selection: number;
+    dnd_in_selection: number;
+    label: string;
+  };
+  audience: {
+    objective_pool: number;
+    pool_description: string;
+    addressable: number;
+    control_group: number;
+    sent: number;
+    label: string;
+  };
+  channel: {
+    selected: string;
+    selected_label: string;
+    label: string;
+    options: Record<string, { label: string; addressable: number; share_of_pool: number }>;
+  };
   funnel: {
     sent: number;
     delivered: number;
@@ -185,7 +234,112 @@ export interface SimulationResponse {
     open_rate: number;
     click_rate: number;
     conversion_rate: number;
-  } | null;
-  channel: { selected: string; label: string };
-  timing: { note: string; label: string };
+    click_to_convert: number;
+    label: string;
+  };
+  timing: { send_hour: number; note: string; label: string };
+  warnings: string[];
 }
+
+export interface Methodology {
+  provenance: {
+    observed: { source: string; pulled_at: string; window_days: number; fields: string[] };
+    derived: { fields: string[]; how: string };
+    modeled: Record<string, unknown>;
+    ct_live_scope: string;
+    dau_method: string;
+    notes: { title: string; body: string }[];
+  };
+  checks: string[];
+  mau_scoped: { value: number; provenance: string };
+  reach_decomposed: Record<string, Record<string, number>>;
+  segment_reachability: Record<string, Record<string, number>>;
+  funnels: {
+    th: { stage: string; event: string; count: number }[];
+    hc: { stage: string; event: string; count: number }[];
+    window: string;
+  };
+}
+
+async function get<T>(path: string): Promise<T> {
+  const res = await fetch(`${BASE}${path}`, { cache: "no-store" });
+  if (!res.ok) {
+    let detail = res.statusText;
+    try {
+      const body = await res.json();
+      detail = body.detail ?? detail;
+    } catch {
+      /* non-JSON error body */
+    }
+    throw new Error(detail);
+  }
+  return res.json();
+}
+
+const orgQuery = (org?: string | null) =>
+  org && org !== "all" ? `?org=${encodeURIComponent(org)}` : "";
+
+export const getOverview = (org?: string | null) =>
+  get<Overview>(`/api/overview${orgQuery(org)}`);
+
+export const getCohorts = (org?: string | null) =>
+  get<CohortsResponse>(`/api/cohorts${orgQuery(org)}`);
+
+export const getCohort = (key: string, org?: string | null) =>
+  get<CohortDetail>(`/api/cohorts/${key}${orgQuery(org)}`);
+
+export const getMethodology = () => get<Methodology>("/api/methodology");
+
+export const getSimOptions = () => get<SimOptions>("/api/simulate/options");
+
+export const getVerification = () =>
+  get<{ label: string; checks: string[] }>("/api/verification");
+
+export async function simulate(req: SimRequest): Promise<SimResult> {
+  const res = await fetch(`${BASE}/api/simulate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(req),
+  });
+  if (!res.ok) {
+    let detail = res.statusText;
+    try {
+      const body = await res.json();
+      detail = body.detail ?? detail;
+    } catch {
+      /* non-JSON error body */
+    }
+    throw new Error(detail);
+  }
+  return res.json();
+}
+
+/* ---------------------------------------------------------------------------
+   Formatting — one place, so 216,924 never renders three different ways.
+   --------------------------------------------------------------------------- */
+
+export const n = (v: number) => v.toLocaleString("en-US");
+
+export const compact = (v: number) =>
+  v >= 1_000_000 ? `${(v / 1_000_000).toFixed(v >= 10_000_000 ? 0 : 1)}M`
+  : v >= 1_000 ? `${(v / 1_000).toFixed(v >= 10_000 ? 0 : 1)}K`
+  : String(v);
+
+export const pct = (v: number, dp = 1) => `${(v * 100).toFixed(dp)}%`;
+
+export const CHART = {
+  ink: "#2B0B21",
+  red: "#FF3F52",
+  sand: "#F8DBC9",
+  inkSoft: "#6B3A58",
+  sandDeep: "#E8B899",
+} as const;
+
+/** Chart series colours, in the order they should be assigned. */
+export const SERIES = [CHART.ink, CHART.red, CHART.sand, CHART.inkSoft, CHART.sandDeep];
+
+export const CHANNEL_COLOR: Record<string, string> = {
+  whatsapp: CHART.ink,
+  email: CHART.red,
+  push: CHART.sand,
+};
