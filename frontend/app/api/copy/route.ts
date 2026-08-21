@@ -35,7 +35,8 @@ Note: no account-specific behavioral or claims data is available to this request
 Respond with ONLY a raw JSON object (no markdown fences, no commentary) shaped exactly like:
 {"subject": "...", "body": "..."}`;
 
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
+  const apiBase = process.env.ANTHROPIC_API_BASE ?? "https://api.anthropic.com";
+  const res = await fetch(`${apiBase}/v1/messages`, {
     method: "POST",
     headers: {
       "x-api-key": apiKey,
@@ -44,7 +45,9 @@ Respond with ONLY a raw JSON object (no markdown fences, no commentary) shaped e
     },
     body: JSON.stringify({
       model: "claude-sonnet-5",
-      max_tokens: 1024,
+      // This model thinks before answering — a low budget can burn the
+      // whole response on the (discarded) thinking block and return no text.
+      max_tokens: 4096,
       system: copySkill,
       messages: [{ role: "user", content: userPrompt }],
     }),
@@ -57,7 +60,8 @@ Respond with ONLY a raw JSON object (no markdown fences, no commentary) shaped e
   }
 
   const data = await res.json();
-  const text: string = data?.content?.[0]?.text ?? "{}";
+  const blocks: Array<{ type: string; text?: string }> = data?.content ?? [];
+  const text: string = blocks.find((b) => b.type === "text")?.text ?? "{}";
 
   let parsed: { subject?: string; body?: string };
   try {
