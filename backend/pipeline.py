@@ -223,71 +223,129 @@ def assign_persona_names(personas: list) -> list:
 
 def score_audience_fit(persona: dict, campaign_objective: str) -> dict:
     """
-    Score how well a persona fits a campaign objective.
+    Score how well a persona fits a campaign objective using continuous values.
     Returns a fit score (0-100) with reasoning.
 
+    Uses actual data values for granular differentiation, not binary thresholds.
     All scores are RECOMMENDED — the system's suggestion based on OBSERVED data.
     """
-    score = 50  # baseline
+    score = 0.0
     reasons = []
 
     if campaign_objective == "th_activation":
-        # Want people who haven't booked TH but could
-        if persona["th_adoption_rate"] < 0.05:
-            score += 20
-            reasons.append("Low TH adoption = high activation headroom")
-        if persona["avg_th_funnel_depth"] > 0:
-            score += 15
-            reasons.append("Already explored TH funnel — warm intent")
+        # Headroom: lower adoption = more room to activate (0-30 pts)
+        headroom = max(0, 1.0 - persona["th_adoption_rate"])
+        score += headroom * 30
+        if headroom > 0.8:
+            reasons.append(f"TH adoption only {persona['th_adoption_rate']:.0%} — large activation headroom")
+
+        # Warm intent: funnel exploration signals interest (0-25 pts)
+        funnel_signal = min(persona["avg_th_funnel_depth"] / 3.0, 1.0)
+        score += funnel_signal * 25
+        if funnel_signal > 0.3:
+            reasons.append(f"Already explored TH funnel (avg depth {persona['avg_th_funnel_depth']:.1f}/5)")
+
+        # Reachability: app installed = push viable (0-20 pts)
+        score += persona["app_installed_share"] * 20
         if persona["app_installed_share"] > 0.5:
-            score += 10
-            reasons.append("App installed — can receive push + in-app")
+            reasons.append(f"App installed ({persona['app_installed_share']:.0%}) — push + in-app viable")
+        elif persona["app_installed_share"] < 0.05:
+            reasons.append(f"No app ({persona['app_installed_share']:.0%}) — SMS/WhatsApp only")
+
+        # Responsiveness (0-15 pts)
+        score += persona["avg_notif_response_rate"] * 15
+
+        # DND penalty (0-10 pts deducted)
+        score -= persona["dnd_share"] * 10
         if persona["dnd_share"] > 0.1:
-            score -= 20
-            reasons.append("High DND share limits direct messaging")
+            reasons.append(f"DND share {persona['dnd_share']:.0%} limits reach")
 
     elif campaign_objective == "hc_activation":
-        if persona["hc_adoption_rate"] < 0.05:
-            score += 20
-            reasons.append("Low HC adoption = high activation headroom")
+        headroom = max(0, 1.0 - persona["hc_adoption_rate"])
+        score += headroom * 25
+        if headroom > 0.8:
+            reasons.append(f"HC adoption only {persona['hc_adoption_rate']:.0%} — large headroom")
+
+        # Urgency: wallet expiring soon (0-25 pts, peaks at <60 days)
+        urgency = max(0, 1.0 - persona["avg_wallet_expiry_days"] / 365)
+        score += urgency * 25
         if persona["avg_wallet_expiry_days"] < 90:
-            score += 15
-            reasons.append("Wallet expiring soon — natural urgency")
-        if persona["avg_hc_funnel_depth"] > 0:
-            score += 10
-            reasons.append("Already explored HC funnel")
+            reasons.append(f"Wallet expires in ~{persona['avg_wallet_expiry_days']:.0f} days — natural urgency")
+
+        # Funnel warmth (0-20 pts)
+        funnel = min(persona["avg_hc_funnel_depth"] / 3.0, 1.0)
+        score += funnel * 20
+        if funnel > 0.3:
+            reasons.append(f"HC funnel explored (avg depth {persona['avg_hc_funnel_depth']:.1f}/5)")
+
+        score += persona["app_installed_share"] * 15
+        score += persona["avg_notif_response_rate"] * 15
 
     elif campaign_objective == "app_install":
-        if persona["app_installed_share"] < 0.3:
-            score += 30
-            reasons.append("Very low app install rate — primary target")
+        # Inverse: fewer app installs = better target (0-40 pts)
+        no_app = 1.0 - persona["app_installed_share"]
+        score += no_app * 40
+        if no_app > 0.7:
+            reasons.append(f"Only {persona['app_installed_share']:.0%} have app — prime install target")
+
+        # Newer users more likely to install (0-25 pts)
+        newness = max(0, 1.0 - persona["avg_tenure_months"] / 12)
+        score += newness * 25
         if persona["avg_tenure_months"] < 3:
-            score += 10
-            reasons.append("New users — onboarding window still open")
+            reasons.append(f"Avg tenure {persona['avg_tenure_months']:.0f}mo — onboarding window open")
+
+        score += persona["avg_notif_response_rate"] * 20
+        # Low fatigue = better conversion
+        score += (1.0 - persona["avg_campaign_fatigue"]) * 15
 
     elif campaign_objective == "reengagement":
+        # More dormant = bigger reengagement target (0-30 pts)
+        dormancy = min(persona["avg_days_since_active"] / 180, 1.0)
+        score += dormancy * 30
         if persona["avg_days_since_active"] > 60:
-            score += 25
-            reasons.append("Dormant users — reengagement target")
-        if persona["avg_notif_response_rate"] > 0.1:
-            score += 10
-            reasons.append("Some notification responsiveness remains")
+            reasons.append(f"Avg {persona['avg_days_since_active']:.0f} days dormant — reengagement target")
+
+        # Some responsiveness = recoverable (0-25 pts)
+        score += persona["avg_notif_response_rate"] * 25
+        if persona["avg_notif_response_rate"] > 0.15:
+            reasons.append(f"Notif response {persona['avg_notif_response_rate']:.0%} — still recoverable")
+
+        # Size matters for reengagement ROI (0-15 pts)
+        score += min(persona["size"] / 3000, 1.0) * 15
+
+        # Fatigue penalty (0-20 pts)
+        fatigue_penalty = persona["avg_campaign_fatigue"] * 20
+        score -= fatigue_penalty
         if persona["avg_campaign_fatigue"] > 0.5:
-            score -= 15
-            reasons.append("High fatigue — risk of opt-out")
+            reasons.append(f"Fatigue {persona['avg_campaign_fatigue']:.0%} — high opt-out risk")
 
     elif campaign_objective == "hc_crosssell":
-        if persona["th_adoption_rate"] > 0.1 and persona["hc_adoption_rate"] < 0.1:
-            score += 25
-            reasons.append("TH users who haven't tried HC — cross-sell sweet spot")
+        # Sweet spot: has TH but not HC (0-35 pts)
+        th_user = min(persona["th_adoption_rate"] / 0.2, 1.0)
+        hc_headroom = max(0, 1.0 - persona["hc_adoption_rate"])
+        crosssell = th_user * hc_headroom
+        score += crosssell * 35
+        if persona["th_adoption_rate"] > 0.05 and persona["hc_adoption_rate"] < 0.1:
+            reasons.append(f"TH users ({persona['th_adoption_rate']:.0%}) who haven't tried HC ({persona['hc_adoption_rate']:.0%})")
 
-    # Channel feasibility bonus
+        score += persona["app_installed_share"] * 20
+        score += persona["avg_notif_response_rate"] * 20
+        # Wallet urgency helps
+        urgency = max(0, 1.0 - persona["avg_wallet_expiry_days"] / 365)
+        score += urgency * 15
+        score += (1.0 - persona["avg_campaign_fatigue"]) * 10
+
+    # Channel feasibility (0-10 pts)
     best_channel = max(persona["channel_reach"], key=persona["channel_reach"].get)
-    if persona["channel_reach"][best_channel] > 0.9:
-        score += 5
-        reasons.append(f"High {best_channel} reachability ({persona['channel_reach'][best_channel]:.0%})")
+    best_reach = persona["channel_reach"][best_channel]
+    score += best_reach * 10
+    if best_reach > 0.9:
+        reasons.append(f"High {best_channel} reachability ({best_reach:.0%})")
 
-    score = max(0, min(100, score))
+    score = max(0, min(100, round(score)))
+
+    if not reasons:
+        reasons.append(f"Baseline fit — {persona['size']} users, {best_channel} reachable")
 
     return {
         "persona_id": persona["id"],
