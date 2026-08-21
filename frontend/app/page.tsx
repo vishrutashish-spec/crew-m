@@ -2,480 +2,373 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { getDashboard, getPersonas, type DashboardResponse, type Persona } from "@/lib/api";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, AreaChart, Area,
+  getOverview, n, compact, pct, CHART,
+  type Overview,
+} from "@/lib/api";
+import {
+  Panel, PanelHead, ChartFrame, Chip, Stat, BarRow, SplitRibbon,
+  InsightCard, ErrorState, Skeleton, ChartTip, AXIS,
+} from "@/components/kit";
+import {
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
+  ComposedChart, Line, LabelList,
 } from "recharts";
-import { ArrowRight, AlertTriangle, TrendingUp, TrendingDown, Users, Smartphone, Activity, Target } from "lucide-react";
-import { PersonaAvatar } from "@/components/persona-avatar";
+import { ArrowRight, TriangleAlert } from "lucide-react";
 
-const CHANNEL_COLORS: Record<string, string> = {
-  whatsapp: "#1baf7a",
-  push: "#eb6834",
-  email: "#2a78d6",
-};
+const ORGS = [
+  { key: "all", label: "All orgs" },
+  { key: "ENT", label: "Enterprise" },
+  { key: "MM", label: "Mid-Market" },
+  { key: "SMB", label: "SMB" },
+  { key: "EOR", label: "EOR" },
+];
 
-const CHANNEL_LABELS: Record<string, string> = {
-  whatsapp: "WhatsApp", push: "Push", email: "Email",
-};
-
-export default function Overview() {
-  const [data, setData] = useState<DashboardResponse | null>(null);
-  const [personas, setPersonas] = useState<Persona[]>([]);
+export default function OverviewPage() {
+  const [org, setOrg] = useState("all");
+  const [data, setData] = useState<Overview | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    Promise.all([getDashboard(), getPersonas()])
-      .then(([d, p]) => { setData(d); setPersonas(p.personas); })
-      .catch((e) => setError(e.message));
-  }, []);
+    setData(null);
+    getOverview(org).then(setData).catch((e) => setError(e.message));
+  }, [org]);
 
-  if (error) {
-    return (
-      <div className="py-16 max-w-md mx-auto">
-        <Card className="border-destructive/20">
-          <CardContent className="pt-8 pb-6 text-center">
-            <div className="w-12 h-12 rounded-2xl bg-destructive/10 flex items-center justify-center mx-auto mb-4">
-              <AlertTriangle className="w-6 h-6 text-destructive" />
-            </div>
-            <p className="text-sm font-medium mb-1">Backend not running</p>
-            <p className="text-xs text-muted-foreground mb-4">
-              Start the API server to load campaign intelligence.
-            </p>
-            <code className="text-xs bg-muted px-4 py-2 rounded-lg font-mono inline-block">
-              cd backend && python3 server.py
-            </code>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  if (!data) {
-    return (
-      <div className="space-y-8 py-4">
-        <div className="h-8 w-48 bg-muted rounded-lg animate-pulse" />
-        <div className="grid grid-cols-4 gap-5">
-          {[1, 2, 3, 4].map((i) => <div key={i} className="h-28 bg-muted rounded-2xl animate-pulse" />)}
-        </div>
-        <div className="grid grid-cols-12 gap-6">
-          <div className="col-span-7 h-72 bg-muted rounded-2xl animate-pulse" />
-          <div className="col-span-5 h-72 bg-muted rounded-2xl animate-pulse" />
-        </div>
-      </div>
-    );
-  }
-
-  const { model_confidence, top_personas, campaign_summary, key_metrics } = data;
-  const byChannel = campaign_summary.by_channel || {};
-  const funnelChannels = ["whatsapp", "push", "email"].filter(ch => byChannel[ch]);
-  const funnelData = funnelChannels.map(ch => ({
-    channel: CHANNEL_LABELS[ch] || ch,
-    key: ch,
-    delivered: byChannel[ch].avg_delivery_rate,
-    opened: byChannel[ch].avg_open_rate,
-    clicked: byChannel[ch].avg_click_rate,
-    conversion: byChannel[ch].avg_conversion_rate,
-    count: byChannel[ch].count,
-  }));
-
-  const channelData = Object.entries(campaign_summary.channels_used).map(([ch, count]) => ({
-    channel: CHANNEL_LABELS[ch] || ch,
-    count,
-    key: ch,
-  }));
-
-  const orgGap = key_metrics.org_activation_rate - key_metrics.employee_activation_rate;
+  if (error) return <ErrorState message={error} />;
 
   return (
-    <div className="space-y-10">
-      {/* Header */}
-      <div className="flex items-end justify-between animate-fade-in">
+    <div className="space-y-7">
+      <div className="flex items-end justify-between gap-6 flex-wrap rise">
         <div>
-          <h1 className="text-[28px] font-semibold tracking-tight text-foreground">Overview</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Campaign intelligence across {model_confidence.n_users_analyzed.toLocaleString()} users
-            <span className="mx-2 text-border">·</span>
-            {model_confidence.n_personas} personas
+          <h1 className="text-[30px] leading-none">Overview</h1>
+          <p className="text-[13px] text-muted-foreground mt-2">
+            Who to reach, on which channel, and what the numbers actually support
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          {data.generated_at && (
-            <span className="text-[11px] text-muted-foreground/50 tabular-nums">
-              {new Date(data.generated_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-            </span>
-          )}
-          <Badge variant={data.ct_live ? "default" : "secondary"} className="text-[11px] font-normal rounded-full px-3">
-            {data.ct_live ? "Live CT + Synthetic" : "Synthetic"}
-          </Badge>
-          <Badge variant="outline" className="text-[10px] font-normal text-muted-foreground tracking-wider rounded-full px-3">
-            OBSERVED
-          </Badge>
+        <div className="seg" role="tablist" aria-label="Organisation type">
+          {ORGS.map((o) => (
+            <button
+              key={o.key}
+              data-active={org === o.key}
+              onClick={() => setOrg(o.key)}
+              role="tab"
+              aria-selected={org === o.key}
+            >
+              {o.label}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Hero Metrics */}
-      <div className="grid grid-cols-4 gap-5 animate-fade-in stagger-1">
-        <HeroMetric
-          icon={<Users className="w-4 h-4" />}
-          label="Eligible users"
-          value={key_metrics.total_eligible_users.toLocaleString()}
-          sub="Total addressable base"
-        />
-        <HeroMetric
-          icon={<Smartphone className="w-4 h-4" />}
-          label="No-app share"
-          value={`${(key_metrics.no_app_share * 100).toFixed(0)}%`}
-          sub={`${Math.round(key_metrics.total_eligible_users * key_metrics.no_app_share).toLocaleString()} unreachable via push`}
-          alert
-        />
-        <HeroMetric
-          icon={<Activity className="w-4 h-4" />}
-          label="Employee activation"
-          value={`${(key_metrics.employee_activation_rate * 100).toFixed(1)}%`}
-          sub={`vs ${(key_metrics.org_activation_rate * 100).toFixed(0)}% org activation`}
-          alert
-        />
-        <HeroMetric
-          icon={<Target className="w-4 h-4" />}
-          label="Activation gap"
-          value={`${(orgGap * 100).toFixed(0)}pt`}
-          sub={key_metrics.structural_gap}
-          alert
-        />
+      {!data ? <Skeleton /> : <Body data={data} org={org} />}
+    </div>
+  );
+}
+
+function Body({ data, org }: { data: Overview; org: string }) {
+  const t = data.totals;
+  const push = t.reach.push;
+  const realPush = push.with_app ?? 0;
+  const stale = push.stale_tokens ?? 0;
+
+  const cohortChart = data.cohorts.map((c) => ({
+    label: c.label,
+    app: c.app,
+    noApp: c.no_app,
+    appShare: c.app_share,
+  }));
+
+  const reachChart = [
+    { channel: "WhatsApp", reported: t.reach.whatsapp.count, real: t.reach.whatsapp.count },
+    { channel: "Email", reported: t.reach.email.count, real: t.reach.email.count },
+    { channel: "Push", reported: push.count, real: realPush },
+  ];
+
+  return (
+    <>
+      {/* ---------------- HERO ---------------- */}
+      <Panel ground="aurora" ticked className="p-7 rise d1">
+        <div className="relative grid grid-cols-12 gap-8 items-center">
+          <div className="col-span-12 lg:col-span-4">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="label-mono">Eligible base</span>
+              <Chip kind="OBSERVED" title="Bible segment export — active, non-test orgs" />
+            </div>
+            <p className="figure text-[54px]">{n(t.eligible)}</p>
+            <p className="text-[12px] text-muted-foreground mt-2.5 leading-relaxed">
+              People in active, non-test organisations
+              {org !== "all" && <> · {ORGS.find((o) => o.key === org)?.label} only</>}
+            </p>
+            <Link
+              href="/cohorts"
+              className="inline-flex items-center gap-1.5 text-[12px] text-[color:var(--cyan-deep)] hover:underline mt-4 font-medium"
+            >
+              Break down by age cohort <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+
+          <div className="col-span-12 lg:col-span-8 grid grid-cols-2 sm:grid-cols-4 gap-6">
+            <Stat label="App installed" value={pct(t.app_share)}
+              sub={`${n(t.app)} with an install signal in 365 days`} chip="OBSERVED" />
+            <Stat label="No app" value={pct(t.no_app_share)}
+              sub={`${n(t.no_app)} invisible to every in-app funnel`} tone="red" chip="OBSERVED" />
+            <Stat label="Active 30d" value={compact(t.mau)}
+              sub={`${pct(t.mau_share_of_app)} of the app base`} chip="DERIVED" />
+            <Stat label="Activation gap" value={`${data.activation.gap_points} pts`}
+              sub={`${pct(data.activation.org_rate, 0)} of orgs vs ${pct(data.activation.employee_rate, 0)} of employees`}
+              tone="red" chip="OBSERVED" />
+          </div>
+        </div>
+      </Panel>
+
+      {/* ---------------- PUSH GAP ---------------- */}
+      <div className="grid grid-cols-12 gap-5 rise d2">
+        <ChartFrame
+          title="Channel reachability"
+          sub="WhatsApp and email key off the member record. Push needs the app — and most of its reported reach is not real."
+          chip="OBSERVED"
+          filename="channel-reachability"
+          caption={`Channel reachability across ${n(t.eligible)} eligible users — Crew M`}
+          className="col-span-12 lg:col-span-7"
+          ground="dot"
+        >
+          <div className="h-[224px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={reachChart} margin={{ left: -6, right: 16, top: 6, bottom: 0 }} barGap={3}>
+                <XAxis dataKey="channel" {...AXIS} />
+                <YAxis tickFormatter={compact} {...AXIS} width={44} />
+                <Tooltip content={<ChartTip formatter={(v) => n(v)} />}
+                  cursor={{ fill: "rgba(43,11,33,0.04)" }} />
+                <Bar dataKey="reported" name="Reported reachable" radius={[5, 5, 0, 0]} barSize={36}>
+                  {reachChart.map((d) => (
+                    <Cell key={d.channel} fill={d.channel === "Push" ? CHART.sand : CHART.ink} />
+                  ))}
+                </Bar>
+                <Bar dataKey="real" name="Actually deliverable" radius={[5, 5, 0, 0]} barSize={36}>
+                  {reachChart.map((d) => (
+                    <Cell key={d.channel} fill={d.channel === "Push" ? CHART.red : CHART.ink} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="flex items-center gap-5 mt-3 pt-3 border-t border-border flex-wrap">
+            <Legend color={CHART.ink} label="Reachable = deliverable" />
+            <Legend color={CHART.sand} label="Push reported" />
+            <Legend color={CHART.red} label="Push deliverable" />
+          </div>
+        </ChartFrame>
+
+        <Panel className="col-span-12 lg:col-span-5 p-5" ticked>
+          <PanelHead title="The push gap" sub="Why push reach cannot be taken at face value" chip="DERIVED" />
+          <div className="rounded-lg border border-[color:var(--red)]/25 bg-[color:var(--red)]/[0.04] p-4 mb-4">
+            <div className="flex items-start gap-2.5">
+              <TriangleAlert className="w-4 h-4 text-[color:var(--red)] flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="figure text-[27px] text-[color:var(--red)]">{n(stale)}</p>
+                <p className="text-[12px] text-foreground mt-1.5 leading-relaxed">
+                  push-reachable users who <strong>cannot receive push</strong>. They sit in the
+                  no-app segment on stale tokens — <code className="text-[11px]">App Uninstalled</code>{" "}
+                  never fires in this account, so tokens are never invalidated.
+                </p>
+              </div>
+            </div>
+          </div>
+          <SplitRibbon parts={[
+            { label: "Real push audience", value: realPush, color: CHART.ink },
+            { label: "Stale tokens", value: stale, color: CHART.red },
+          ]} />
+          <div className="mt-4 pt-4 border-t border-border space-y-3.5">
+            <BarRow label="Push — reported" value={push.count} total={t.eligible} color={CHART.sand}
+              note={`${pct(push.of_total)} of the base, per the reachability panel`} />
+            <BarRow label="Push — deliverable" value={realPush} total={t.eligible} color={CHART.red}
+              note={`${pct(realPush / t.eligible)} once stale tokens are removed`} />
+          </div>
+        </Panel>
       </div>
 
-      {/* Live CleverTap metrics */}
-      {data.ct_live && (
-        <div className="animate-fade-in stagger-2">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
-            <p className="text-[13px] font-medium text-foreground/80">Live from CleverTap</p>
-            <Badge variant="outline" className="text-[10px] font-normal text-success border-success/30 tracking-wider rounded-full px-3">
-              OBSERVED
-            </Badge>
-            {data.ct_live.pulled_at && (
-              <span className="text-[10px] text-muted-foreground/50 ml-auto tabular-nums">
-                {new Date(data.ct_live.pulled_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-              </span>
-            )}
+      {/* ---------------- COHORTS ---------------- */}
+      <div className="grid grid-cols-12 gap-5 rise d3">
+        <ChartFrame
+          title="Age cohorts"
+          sub="App ownership falls steadily with age — bars are people, the line is the share"
+          chip="MODELED"
+          filename="age-cohorts"
+          caption="Age cohort size and app ownership — cohort split MODELED — Crew M"
+          className="col-span-12 lg:col-span-8"
+        >
+          <div className="h-[262px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={cohortChart} margin={{ left: -6, right: 8, top: 12, bottom: 0 }}>
+                <XAxis dataKey="label" {...AXIS} />
+                <YAxis tickFormatter={compact} {...AXIS} width={44} />
+                <YAxis yAxisId="r" orientation="right" domain={[0, 0.4]}
+                  tickFormatter={(v: number) => pct(v, 0)} {...AXIS} width={44} />
+                <Tooltip
+                  content={<ChartTip formatter={(v, name) => (name === "App ownership" ? pct(v) : n(v))} />}
+                  cursor={{ fill: "rgba(43,11,33,0.04)" }} />
+                <Bar dataKey="app" name="Has app" stackId="a" fill={CHART.ink} barSize={44} />
+                <Bar dataKey="noApp" name="No app" stackId="a" fill={CHART.sand}
+                  radius={[5, 5, 0, 0]} barSize={44} />
+                <Line yAxisId="r" type="monotone" dataKey="appShare" name="App ownership"
+                  stroke={CHART.red} strokeWidth={2.5}
+                  dot={{ r: 3.5, fill: CHART.red, strokeWidth: 0 }} />
+              </ComposedChart>
+            </ResponsiveContainer>
           </div>
-          <div className="grid grid-cols-5 gap-4">
-            {data.ct_live.dau != null && <LiveMetric label="DAU" value={data.ct_live.dau.toLocaleString()} sub="Active today" />}
-            {data.ct_live.mau != null && <LiveMetric label="MAU" value={data.ct_live.mau.toLocaleString()} sub="30-day active" />}
-            {data.ct_live.new_installs_30d != null && <LiveMetric label="New installs" value={data.ct_live.new_installs_30d.toLocaleString()} sub="Last 30 days" accent />}
-            {data.ct_live.total_sessions_30d != null && <LiveMetric label="Sessions" value={data.ct_live.total_sessions_30d.toLocaleString()} sub="30-day total" />}
-            {data.ct_live.ytd_active_users != null && <LiveMetric label="YTD active" value={data.ct_live.ytd_active_users.toLocaleString()} sub="Unique this year" />}
+          <div className="flex items-center gap-5 mt-3 pt-3 border-t border-border flex-wrap">
+            <Legend color={CHART.ink} label="Has app" />
+            <Legend color={CHART.sand} label="No app" />
+            <Legend color={CHART.red} label="App ownership %" />
+          </div>
+        </ChartFrame>
+
+        <Panel className="col-span-12 lg:col-span-4 p-5">
+          <PanelHead title="Composition" sub="Device, gender and suppression" chip="MODELED" />
+          <div className="space-y-5">
+            <div>
+              <p className="label-mono mb-2.5">Device — app base only</p>
+              <SplitRibbon parts={[
+                { label: "Android", value: t.android, color: CHART.ink },
+                { label: "iOS", value: t.ios, color: CHART.red },
+              ]} />
+              <p className="text-[10.5px] text-muted-foreground mt-2.5 leading-snug">
+                iOS needs explicit notification opt-in, so iOS-heavy cohorts lose more push reach
+                than install numbers suggest.
+              </p>
+            </div>
+            <div className="pt-4 border-t border-border">
+              <p className="label-mono mb-2.5">Gender — whole base</p>
+              <SplitRibbon parts={[
+                { label: "Male", value: t.male, color: CHART.ink },
+                { label: "Female", value: t.female, color: CHART.sand },
+              ]} />
+            </div>
+            <div className="pt-4 border-t border-border">
+              <p className="label-mono mb-2">DND-suppressed</p>
+              <p className="figure text-[23px]">{n(t.dnd)}</p>
+              <p className="text-[11px] text-muted-foreground mt-1.5 leading-snug">
+                {pct(t.dnd_share)} of the base. Applied at whole-org level — every campaign must
+                check the flag itself.
+              </p>
+            </div>
+          </div>
+        </Panel>
+      </div>
+
+      {/* ---------------- FUNNELS ---------------- */}
+      <div className="grid grid-cols-12 gap-5 rise d4">
+        <FunnelPanel title="Telehealth funnel" stages={t.th_funnel} className="col-span-12 lg:col-span-6" />
+        <FunnelPanel title="Health checkup funnel" stages={t.hc_funnel} className="col-span-12 lg:col-span-6" />
+      </div>
+
+      {/* ---------------- INSIGHTS ---------------- */}
+      {data.insights.length > 0 && (
+        <div className="rise d5">
+          <div className="flex items-center gap-3 mb-4">
+            <h2 className="text-[19px]">What the numbers say</h2>
+            <span className="text-[11.5px] text-muted-foreground">
+              {data.insights.length} findings, each with its arithmetic
+            </span>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {data.insights.map((ins) => <InsightCard key={ins.id} insight={ins} />)}
           </div>
         </div>
       )}
 
-      {/* Charts Row */}
-      <div className="grid grid-cols-12 gap-6 animate-fade-in stagger-3">
-        {/* Campaign funnel */}
-        <div className="col-span-7">
-          <Card className="card-elevated border-border/40">
-            <CardContent className="pt-6 pb-5">
-              <div className="flex items-center justify-between mb-1">
-                <p className="text-[13px] font-medium text-foreground/80">Campaign funnel by channel</p>
-                <span className="text-[11px] text-muted-foreground/60 tabular-nums">{campaign_summary.total_campaigns} campaigns</span>
-              </div>
-              <p className="text-[11px] text-muted-foreground/60 mb-5">
-                Weighted avg rates across historical campaigns
-              </p>
-              <div className="h-52">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={funnelData} margin={{ left: -8, right: 12, top: 0, bottom: 0 }}>
-                    <XAxis dataKey="channel" tick={{ fontSize: 11, fill: "oklch(0.55 0.01 250)" }} axisLine={false} tickLine={false} />
-                    <YAxis domain={[0, 1]} tickFormatter={(v: number) => `${(v * 100).toFixed(0)}%`} tick={{ fontSize: 10, fill: "oklch(0.55 0.01 250)" }} axisLine={false} tickLine={false} width={42} />
-                    <Tooltip
-                      formatter={(v, name) => [`${((v as number) * 100).toFixed(1)}%`, name === "delivered" ? "Delivered" : name === "opened" ? "Opened" : "Clicked"]}
-                      contentStyle={{ fontSize: 12, borderRadius: 12, border: "1px solid oklch(0.93 0.005 250)", boxShadow: "0 4px 12px rgba(0,0,0,0.06)" }}
-                    />
-                    <Bar dataKey="delivered" name="delivered" fill="#2a78d6" radius={[6, 6, 0, 0]} barSize={18} />
-                    <Bar dataKey="opened" name="opened" fill="#1baf7a" radius={[6, 6, 0, 0]} barSize={18} />
-                    <Bar dataKey="clicked" name="clicked" fill="#eb6834" radius={[6, 6, 0, 0]} barSize={18} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="flex items-center gap-5 mt-3 justify-center">
-                <LegendDot color="#2a78d6" label="Delivered" />
-                <LegendDot color="#1baf7a" label="Opened" />
-                <LegendDot color="#eb6834" label="Clicked" />
-              </div>
-            </CardContent>
-          </Card>
+      {/* ---------------- CT TELEMETRY ---------------- */}
+      <Panel className="p-5 rise d6" ground="grid">
+        <PanelHead
+          title="CleverTap app telemetry"
+          sub={data.ct_live.scope}
+          chip="OBSERVED"
+          right={
+            <span className="text-[10.5px] text-muted-foreground">
+              pulled {data.ct_live.pulled_at} · {data.ct_live.window_days}d window
+            </span>
+          }
+        />
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-5 relative">
+          <Stat label="DAU" value={n(data.ct_live.metrics.dau)} sub={data.ct_live.dau_method} size="sm" />
+          <Stat label="MAU 30d" value={compact(data.ct_live.metrics.mau_30d)} sub="Unique app launchers" size="sm" />
+          <Stat label="Annual active" value={compact(data.ct_live.metrics.annual_active_users)} sub="Unique, 364 days" size="sm" />
+          <Stat label="Installs 30d" value={compact(data.ct_live.metrics.new_installs_30d)} sub="New app installs" size="sm" />
+          <Stat label="Sessions 30d" value={compact(data.ct_live.metrics.sessions_30d)} sub="Total launches" size="sm" />
+          <Stat label="Sessions / MAU" value={String(data.ct_live.metrics.sessions_per_mau)} sub="Launches per active user" size="sm" />
         </div>
-
-        {/* Channel split */}
-        <div className="col-span-5">
-          <Card className="card-elevated border-border/40 h-full">
-            <CardContent className="pt-6 pb-5 h-full flex flex-col">
-              <p className="text-[13px] font-medium text-foreground/80 mb-1">Channel distribution</p>
-              <p className="text-[11px] text-muted-foreground/60 mb-4">{campaign_summary.total_campaigns} campaigns by channel</p>
-              <div className="flex items-center gap-8 flex-1">
-                <div className="w-32 h-32 flex-shrink-0">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie data={channelData} dataKey="count" nameKey="channel" cx="50%" cy="50%" innerRadius={34} outerRadius={56} paddingAngle={3} strokeWidth={0}>
-                        {channelData.map((d) => (
-                          <Cell key={d.key} fill={CHANNEL_COLORS[d.key] || "#888"} />
-                        ))}
-                      </Pie>
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-                <div className="space-y-3 flex-1">
-                  {channelData.map((d) => (
-                    <div key={d.key} className="flex items-center gap-3">
-                      <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: CHANNEL_COLORS[d.key] }} />
-                      <span className="text-[12px] text-muted-foreground flex-1">{d.channel}</span>
-                      <span className="text-[13px] font-medium tabular-nums">
-                        {d.count}
-                        <span className="text-muted-foreground/50 ml-1 font-normal text-[11px]">
-                          ({((d.count / campaign_summary.total_campaigns) * 100).toFixed(0)}%)
-                        </span>
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Conversion rates by channel */}
-              <div className="mt-auto pt-5 border-t border-border/40">
-                <p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider font-medium mb-3">End-to-end conversion</p>
-                <div className="flex gap-3">
-                  {funnelChannels.map(ch => (
-                    <div key={ch} className="flex-1 text-center">
-                      <p className="text-[15px] font-semibold tabular-nums">{(byChannel[ch].avg_conversion_rate * 100).toFixed(2)}%</p>
-                      <p className="text-[10px] text-muted-foreground/60">{CHANNEL_LABELS[ch]}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-
-      {/* Personas */}
-      <div className="animate-fade-in stagger-4">
-        <div className="flex items-center justify-between mb-5">
-          <div>
-            <p className="text-[13px] font-medium text-foreground/80">Discovered personas</p>
-            <p className="text-[11px] text-muted-foreground/60 mt-0.5">
-              K-Means clustering · silhouette {model_confidence.silhouette_score.toFixed(2)}
-              {model_confidence.silhouette_score >= 0.25 ? " (good)" : model_confidence.silhouette_score >= 0.15 ? " (fair)" : " (weak)"}
-            </p>
-          </div>
-          <Link href="/personas" className="text-[12px] text-primary hover:text-primary/80 flex items-center gap-1.5 font-medium transition-colors">
-            Explore all <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
-        </div>
-        <div className="grid grid-cols-5 gap-4">
-          {top_personas.map((p) => {
-            const persona = personas.find((fp) => fp.id === p.id);
-            return (
-              <Link key={p.id} href="/personas">
-                <Card className="hover:border-primary/20 transition-all cursor-pointer group h-full card-elevated border-border/40">
-                  <CardContent className="pt-5 pb-4 px-5">
-                    <div className="flex items-start gap-3 mb-4">
-                      <PersonaAvatar personaId={p.id} personaName={p.name} size={36} />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-[12px] font-medium truncate group-hover:text-primary transition-colors leading-snug">
-                          {p.name}
-                        </p>
-                        <p className="text-[10px] text-muted-foreground/60 mt-1">
-                          {p.size.toLocaleString()} · {(p.share * 100).toFixed(0)}%
-                        </p>
-                      </div>
-                    </div>
-                    <div className="space-y-2.5">
-                      <MetricBar label="TH" value={p.th_adoption} />
-                      <MetricBar label="HC" value={p.hc_adoption} />
-                      <MetricBar label="App" value={p.app_installed} />
-                    </div>
-                    {persona && (
-                      <div className="mt-4 pt-3 border-t border-border/30">
-                        <div className="flex justify-between text-[10px]">
-                          <span className="text-muted-foreground/60">Best channel</span>
-                          <span className="font-medium text-foreground/70">
-                            {persona.channel_reach ? CHANNEL_LABELS[Object.entries(persona.channel_reach).sort(([,a],[,b]) => b - a)[0]?.[0]] || "—" : "—"}
-                          </span>
-                        </div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </Link>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Opportunities + Quick Actions */}
-      <div className="grid grid-cols-12 gap-6 animate-fade-in stagger-5">
-        <div className="col-span-7">
-          <Card className="card-elevated border-border/40">
-            <CardContent className="pt-6 pb-5">
-              <div className="flex items-center gap-3 mb-5">
-                <p className="text-[13px] font-medium text-foreground/80">Opportunities</p>
-                <Badge variant="outline" className="text-[10px] font-normal text-muted-foreground/60 tracking-wider rounded-full px-3">
-                  RECOMMENDED
-                </Badge>
-              </div>
-              <div className="space-y-3">
-                {key_metrics.no_app_share > 0.5 && (
-                  <OpportunityRow
-                    title={`${(key_metrics.no_app_share * 100).toFixed(0)}% of users have no app`}
-                    detail="Push notifications can't reach this group. Use WhatsApp and email for app-install campaigns."
-                    impact="high"
-                    action="/simulate"
-                    actionLabel="Simulate app-install"
-                  />
-                )}
-                {orgGap > 0.3 && (
-                  <OpportunityRow
-                    title="Structural activation gap"
-                    detail={`Org activation (${(key_metrics.org_activation_rate * 100).toFixed(0)}%) far exceeds employee activation (${(key_metrics.employee_activation_rate * 100).toFixed(1)}%). The gap is awareness, not access.`}
-                    impact="high"
-                    action="/simulate"
-                    actionLabel="Simulate awareness campaign"
-                  />
-                )}
-                <OpportunityRow
-                  title="Dormant segments dominate"
-                  detail="The largest personas are dormant with no app. Re-engagement requires benefit-led messaging via non-push channels."
-                  impact="medium"
-                  action="/personas"
-                  actionLabel="View personas"
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="col-span-5 space-y-4">
-          <Link href="/simulate">
-            <Card className="hover:border-primary/20 transition-all cursor-pointer group card-elevated border-border/40">
-              <CardContent className="py-6 flex items-center gap-5">
-                <div className="w-11 h-11 rounded-2xl bg-primary/8 flex items-center justify-center flex-shrink-0 group-hover:bg-primary/12 transition-colors">
-                  <Beaker className="w-5 h-5 text-primary" strokeWidth={1.75} />
-                </div>
-                <div className="flex-1">
-                  <p className="text-[13px] font-medium group-hover:text-primary transition-colors">Campaign Simulator</p>
-                  <p className="text-[11px] text-muted-foreground/60 mt-0.5">Predict performance before sending</p>
-                </div>
-                <ArrowRight className="w-4 h-4 text-muted-foreground/30 group-hover:text-primary/50 transition-colors" />
-              </CardContent>
-            </Card>
-          </Link>
-          <Link href="/personas">
-            <Card className="hover:border-primary/20 transition-all cursor-pointer group card-elevated border-border/40">
-              <CardContent className="py-6 flex items-center gap-5">
-                <div className="w-11 h-11 rounded-2xl bg-success/8 flex items-center justify-center flex-shrink-0 group-hover:bg-success/12 transition-colors">
-                  <Users className="w-5 h-5 text-success" strokeWidth={1.75} />
-                </div>
-                <div className="flex-1">
-                  <p className="text-[13px] font-medium group-hover:text-primary transition-colors">Persona Explorer</p>
-                  <p className="text-[11px] text-muted-foreground/60 mt-0.5">Behavioral segments with full detail</p>
-                </div>
-                <ArrowRight className="w-4 h-4 text-muted-foreground/30 group-hover:text-primary/50 transition-colors" />
-              </CardContent>
-            </Card>
-          </Link>
-        </div>
-      </div>
-    </div>
+        <p className="text-[11px] text-muted-foreground mt-5 pt-4 border-t border-border leading-relaxed relative">
+          These counts are account-wide because CleverTap&apos;s{" "}
+          <code className="text-[10.5px]">/counts</code> endpoints accept no organisation filter.
+          Do not divide them by the {n(t.eligible)} eligible base —{" "}
+          <Link href="/methodology" className="text-[color:var(--cyan-deep)] hover:underline">
+            see methodology
+          </Link>.
+        </p>
+      </Panel>
+    </>
   );
 }
 
-function Beaker({ className, strokeWidth = 2 }: { className?: string; strokeWidth?: number }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M10 2v7.527a2 2 0 0 1-.211.896L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.069-10.127A2 2 0 0 1 14 9.527V2" />
-      <path d="M8.5 2h7" /><path d="M7 16h10" />
-    </svg>
-  );
-}
-
-function HeroMetric({ icon, label, value, sub, alert }: {
-  icon: React.ReactNode; label: string; value: string; sub: string; alert?: boolean;
+function FunnelPanel({
+  title, stages, className,
+}: {
+  title: string;
+  stages: Overview["totals"]["th_funnel"];
+  className?: string;
 }) {
+  const worst = stages.slice(1).reduce((min, s) => (s.from_prev < min.from_prev ? s : min), stages[1]);
+  const data = stages.map((s) => ({
+    stage: s.stage,
+    count: s.count,
+    step: s.from_prev,
+    isWorst: s.stage === worst?.stage,
+  }));
+
   return (
-    <Card className="card-elevated border-border/40 transition-all hover:shadow-md">
-      <CardContent className="pt-5 pb-4">
-        <div className="flex items-center gap-2 mb-3">
-          <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${alert ? "bg-warning/10 text-warning" : "bg-primary/8 text-primary"}`}>
-            {icon}
-          </div>
-          <p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider font-medium">{label}</p>
-        </div>
-        <p className={`text-[26px] font-semibold tracking-tight tabular-nums leading-none ${alert ? "text-foreground" : "text-foreground"}`}>{value}</p>
-        <p className="text-[11px] text-muted-foreground/50 mt-2 leading-snug">{sub}</p>
-      </CardContent>
-    </Card>
+    <ChartFrame
+      title={title}
+      sub={`120-day window, active and non-test orgs · ${pct(stages[stages.length - 1].cumulative, 2)} of homepage viewers book`}
+      chip="OBSERVED"
+      filename={title}
+      caption={`${title} — 120-day window, active + non-test orgs — Crew M`}
+      className={className}
+    >
+      <div className="h-[212px]">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={data} margin={{ left: -6, right: 12, top: 20, bottom: 0 }}>
+            <XAxis dataKey="stage" {...AXIS} interval={0} tick={{ ...AXIS.tick, fontSize: 10 }} />
+            <YAxis tickFormatter={compact} {...AXIS} width={44} />
+            <Tooltip
+              content={<ChartTip formatter={(v, name) => (name === "Users" ? n(v) : pct(v))} />}
+              cursor={{ fill: "rgba(43,11,33,0.04)" }} />
+            <Bar dataKey="count" name="Users" radius={[5, 5, 0, 0]} barSize={40}>
+              {data.map((d) => (
+                <Cell key={d.stage} fill={d.isWorst ? CHART.red : CHART.ink} />
+              ))}
+              <LabelList dataKey="step" position="top"
+                formatter={(v: unknown) => (typeof v === "number" && v < 1 ? pct(v, 0) : "")}
+                style={{ fontSize: 10, fill: "#565064", fontFamily: "Vollkorn, Georgia, serif" }} />
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+      <div className="mt-3 pt-3 border-t border-border flex items-center gap-4 flex-wrap">
+        <Legend color={CHART.red} label={`Biggest drop: ${worst?.stage}`} />
+        <span className="text-[11px] text-muted-foreground">
+          Labels show the share continuing from the previous stage
+        </span>
+      </div>
+    </ChartFrame>
   );
 }
 
-function LiveMetric({ label, value, sub, accent }: {
-  label: string; value: string; sub: string; accent?: boolean;
-}) {
+function Legend({ color, label }: { color: string; label: string }) {
   return (
-    <div className="bg-muted/40 rounded-2xl px-4 py-3.5">
-      <p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider font-medium mb-1.5">{label}</p>
-      <p className={`text-xl font-semibold tracking-tight tabular-nums ${accent ? "text-primary" : ""}`}>{value}</p>
-      <p className="text-[10px] text-muted-foreground/50 mt-0.5">{sub}</p>
-    </div>
-  );
-}
-
-function LegendDot({ color, label }: { color: string; label: string }) {
-  return (
-    <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground/60">
-      <span className="w-2 h-2 rounded-full" style={{ background: color }} />
+    <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+      <span className="w-2.5 h-2.5 rounded-sm flex-shrink-0 border border-black/10"
+        style={{ background: color }} />
       {label}
     </span>
-  );
-}
-
-function MetricBar({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="flex items-center gap-2.5">
-      <span className="text-[10px] text-muted-foreground/60 w-6 flex-shrink-0 tabular-nums">{label}</span>
-      <div className="flex-1 h-1.5 bg-muted/60 rounded-full overflow-hidden">
-        <div
-          className="h-full rounded-full transition-all duration-500"
-          style={{
-            width: `${Math.max(value * 100, 2)}%`,
-            background: value > 0.1 ? "oklch(0.52 0.105 185)" : "oklch(0.52 0.105 185 / 0.25)",
-          }}
-        />
-      </div>
-      <span className="text-[10px] text-muted-foreground/50 w-8 text-right tabular-nums">{(value * 100).toFixed(0)}%</span>
-    </div>
-  );
-}
-
-function OpportunityRow({ title, detail, impact, action, actionLabel }: {
-  title: string; detail: string; impact: "high" | "medium"; action: string; actionLabel: string;
-}) {
-  return (
-    <div className="p-4 rounded-2xl bg-muted/30 border border-border/30">
-      <div className="flex items-start gap-2.5 mb-2">
-        <div className={`w-1.5 h-1.5 rounded-full mt-[7px] flex-shrink-0 ${impact === "high" ? "bg-destructive" : "bg-warning"}`} />
-        <p className="text-[13px] font-medium leading-snug">{title}</p>
-      </div>
-      <p className="text-[11px] text-muted-foreground/60 leading-relaxed ml-4 mb-3">{detail}</p>
-      <div className="flex items-center gap-3 ml-4">
-        <Badge variant={impact === "high" ? "destructive" : "secondary"} className="text-[10px] font-normal rounded-full px-2.5">
-          {impact}
-        </Badge>
-        <Link href={action} className="text-[11px] text-primary hover:text-primary/70 font-medium transition-colors">{actionLabel}</Link>
-      </div>
-    </div>
   );
 }
