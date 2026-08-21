@@ -87,7 +87,7 @@ export default function Overview() {
   return (
     <div className="py-6 space-y-8">
       {/* Header */}
-      <div className="flex items-end justify-between">
+      <div className="flex items-end justify-between animate-fade-in">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Overview</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
@@ -112,7 +112,7 @@ export default function Overview() {
       </div>
 
       {/* Hero Metrics */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-4 gap-4 animate-fade-in stagger-1">
         <HeroMetric
           label="Eligible users"
           value={key_metrics.total_eligible_users.toLocaleString()}
@@ -139,7 +139,7 @@ export default function Overview() {
       </div>
 
       {/* Funnel + Channel split */}
-      <div className="grid grid-cols-12 gap-6">
+      <div className="grid grid-cols-12 gap-6 animate-fade-in stagger-2">
         <div className="col-span-7">
           <Card>
             <CardContent className="pt-5 pb-4">
@@ -205,7 +205,7 @@ export default function Overview() {
       </div>
 
       {/* Personas */}
-      <div>
+      <div className="animate-fade-in stagger-3">
         <div className="flex items-center justify-between mb-4">
           <div>
             <p className="text-sm font-medium">Discovered personas</p>
@@ -260,7 +260,7 @@ export default function Overview() {
       </div>
 
       {/* Quick Actions + Opportunities */}
-      <div className="grid grid-cols-12 gap-6">
+      <div className="grid grid-cols-12 gap-6 animate-fade-in stagger-4">
         <div className="col-span-7">
           <Card>
             <CardContent className="pt-5 pb-4">
