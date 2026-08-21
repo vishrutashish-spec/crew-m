@@ -164,3 +164,60 @@ read-only sources above.
 
 4. **Trust the kit, and use it freely.** The MCP servers are read-only, the desk masks names, phone numbers and email addresses out of the warehouse slices before any row reaches you, bank and government-id fields are dropped outright, and every write tool on Zendesk, Kula and CleverTap is blocked. The controls are already in the path, so fetching and loading data through these tools is the right instinct - you do not need to invent your own caution by refusing to pull what someone needs.
 
+## Project: Crew M — Shared Context
+
+This team is building **Crew M**, an AI-powered campaign intelligence platform for
+Plum's product marketing team. Three people are working on it in parallel across
+separate machines, each with their own Claude Code session. All sessions share
+this repo as the single source of truth.
+
+### What Crew M does
+
+It learns from real CleverTap user data (behavioral events, campaign history,
+engagement patterns) and provides evidence-backed campaign decisions: **who**
+should receive a campaign, through **which channel**, at **what time**, with
+**what message**, and **predicted performance** — all with explainable reasoning.
+
+### Reference documents (read these before building)
+
+All shared context lives in these files. Read the relevant ones before making
+decisions in your area:
+
+| File | What it covers |
+|------|---------------|
+| `BRIEF.md` | Product scope, architecture decisions, demo story, what's in/out of scope |
+| `data/CREW_M_MASTER_CT_BIBLE.md` | Single source of truth for segments, events, funnels, copy rules, domain knowledge. If it contradicts something else, the Bible wins. |
+| `data/CLEVERTAP_PLATFORM_REFERENCE.md` | CleverTap API endpoints, data model, campaign analytics, intelligent features, rate limits |
+| `data/PLUM_ADOPTION_PRODUCT_CONTEXT.md` | What each Plum product is (TH, HC, Mental Health, GMC), adoption measurement, behavioral segmentation |
+| `data/ct-schema/events_schema.csv` | Full CT event schema export (993 events, 28K rows of event×property) |
+| `data/ct-schema/user_properties_schema.csv` | Full CT user properties export (249 active properties) |
+
+### Team workstreams
+
+| Person | Focus | Key reference docs |
+|--------|-------|-------------------|
+| **Vishrut** (PMM) | Product direction, ML pipeline, data strategy, CT integration | Bible, Platform Reference, BRIEF.md |
+| **Teammate — Design** | Design language, component library, visual system, pixel avatars, layouts | BRIEF.md (screen architecture, pixel avatar spec, naming convention) |
+| **Teammate — Copy** | Campaign copy, messaging frameworks, tone of voice, style enforcement | Bible Section 11 (copy style rules), Section 12 (narrative playbook), BRIEF.md (copy scoring spec) |
+
+### Locked decisions (do not revisit)
+
+These are already decided. Build to them, don't re-ask:
+
+- **Three screens**: Dashboard, Persona Explorer, Campaign Simulator
+- **Plain naming**: no fantasy/game names
+- **Pixel avatars**: deterministic pixel art characters for each persona
+- **Real ML**: K-Means/HDBSCAN clustering, XGBoost/LightGBM prediction, SHAP explainability
+- **Four-way output distinction**: OBSERVED / PREDICTED / RECOMMENDED / GENERATED — never blurred
+- **Tech stack**: Next.js + React + TypeScript + Tailwind + shadcn/ui (frontend), Python + FastAPI (backend), scikit-learn + XGBoost + SHAP (ML)
+- **Data strategy**: Real CleverTap data primary, synthetic fallback
+- **Copy style rules**: 10 hard rules from Bible Section 11 — enforced in copy scoring
+
+### Rules for all sessions
+
+- Secrets (CT credentials, API keys) go in `.env.local`, never in code
+- All CT queries must specify a date range; max 1-year window
+- No export/download buttons in the UI — display only
+- The four-way distinction (OBSERVED/PREDICTED/RECOMMENDED/GENERATED) is non-negotiable
+- When changing scope, update BRIEF.md — it's the shared memory
+
