@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LayoutDashboard, Users, FlaskConical, BookOpen } from "lucide-react";
+import { CrewMLogo } from "@/components/logos";
 
 const NAV = [
   { href: "/", label: "Overview", icon: LayoutDashboard },

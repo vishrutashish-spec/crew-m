@@ -8,8 +8,9 @@ import {
 } from "@/lib/api";
 import {
   Panel, PanelHead, ChartFrame, Chip, Stat, BarRow, SplitRibbon,
-  InsightCard, ErrorState, Skeleton, ChartTip, AXIS,
+  InsightCard, ErrorState, Skeleton, ChartTip, AXIS, PageBanner,
 } from "@/components/kit";
+import { ChannelTickX, ChannelGlyph } from "@/components/logos";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
   ComposedChart, Line, LabelList,
@@ -24,48 +25,75 @@ const ORGS = [
   { key: "EOR", label: "EOR" },
 ];
 
+interface SegmentReach {
+  key: string; label: string; users: number;
+  push: number; email: number; whatsapp: number;
+}
+
+type OverviewX = Overview & { segment_reachability?: SegmentReach[] };
+
 export default function OverviewPage() {
   const [org, setOrg] = useState("all");
-  const [data, setData] = useState<Overview | null>(null);
+  const [data, setData] = useState<OverviewX | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setData(null);
-    getOverview(org).then(setData).catch((e) => setError(e.message));
+    getOverview(org).then((d) => setData(d as OverviewX)).catch((e) => setError(e.message));
   }, [org]);
 
   if (error) return <ErrorState message={error} />;
 
   return (
     <div className="space-y-7">
-      <div className="flex items-end justify-between gap-6 flex-wrap rise">
-        <div>
-          <h1 className="text-[30px] leading-none">Overview</h1>
-          <p className="text-[13px] text-muted-foreground mt-2">
-            Who to reach, on which channel, and what the numbers actually support
-          </p>
-        </div>
-        <div className="seg" role="tablist" aria-label="Organisation type">
-          {ORGS.map((o) => (
-            <button
-              key={o.key}
-              data-active={org === o.key}
-              onClick={() => setOrg(o.key)}
-              role="tab"
-              aria-selected={org === o.key}
-            >
-              {o.label}
-            </button>
-          ))}
-        </div>
-      </div>
+      <PageBanner
+        kicker="Overview"
+        title="Campaign intelligence"
+        sub="Who to reach, on which channel, and what the numbers actually support. Every figure reconciles to a verified anchor."
+        window="crewm / overview"
+        right={
+          <div className="seg" role="tablist" aria-label="Organisation type">
+            {ORGS.map((o) => (
+              <button key={o.key} data-active={org === o.key} onClick={() => setOrg(o.key)}
+                role="tab" aria-selected={org === o.key}>
+                {o.label}
+              </button>
+            ))}
+          </div>
+        }
+      >
+        {data && (
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
+            <div>
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className="label-mono">Eligible base</span>
+                <Chip kind="OBSERVED" />
+              </div>
+              <p className="figure text-[38px]">{n(data.totals.eligible)}</p>
+              <Link href="/cohorts"
+                className="inline-flex items-center gap-1.5 text-[11.5px] text-[color:var(--cyan-deep)] hover:underline mt-2 font-medium">
+                By age cohort <ArrowRight className="w-3 h-3" />
+              </Link>
+            </div>
+            <Stat label="App installed" value={pct(data.totals.app_share)}
+              sub={`${n(data.totals.app)} with an install signal`} chip="OBSERVED" />
+            <Stat label="No app" value={pct(data.totals.no_app_share)}
+              sub={`${n(data.totals.no_app)} outside every in-app funnel`} tone="red" chip="OBSERVED" />
+            <Stat label="Active 30d" value={compact(data.totals.mau)}
+              sub={`${pct(data.totals.mau_share_of_app)} of the app base`} chip="DERIVED" />
+            <Stat label="Activation gap" value={`${data.activation.gap_points} pts`}
+              sub={`${pct(data.activation.org_rate, 0)} of orgs vs ${pct(data.activation.employee_rate, 0)} of employees`}
+              tone="red" chip="OBSERVED" />
+          </div>
+        )}
+      </PageBanner>
 
-      {!data ? <Skeleton /> : <Body data={data} org={org} />}
+      {!data ? <Skeleton /> : <Body data={data} />}
     </div>
   );
 }
 
-function Body({ data, org }: { data: Overview; org: string }) {
+function Body({ data }: { data: OverviewX }) {
   const t = data.totals;
   const push = t.reach.push;
   const realPush = push.with_app ?? 0;
@@ -84,58 +112,31 @@ function Body({ data, org }: { data: Overview; org: string }) {
     { channel: "Push", reported: push.count, real: realPush },
   ];
 
+  const segments = (data.segment_reachability ?? []).map((s) => ({
+    ...s,
+    pushPct: Math.round(s.push * 100),
+    emailPct: Math.round(s.email * 100),
+    waPct: Math.round(s.whatsapp * 100),
+  }));
+
   return (
     <>
-      {/* ---------------- HERO ---------------- */}
-      <Panel ground="aurora" ticked className="p-7 rise d1">
-        <div className="relative grid grid-cols-12 gap-8 items-center">
-          <div className="col-span-12 lg:col-span-4">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="label-mono">Eligible base</span>
-              <Chip kind="OBSERVED" title="Bible segment export: active, non-test orgs" />
-            </div>
-            <p className="figure text-[54px]">{n(t.eligible)}</p>
-            <p className="text-[12px] text-muted-foreground mt-2.5 leading-relaxed">
-              People in active, non-test organisations
-              {org !== "all" && <> · {ORGS.find((o) => o.key === org)?.label} only</>}
-            </p>
-            <Link
-              href="/cohorts"
-              className="inline-flex items-center gap-1.5 text-[12px] text-[color:var(--cyan-deep)] hover:underline mt-4 font-medium"
-            >
-              Break down by age cohort <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
-          </div>
-
-          <div className="col-span-12 lg:col-span-8 grid grid-cols-2 sm:grid-cols-4 gap-6">
-            <Stat label="App installed" value={pct(t.app_share)}
-              sub={`${n(t.app)} with an install signal in 365 days`} chip="OBSERVED" />
-            <Stat label="No app" value={pct(t.no_app_share)}
-              sub={`${n(t.no_app)} invisible to every in-app funnel`} tone="red" chip="OBSERVED" />
-            <Stat label="Active 30d" value={compact(t.mau)}
-              sub={`${pct(t.mau_share_of_app)} of the app base`} chip="DERIVED" />
-            <Stat label="Activation gap" value={`${data.activation.gap_points} pts`}
-              sub={`${pct(data.activation.org_rate, 0)} of orgs vs ${pct(data.activation.employee_rate, 0)} of employees`}
-              tone="red" chip="OBSERVED" />
-          </div>
-        </div>
-      </Panel>
-
       {/* ---------------- PUSH GAP ---------------- */}
-      <div className="grid grid-cols-12 gap-5 rise d2">
+      <div className="grid grid-cols-12 gap-5 rise d1">
         <ChartFrame
           title="Channel reachability"
-          sub="WhatsApp and email key off the member record. Push needs the app: and most of its reported reach is not real."
+          sub="WhatsApp and email key off the member record. Push needs the app, and most of its reported reach is not real."
           chip="OBSERVED"
           filename="channel-reachability"
-          caption={`Channel reachability across ${n(t.eligible)} eligible users: Crew M`}
+          caption={`Channel reachability across ${n(t.eligible)} eligible users. Crew M`}
           className="col-span-12 lg:col-span-7"
           ground="dot"
         >
-          <div className="h-[224px]">
+          <div className="h-[244px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={reachChart} margin={{ left: -6, right: 16, top: 6, bottom: 0 }} barGap={3}>
-                <XAxis dataKey="channel" {...AXIS} />
+              <BarChart data={reachChart} margin={{ left: -6, right: 16, top: 6, bottom: 16 }} barGap={3}>
+                <XAxis dataKey="channel" tick={<ChannelTickX />} axisLine={false} tickLine={false}
+                  interval={0} height={48} />
                 <YAxis tickFormatter={compact} {...AXIS} width={44} />
                 <Tooltip content={<ChartTip formatter={(v) => n(v)} />}
                   cursor={{ fill: "rgba(43,11,33,0.04)" }} />
@@ -168,7 +169,7 @@ function Body({ data, org }: { data: Overview; org: string }) {
                 <p className="figure text-[27px] text-[color:var(--red)]">{n(stale)}</p>
                 <p className="text-[12px] text-foreground mt-1.5 leading-relaxed">
                   push-reachable users who <strong>cannot receive push</strong>. They sit in the
-                  no-app segment on stale tokens: <code className="text-[11px]">App Uninstalled</code>{" "}
+                  no-app segment on stale tokens. <code className="text-[11px]">App Uninstalled</code>{" "}
                   never fires in this account, so tokens are never invalidated.
                 </p>
               </div>
@@ -179,22 +180,75 @@ function Body({ data, org }: { data: Overview; org: string }) {
             { label: "Stale tokens", value: stale, color: CHART.red },
           ]} />
           <div className="mt-4 pt-4 border-t border-border space-y-3.5">
-            <BarRow label="Push: reported" value={push.count} total={t.eligible} color={CHART.sand}
+            <BarRow label="Push, reported" value={push.count} total={t.eligible} color={CHART.sand}
+              icon={<ChannelGlyph channel="push" size={15} />}
               note={`${pct(push.of_total)} of the base, per the reachability panel`} />
-            <BarRow label="Push: deliverable" value={realPush} total={t.eligible} color={CHART.red}
+            <BarRow label="Push, deliverable" value={realPush} total={t.eligible} color={CHART.red}
+              icon={<ChannelGlyph channel="push" size={15} />}
               note={`${pct(realPush / t.eligible)} once stale tokens are removed`} />
           </div>
         </Panel>
       </div>
 
+      {/* ---------------- SEGMENT REACHABILITY ---------------- */}
+      {segments.length > 0 && (
+        <ChartFrame
+          title="Segment reachability"
+          sub="The documented reachability panel: all eight priority segments, share of each segment reachable per channel"
+          chip="OBSERVED"
+          filename="segment-reachability"
+          caption="Segment reachability, share of segment members per channel. Crew M"
+          className="rise d2"
+        >
+          <div className="h-[380px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={segments} layout="vertical"
+                margin={{ left: 10, right: 46, top: 4, bottom: 4 }} barGap={2}>
+                <XAxis type="number" domain={[0, 100]}
+                  tickFormatter={(v: number) => `${v}%`} {...AXIS} />
+                <YAxis type="category" dataKey="label" {...AXIS} width={178}
+                  tick={{ ...AXIS.tick, fontSize: 11 }} />
+                <Tooltip
+                  content={<ChartTip formatter={(v) => `${v}%`} />}
+                  cursor={{ fill: "rgba(43,11,33,0.04)" }} />
+                <Bar dataKey="waPct" name="WhatsApp" fill={CHART.ink} radius={[0, 4, 4, 0]} barSize={9} />
+                <Bar dataKey="emailPct" name="Gmail" fill={CHART.red} radius={[0, 4, 4, 0]} barSize={9} />
+                <Bar dataKey="pushPct" name="Plum push" fill={CHART.sand} radius={[0, 4, 4, 0]} barSize={9}>
+                  <LabelList dataKey="users" position="right"
+                    formatter={(v: unknown) => (typeof v === "number" ? compact(v) : "")}
+                    style={{ fontSize: 10, fill: "#565064", fontFamily: "Vollkorn, Georgia, serif" }} />
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="flex items-center gap-5 mt-3 pt-3 border-t border-border flex-wrap">
+            <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+              <span className="w-2.5 h-2.5 rounded-sm border border-black/10" style={{ background: CHART.ink }} />
+              <ChannelGlyph channel="whatsapp" size={14} /> WhatsApp
+            </span>
+            <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+              <span className="w-2.5 h-2.5 rounded-sm border border-black/10" style={{ background: CHART.red }} />
+              <ChannelGlyph channel="email" size={14} /> Gmail
+            </span>
+            <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+              <span className="w-2.5 h-2.5 rounded-sm border border-black/10" style={{ background: CHART.sand }} />
+              <ChannelGlyph channel="push" size={14} /> Plum push
+            </span>
+            <span className="text-[11px] text-muted-foreground">
+              Right-hand figures are segment sizes. Push percentages are shares of all segment members, not of app users.
+            </span>
+          </div>
+        </ChartFrame>
+      )}
+
       {/* ---------------- COHORTS ---------------- */}
       <div className="grid grid-cols-12 gap-5 rise d3">
         <ChartFrame
           title="Age cohorts"
-          sub="App ownership falls steadily with age: bars are people, the line is the share"
+          sub="App ownership falls steadily with age. Bars are people, the line is the share."
           chip="MODELED"
           filename="age-cohorts"
-          caption="Age cohort size and app ownership: cohort split MODELED: Crew M"
+          caption="Age cohort size and app ownership, cohort split MODELED. Crew M"
           className="col-span-12 lg:col-span-8"
         >
           <div className="h-[262px]">
@@ -227,7 +281,7 @@ function Body({ data, org }: { data: Overview; org: string }) {
           <PanelHead title="Composition" sub="Device, gender and suppression" chip="MODELED" />
           <div className="space-y-5">
             <div>
-              <p className="label-mono mb-2.5">Device: app base only</p>
+              <p className="label-mono mb-2.5">Device, app base only</p>
               <SplitRibbon parts={[
                 { label: "Android", value: t.android, color: CHART.ink },
                 { label: "iOS", value: t.ios, color: CHART.red },
@@ -238,7 +292,7 @@ function Body({ data, org }: { data: Overview; org: string }) {
               </p>
             </div>
             <div className="pt-4 border-t border-border">
-              <p className="label-mono mb-2.5">Gender: whole base</p>
+              <p className="label-mono mb-2.5">Gender, whole base</p>
               <SplitRibbon parts={[
                 { label: "Male", value: t.male, color: CHART.ink },
                 { label: "Female", value: t.female, color: CHART.sand },
@@ -248,7 +302,7 @@ function Body({ data, org }: { data: Overview; org: string }) {
               <p className="label-mono mb-2">DND-suppressed</p>
               <p className="figure text-[23px]">{n(t.dnd)}</p>
               <p className="text-[11px] text-muted-foreground mt-1.5 leading-snug">
-                {pct(t.dnd_share)} of the base. Applied at whole-org level: every campaign must
+                {pct(t.dnd_share)} of the base. Applied at whole-org level, every campaign must
                 check the flag itself.
               </p>
             </div>
@@ -300,9 +354,9 @@ function Body({ data, org }: { data: Overview; org: string }) {
         <p className="text-[11px] text-muted-foreground mt-5 pt-4 border-t border-border leading-relaxed relative">
           These counts are account-wide because CleverTap&apos;s{" "}
           <code className="text-[10.5px]">/counts</code> endpoints accept no organisation filter.
-          Do not divide them by the {n(t.eligible)} eligible base ,{" "}
+          Do not divide them by the {n(t.eligible)} eligible base.{" "}
           <Link href="/methodology" className="text-[color:var(--cyan-deep)] hover:underline">
-            see methodology
+            See methodology
           </Link>.
         </p>
       </Panel>
@@ -331,7 +385,7 @@ function FunnelPanel({
       sub={`120-day window, active and non-test orgs · ${pct(stages[stages.length - 1].cumulative, 2)} of homepage viewers book`}
       chip="OBSERVED"
       filename={title}
-      caption={`${title}: 120-day window, active + non-test orgs: Crew M`}
+      caption={`${title}, 120-day window, active + non-test orgs. Crew M`}
       className={className}
     >
       <div className="h-[212px]">
