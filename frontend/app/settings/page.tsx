@@ -1,11 +1,34 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Database, Key, Server, Shield } from "lucide-react";
+import { Database, Key, Server, Shield, RefreshCw } from "lucide-react";
+import { getCtLive, getDashboard, refreshCtLive, type CtLiveResponse, type DashboardResponse } from "@/lib/api";
 
 export default function Settings() {
+  const [ctStatus, setCtStatus] = useState<CtLiveResponse | null>(null);
+  const [dashboard, setDashboard] = useState<DashboardResponse | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  useEffect(() => {
+    getCtLive().then(setCtStatus).catch(() => {});
+    getDashboard().then(setDashboard).catch(() => {});
+  }, []);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      const r = await refreshCtLive();
+      setCtStatus(r);
+    } catch {}
+    setRefreshing(false);
+  };
+
+  const isConnected = ctStatus?.status === "live";
+  const dataSource = isConnected ? "Live CT + Synthetic" : "Synthetic (calibrated)";
+
   return (
     <div className="py-6 space-y-6 max-w-3xl">
       <div>
@@ -27,9 +50,15 @@ export default function Settings() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium">Current Mode</p>
-              <p className="text-xs text-muted-foreground mt-0.5">Synthetic data calibrated from real Plum distributions</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {isConnected
+                  ? "Real CleverTap metrics + synthetic persona clustering"
+                  : "Synthetic data calibrated from real Plum distributions"}
+              </p>
             </div>
-            <Badge variant="secondary" className="text-xs font-normal">Synthetic (calibrated)</Badge>
+            <Badge variant="secondary" className={`text-xs font-normal ${isConnected ? "bg-green-50 text-green-700 border-green-200" : ""}`}>
+              {dataSource}
+            </Badge>
           </div>
           <Separator />
           <div className="flex items-center justify-between">
@@ -37,7 +66,9 @@ export default function Settings() {
               <p className="text-sm font-medium">Users Analyzed</p>
               <p className="text-xs text-muted-foreground mt-0.5">Total users in the synthetic dataset</p>
             </div>
-            <span className="text-sm font-medium">10,000</span>
+            <span className="text-sm font-medium">
+              {dashboard?.model_confidence?.n_users_analyzed?.toLocaleString() ?? "10,000"}
+            </span>
           </div>
           <Separator />
           <div className="flex items-center justify-between">
@@ -62,16 +93,70 @@ export default function Settings() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium">Status</p>
-              <p className="text-xs text-muted-foreground mt-0.5">Set CT_ACCOUNT_ID and CT_PASSCODE in .env.local to connect</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {isConnected
+                  ? "Connected to CleverTap (in1 region, read-only)"
+                  : "Set CT_ACCOUNT_ID and CT_PASSCODE in .env.local to connect"}
+              </p>
             </div>
-            <Badge variant="outline" className="text-xs font-normal text-warning">Not connected</Badge>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleRefresh}
+                className="p-1.5 rounded-md hover:bg-muted transition-colors"
+                title="Refresh CT connection"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 text-muted-foreground ${refreshing ? "animate-spin" : ""}`} />
+              </button>
+              {isConnected ? (
+                <Badge variant="outline" className="text-xs font-normal text-green-700 border-green-300">
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-500 mr-1.5 inline-block" />
+                  Connected
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="text-xs font-normal text-warning">Not connected</Badge>
+              )}
+            </div>
           </div>
-          <div className="bg-muted rounded-md p-3">
-            <p className="text-xs text-muted-foreground mb-2">Required environment variables:</p>
-            <code className="text-xs block font-mono">CT_ACCOUNT_ID=your_account_id</code>
-            <code className="text-xs block font-mono mt-1">CT_PASSCODE=your_passcode</code>
-            <code className="text-xs block font-mono mt-1">CT_REGION=eu1</code>
-          </div>
+
+          {isConnected && ctStatus?.metrics && (
+            <>
+              <Separator />
+              <div className="grid grid-cols-3 gap-3">
+                {ctStatus.metrics.dau != null && (
+                  <div className="bg-muted/50 rounded-md p-2.5">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">DAU</p>
+                    <p className="text-sm font-semibold tabular-nums">{ctStatus.metrics.dau.toLocaleString()}</p>
+                  </div>
+                )}
+                {ctStatus.metrics.mau != null && (
+                  <div className="bg-muted/50 rounded-md p-2.5">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">MAU</p>
+                    <p className="text-sm font-semibold tabular-nums">{ctStatus.metrics.mau.toLocaleString()}</p>
+                  </div>
+                )}
+                {ctStatus.metrics.ytd_active_users != null && (
+                  <div className="bg-muted/50 rounded-md p-2.5">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">YTD Active</p>
+                    <p className="text-sm font-semibold tabular-nums">{ctStatus.metrics.ytd_active_users.toLocaleString()}</p>
+                  </div>
+                )}
+              </div>
+              {ctStatus.metrics.pulled_at && (
+                <p className="text-[10px] text-muted-foreground">
+                  Last pulled: {new Date(ctStatus.metrics.pulled_at).toLocaleString()}
+                </p>
+              )}
+            </>
+          )}
+
+          {!isConnected && (
+            <div className="bg-muted rounded-md p-3">
+              <p className="text-xs text-muted-foreground mb-2">Required environment variables:</p>
+              <code className="text-xs block font-mono">CT_ACCOUNT_ID=your_account_id</code>
+              <code className="text-xs block font-mono mt-1">CT_PASSCODE=your_passcode</code>
+              <code className="text-xs block font-mono mt-1">CT_REGION=in1</code>
+            </div>
+          )}
         </CardContent>
       </Card>
 

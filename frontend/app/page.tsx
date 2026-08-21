@@ -108,8 +108,8 @@ export default function Overview() {
               {new Date(data.generated_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
             </span>
           )}
-          <Badge variant="secondary" className="text-xs font-normal">
-            {model_confidence.data_source === "synthetic_calibrated" ? "Synthetic" : "Live CT"}
+          <Badge variant="secondary" className={`text-xs font-normal ${data.ct_live ? "bg-green-50 text-green-700 border-green-200" : ""}`}>
+            {data.ct_live ? "Live CT + Synthetic" : "Synthetic"}
           </Badge>
           <Badge variant="outline" className="text-[10px] font-normal text-muted-foreground tracking-wide">
             OBSERVED
