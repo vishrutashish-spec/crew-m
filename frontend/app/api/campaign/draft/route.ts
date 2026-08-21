@@ -52,7 +52,15 @@ export async function POST(request: Request) {
   return NextResponse.json({
     requestId,
     campaignName,
+    channel,
+    amName,
+    subject: copy?.subject ?? "",
+    body: copy?.body ?? "",
+    creativeUrl: creative?.creativeUrl ?? "",
+    creativeIsStub: Boolean(creative?.stub),
+    segmentSuggestion,
     reviewUrl: `https://${region}.clevertap.com/`,
+    // Kept for the Slack-reply path, which still expects a flat string.
     summary,
   });
 }
