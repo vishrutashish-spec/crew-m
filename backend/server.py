@@ -31,6 +31,28 @@ app.add_middleware(
 _state = {}
 
 
+def _compute_key_metrics(users) -> dict:
+    """Derive key metrics from actual data, not hardcoded numbers."""
+    n = len(users)
+    no_app = (~users["has_app"]).mean()
+    has_any_booking = (users["has_th_booking"] | users["has_hc_booking"])
+    employee_activation = has_any_booking.mean()
+
+    # Org-level: what share of unique segments have at least one active user
+    org_groups = users.groupby("partner_segment")["has_th_booking"].apply(lambda x: x.any())
+    org_activation = org_groups.mean()
+
+    gap = round((org_activation - employee_activation) * 100)
+
+    return {
+        "total_eligible_users": n,
+        "no_app_share": round(no_app, 3),
+        "org_activation_rate": round(org_activation, 3),
+        "employee_activation_rate": round(employee_activation, 3),
+        "structural_gap": f"{gap} points between org and employee activation",
+    }
+
+
 def get_state():
     if not _state:
         logger.info("Generating synthetic data...")
