@@ -101,6 +101,13 @@ export interface DashboardResponse {
     avg_open_rate: number;
     avg_click_rate: number;
     channels_used: Record<string, number>;
+    by_channel?: Record<string, {
+      count: number;
+      avg_delivery_rate: number;
+      avg_open_rate: number;
+      avg_click_rate: number;
+      avg_conversion_rate: number;
+    }>;
   };
   key_metrics: {
     total_eligible_users: number;

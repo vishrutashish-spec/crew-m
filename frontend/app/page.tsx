@@ -75,11 +75,16 @@ export default function Overview() {
 
   const { model_confidence, top_personas, campaign_summary, key_metrics } = data;
 
-  const funnelData = [
-    { stage: "Delivered", rate: campaign_summary.avg_delivery_rate, pct: `${(campaign_summary.avg_delivery_rate * 100).toFixed(1)}%` },
-    { stage: "Opened", rate: campaign_summary.avg_open_rate, pct: `${(campaign_summary.avg_open_rate * 100).toFixed(1)}%` },
-    { stage: "Clicked", rate: campaign_summary.avg_click_rate, pct: `${(campaign_summary.avg_click_rate * 100).toFixed(1)}%` },
-  ];
+  const byChannel = campaign_summary.by_channel || {};
+  const funnelChannels = ["whatsapp", "push", "email"].filter(ch => byChannel[ch]);
+  const funnelData = funnelChannels.map(ch => ({
+    channel: CHANNEL_LABELS[ch] || ch,
+    key: ch,
+    delivered: byChannel[ch].avg_delivery_rate,
+    opened: byChannel[ch].avg_open_rate,
+    clicked: byChannel[ch].avg_click_rate,
+    count: byChannel[ch].count,
+  }));
 
   const channelData = Object.entries(campaign_summary.channels_used).map(([ch, count]) => ({
     channel: CHANNEL_LABELS[ch] || ch,
@@ -214,24 +219,31 @@ export default function Overview() {
           <Card>
             <CardContent className="pt-5 pb-4">
               <div className="flex items-center justify-between mb-1">
-                <p className="text-sm font-medium">Campaign funnel averages</p>
+                <p className="text-sm font-medium">Campaign funnel by channel</p>
                 <span className="text-xs text-muted-foreground">{campaign_summary.total_campaigns} campaigns</span>
               </div>
               <p className="text-xs text-muted-foreground mb-4">
-                Average rates across all historical campaigns
+                Avg rates across {campaign_summary.total_campaigns} historical campaigns, split by channel
               </p>
-              <div className="h-44">
+              <div className="h-48">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={funnelData} layout="vertical" margin={{ left: 10, right: 40, top: 0, bottom: 0 }}>
-                    <XAxis type="number" domain={[0, 1]} tickFormatter={(v: number) => `${(v * 100).toFixed(0)}%`} tick={{ fontSize: 11, fill: "oklch(0.5 0.02 320)" }} axisLine={false} tickLine={false} />
-                    <YAxis type="category" dataKey="stage" tick={{ fontSize: 12, fill: "oklch(0.5 0.02 320)" }} axisLine={false} tickLine={false} width={70} />
+                  <BarChart data={funnelData} margin={{ left: 0, right: 10, top: 0, bottom: 0 }}>
+                    <XAxis dataKey="channel" tick={{ fontSize: 11, fill: "oklch(0.5 0.02 320)" }} axisLine={false} tickLine={false} />
+                    <YAxis domain={[0, 1]} tickFormatter={(v: number) => `${(v * 100).toFixed(0)}%`} tick={{ fontSize: 10, fill: "oklch(0.5 0.02 320)" }} axisLine={false} tickLine={false} width={40} />
                     <Tooltip
-                      formatter={(v) => [`${((v as number) * 100).toFixed(1)}%`, "Rate"]}
+                      formatter={(v, name) => [`${((v as number) * 100).toFixed(1)}%`, name === "delivered" ? "Delivered" : name === "opened" ? "Opened" : "Clicked"]}
                       contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid oklch(0.91 0.005 320)" }}
                     />
-                    <Bar dataKey="rate" fill="oklch(0.35 0.12 320)" radius={[0, 4, 4, 0]} barSize={28} />
+                    <Bar dataKey="delivered" name="delivered" fill="oklch(0.35 0.12 320)" radius={[4, 4, 0, 0]} barSize={16} />
+                    <Bar dataKey="opened" name="opened" fill="oklch(0.55 0.15 320)" radius={[4, 4, 0, 0]} barSize={16} />
+                    <Bar dataKey="clicked" name="clicked" fill="oklch(0.65 0.18 15)" radius={[4, 4, 0, 0]} barSize={16} />
                   </BarChart>
                 </ResponsiveContainer>
+              </div>
+              <div className="flex items-center gap-4 mt-2 justify-center">
+                <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground"><span className="w-2 h-2 rounded-sm" style={{ background: "oklch(0.35 0.12 320)" }} />Delivered</span>
+                <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground"><span className="w-2 h-2 rounded-sm" style={{ background: "oklch(0.55 0.15 320)" }} />Opened</span>
+                <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground"><span className="w-2 h-2 rounded-sm" style={{ background: "oklch(0.65 0.18 15)" }} />Clicked</span>
               </div>
             </CardContent>
           </Card>
