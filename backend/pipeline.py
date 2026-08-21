@@ -222,12 +222,14 @@ def assign_persona_names(personas: list) -> list:
             ("avg_age", lambda p: p["avg_age"], lambda v: f"~{v:.0f}y"),
             ("size", lambda p: p["size"], lambda v: "Large" if v > 500 else "Small"),
         ]
-        # Pick the metric with the widest spread among colliding personas
+        # Pick the metric with the widest relative spread among colliding personas
         best_key, best_fn, best_fmt = diff_options[0]
         best_spread = 0
         for key, fn, fmt in diff_options:
             vals = [fn(p) for p in group]
-            spread = max(vals) - min(vals)
+            range_val = max(vals) - min(vals)
+            denom = max(abs(max(vals)), 1e-6)
+            spread = range_val / denom
             if spread > best_spread:
                 best_spread = spread
                 best_key, best_fn, best_fmt = key, fn, fmt
