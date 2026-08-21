@@ -373,9 +373,25 @@ CHANNEL_BENCHMARKS = {
     "email":    {"delivery": 0.923, "open": 0.221, "click": 0.031},
     "push":     {"delivery": 0.847, "open": 0.118, "click": 0.041},
 }
+
+# Click-to-convert. A click lands on the product homepage, and the funnels
+# MEASURED homepage-to-booked over 120 days, so three of these are computed
+# from observed stage counts rather than typed in, and cannot drift from
+# their anchors. Audit that forced this: the old modeled priors ran +36.8%
+# optimistic on HC activation and -28.1% pessimistic on cross-sell.
 OBJECTIVE_CONVERSION = {
-    "th_activation": 0.121, "hc_activation": 0.084, "app_install": 0.152,
-    "reengagement": 0.058, "hc_crosssell": 0.103,
+    "th_activation": round(TH_FUNNEL[-1][2] / TH_FUNNEL[0][2], 4),   # 0.1276 OBSERVED
+    "hc_activation": round(HC_FUNNEL[-1][2] / HC_FUNNEL[0][2], 4),   # 0.0614 OBSERVED
+    "hc_crosssell":  HC_TO_TH_CROSSSELL_RATE,                        # 0.1432 OBSERVED
+    "app_install":   0.152,                                          # MODELED
+    "reengagement":  0.058,                                          # MODELED
+}
+CONVERSION_PROVENANCE = {
+    "th_activation": ("OBSERVED", "TH funnel homepage to booked, 120-day window"),
+    "hc_activation": ("OBSERVED", "HC funnel homepage to booked, 120-day window"),
+    "hc_crosssell":  ("OBSERVED", "HC report viewed to TH booking, the cross-sell bridge"),
+    "app_install":   ("MODELED", "industry prior, no install-campaign history exists"),
+    "reengagement":  ("MODELED", "industry prior, no re-engagement history exists"),
 }
 BENCHMARKS_ARE_MODELED = True
 BENCHMARK_PROVENANCE = (

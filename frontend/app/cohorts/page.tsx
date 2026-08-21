@@ -72,7 +72,7 @@ export default function CohortsPage() {
               onClick={() => setActive(c.key)}
             >
               <div className="flex items-baseline justify-between gap-2 mb-2">
-                <span className="font-heading text-[14px] text-[color:var(--ink)]">{c.label}</span>
+                <span className="font-heading text-[14px] text-[color:var(--ink-text)]">{c.label}</span>
                 <span className="label-mono !text-[9px]">{pct(c.share_of_base, 0)}</span>
               </div>
               <p className="figure text-[19px]">{compact(c.total)}</p>
@@ -133,7 +133,7 @@ function CohortCompare({ cohorts }: { cohorts: Cohort[] }) {
               <XAxis dataKey="label" {...AXIS} />
               <YAxis tickFormatter={compact} {...AXIS} width={44} />
               <Tooltip content={<ChartTip formatter={(v) => n(v)} />}
-                cursor={{ fill: "rgba(43,11,33,0.04)" }} />
+                cursor={{ fill: "var(--cursor-fill)" }} />
               <Bar dataKey="whatsapp" name="WhatsApp" fill={CHART.ink} radius={[4, 4, 0, 0]} barSize={17} />
               <Bar dataKey="email" name="Email" fill={CHART.red} radius={[4, 4, 0, 0]} barSize={17} />
               <Bar dataKey="push" name="Push (real)" fill={CHART.sand} radius={[4, 4, 0, 0]} barSize={17} />
@@ -142,15 +142,15 @@ function CohortCompare({ cohorts }: { cohorts: Cohort[] }) {
         </div>
         <div className="flex items-center gap-5 mt-3 pt-3 border-t border-border flex-wrap">
           <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-            <span className="w-2.5 h-2.5 rounded-sm border border-black/10" style={{ background: CHART.ink }} />
+            <span className="w-2.5 h-2.5 rounded-sm border border-[color:var(--swatch-border)]" style={{ background: CHART.ink }} />
             <ChannelGlyph channel="whatsapp" size={14} /> WhatsApp
           </span>
           <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-            <span className="w-2.5 h-2.5 rounded-sm border border-black/10" style={{ background: CHART.red }} />
+            <span className="w-2.5 h-2.5 rounded-sm border border-[color:var(--swatch-border)]" style={{ background: CHART.red }} />
             <ChannelGlyph channel="email" size={14} /> Gmail
           </span>
           <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-            <span className="w-2.5 h-2.5 rounded-sm border border-black/10" style={{ background: CHART.sand }} />
+            <span className="w-2.5 h-2.5 rounded-sm border border-[color:var(--swatch-border)]" style={{ background: CHART.sand }} />
             <ChannelGlyph channel="push" size={14} /> Plum push, deliverable only
           </span>
         </div>
@@ -170,7 +170,7 @@ function CohortCompare({ cohorts }: { cohorts: Cohort[] }) {
               <XAxis dataKey="label" {...AXIS} tick={{ ...AXIS.tick, fontSize: 10 }} />
               <YAxis tickFormatter={compact} {...AXIS} width={40} />
               <Tooltip content={<ChartTip formatter={(v) => n(v)} />}
-                cursor={{ fill: "rgba(43,11,33,0.04)" }} />
+                cursor={{ fill: "var(--cursor-fill)" }} />
               <Bar dataKey="th" name="Telehealth" fill={CHART.ink} radius={[4, 4, 0, 0]} barSize={20} />
               <Bar dataKey="hc" name="Health checkup" fill={CHART.red} radius={[4, 4, 0, 0]} barSize={20} />
             </BarChart>
@@ -225,7 +225,7 @@ function Detail({ detail, org }: { detail: CohortDetail; org: string }) {
                 <RadialBarChart data={appGauge} innerRadius="66%" outerRadius="100%"
                   startAngle={90} endAngle={-270}>
                   <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
-                  <RadialBar dataKey="value" cornerRadius={9} background={{ fill: "#efedf2" }} />
+                  <RadialBar dataKey="value" cornerRadius={9} background={{ fill: "var(--muted)" }} />
                 </RadialBarChart>
               </ResponsiveContainer>
               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
@@ -394,11 +394,11 @@ function Detail({ detail, org }: { detail: CohortDetail; org: string }) {
                   <XAxis dataKey="stage" {...AXIS} interval={0} tick={{ ...AXIS.tick, fontSize: 9.5 }} />
                   <YAxis tickFormatter={compact} {...AXIS} width={42} />
                   <Tooltip content={<ChartTip formatter={(v, name) => (name === "Users" ? n(v) : pct(v))} />}
-                    cursor={{ fill: "rgba(43,11,33,0.04)" }} />
+                    cursor={{ fill: "var(--cursor-fill)" }} />
                   <Bar dataKey="count" name="Users" fill={CHART.ink} radius={[4, 4, 0, 0]} barSize={38}>
                     <LabelList dataKey="step" position="top"
                       formatter={(v: unknown) => (typeof v === "number" && v < 1 ? pct(v, 0) : "")}
-                      style={{ fontSize: 9.5, fill: "#565064", fontFamily: "Vollkorn, Georgia, serif" }} />
+                      style={{ fontSize: 9.5, fill: "var(--tick)", fontFamily: "Vollkorn, Georgia, serif" }} />
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
@@ -428,7 +428,7 @@ function Detail({ detail, org }: { detail: CohortDetail; org: string }) {
 function Legend({ color, label }: { color: string; label: string }) {
   return (
     <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-      <span className="w-2.5 h-2.5 rounded-sm flex-shrink-0 border border-black/10"
+      <span className="w-2.5 h-2.5 rounded-sm flex-shrink-0 border border-[color:var(--swatch-border)]"
         style={{ background: color }} />
       {label}
     </span>

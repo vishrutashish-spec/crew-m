@@ -399,3 +399,9 @@ runs end-to-end until one is created and `SLACK_BOT_TOKEN` is set.
   signal node, in components/logos.tsx.
 - backend/copy_engine.py is the deterministic copy engine; /api/copy/options,
   /api/copy/generate, /api/copy/analyze serve it.
+- Dark mode: token-driven (.dark on <html>), plum-black surfaces, cream-led
+  chart series, cream metallic primary button, OS-preference default with
+  localStorage persistence and a no-flash inline init script. Theme toggle
+  pill lives in the sidebar. PNG exports follow the active theme.
+- All headings carry the brand gradient (light: plum to red; dark: cream to
+  red) via background-clip: text.

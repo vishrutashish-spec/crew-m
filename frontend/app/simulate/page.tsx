@@ -125,7 +125,7 @@ export default function SimulatePage() {
                 }
               >
                 <div className="flex items-center justify-between gap-2 mb-2">
-                  <span className="font-heading text-[13.5px] text-[color:var(--ink)]">{c.label}</span>
+                  <span className="font-heading text-[13.5px] text-[color:var(--ink-text)]">{c.label}</span>
                   <span
                     className={`w-4 h-4 rounded-[5px] border flex items-center justify-center flex-shrink-0 ${
                       on ? "metal-cyan border-transparent" : "border-[color:var(--input)]"
@@ -489,7 +489,7 @@ function VariantCard({ v }: { v: CopyVariant }) {
         {v.channel === "whatsapp" && (
           <div className="flex items-start gap-2.5">
             <WhatsAppGlyph size={20} />
-            <div className="flex-1 rounded-xl rounded-tl-sm border border-border bg-[#f7fef9] px-3.5 py-3">
+            <div className="flex-1 rounded-xl rounded-tl-sm border border-border bg-[color:var(--wa-bubble)] px-3.5 py-3">
               <p className="text-[12px] leading-relaxed whitespace-pre-line">{v.body}</p>
             </div>
           </div>
@@ -558,7 +558,7 @@ function PredictionRow({ p }: { p: CopyPrediction }) {
   const cell = (label: string, base: number, pred: number, delta: number, dp = 1) => (
     <div>
       <p className="label-mono !text-[8.5px] mb-1">{label}</p>
-      <p className="text-[14px] font-semibold tnum font-heading text-[color:var(--ink)]">
+      <p className="text-[14px] font-semibold tnum font-heading text-[color:var(--ink-text)]">
         {pct(pred, dp)}
         {Math.abs(delta) >= 0.005 && (
           <span className={`ml-1.5 text-[10px] font-sans inline-flex items-center gap-0.5 ${delta > 0 ? "text-[color:var(--success)]" : "text-[color:var(--red)]"}`}>
@@ -571,7 +571,7 @@ function PredictionRow({ p }: { p: CopyPrediction }) {
     </div>
   );
   return (
-    <div className="mt-3 rounded-lg border border-border bg-white px-3.5 py-2.5">
+    <div className="mt-3 rounded-lg border border-border bg-[color:var(--card)] px-3.5 py-2.5">
       <div className="flex items-center gap-2 mb-2">
         <Chip kind="PREDICTED" title={p.confidence_reason} />
         <span className="text-[10px] text-muted-foreground">{p.confidence} confidence, deltas vs channel prior</span>
@@ -608,7 +608,7 @@ function ChecksList({ checks, factors }: { checks: CopyAnalysis["checks"]; facto
         </div>
       ))}
       {factors.length > 0 && (
-        <div className="rounded-md bg-[color:var(--cyan-wash)] border border-[color:#b3e8ee] px-3 py-2 mt-2">
+        <div className="rounded-md bg-[color:var(--cyan-wash)] border border-[color:var(--cyanw-border)] px-3 py-2 mt-2">
           <p className="label-mono !text-[color:var(--cyan-deep)] mb-1">Prediction factors</p>
           {factors.map((f) => (
             <p key={f} className="text-[10.5px] text-foreground leading-relaxed">· {f}</p>
@@ -642,7 +642,7 @@ function AnalysisBlock({ analysis, prediction, channel }: {
 function MeterChip({ label, ok }: { label: string; ok: boolean }) {
   return (
     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] tnum ${
-      ok ? "border-border text-muted-foreground bg-white"
+      ok ? "border-border text-muted-foreground bg-[color:var(--card)]"
         : "border-[color:var(--red)]/40 text-[color:var(--red)] bg-[color:var(--red)]/[0.05]"
     }`}>
       {label}
@@ -725,21 +725,21 @@ function Result({ result: r }: { result: SimResult }) {
                 <YAxis type="category" dataKey="channel" width={96}
                   tick={<ChannelTickY />} axisLine={false} tickLine={false} />
                 <Tooltip content={<ChartTip formatter={(v) => n(v)} />}
-                  cursor={{ fill: "rgba(43,11,33,0.04)" }} />
+                  cursor={{ fill: "var(--cursor-fill)" }} />
                 <Bar dataKey="addressable" name="Addressable" radius={[0, 5, 5, 0]} barSize={26}>
                   {channelData.map((d) => (
                     <Cell key={d.channel} fill={d.isChosen ? CHART.ink : CHART.sand} />
                   ))}
                   <LabelList dataKey="addressable" position="right"
                     formatter={(v: unknown) => (typeof v === "number" ? compact(v) : "")}
-                    style={{ fontSize: 10.5, fill: "#565064", fontFamily: "Vollkorn, Georgia, serif" }} />
+                    style={{ fontSize: 10.5, fill: "var(--tick)", fontFamily: "Vollkorn, Georgia, serif" }} />
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>
           <div className="mt-3 pt-3 border-t border-border flex items-center gap-4 flex-wrap">
             <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-              <span className="w-2.5 h-2.5 rounded-sm border border-black/10" style={{ background: CHART.ink }} />
+              <span className="w-2.5 h-2.5 rounded-sm border border-[color:var(--swatch-border)]" style={{ background: CHART.ink }} />
               Selected ({r.channel.label.toLowerCase()})
             </span>
             <span className="text-[11px] text-muted-foreground">
@@ -762,14 +762,14 @@ function Result({ result: r }: { result: SimResult }) {
                 <XAxis dataKey="stage" {...AXIS} />
                 <YAxis tickFormatter={compact} {...AXIS} width={44} />
                 <Tooltip content={<ChartTip formatter={(v, name) => (name === "Users" ? n(v) : pct(v))} />}
-                  cursor={{ fill: "rgba(43,11,33,0.04)" }} />
+                  cursor={{ fill: "var(--cursor-fill)" }} />
                 <Bar dataKey="count" name="Users" radius={[5, 5, 0, 0]} barSize={44}>
                   {funnel.map((d, i) => (
                     <Cell key={d.stage} fill={i === funnel.length - 1 ? CHART.red : CHART.ink} />
                   ))}
                   <LabelList dataKey="rate" position="top"
                     formatter={(v: unknown) => (typeof v === "number" && v < 1 ? pct(v, 1) : "")}
-                    style={{ fontSize: 10, fill: "#565064", fontFamily: "Vollkorn, Georgia, serif" }} />
+                    style={{ fontSize: 10, fill: "var(--tick)", fontFamily: "Vollkorn, Georgia, serif" }} />
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
@@ -787,8 +787,8 @@ function Result({ result: r }: { result: SimResult }) {
         <Panel className="col-span-12 lg:col-span-8 p-5">
           <PanelHead title="How much to trust this" chip="PREDICTED" />
           <div className="flex items-start gap-4">
-            <div className="px-3 py-1.5 rounded-md bg-[color:#fdf2e3] border border-[color:#f2d9b4] flex-shrink-0">
-              <span className="label-mono !text-[color:#8a4a06] !text-[10px]">
+            <div className="px-3 py-1.5 rounded-md bg-[color:var(--amber-bg)] border border-[color:var(--amber-border)] flex-shrink-0">
+              <span className="label-mono !text-[color:var(--amber-text)] !text-[10px]">
                 {r.confidence} confidence
               </span>
             </div>
@@ -797,15 +797,15 @@ function Result({ result: r }: { result: SimResult }) {
             </p>
           </div>
           <div className="mt-4 pt-4 border-t border-border grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="rounded-lg bg-[color:var(--cyan-wash)] border border-[color:#b3e8ee] p-3.5">
+            <div className="rounded-lg bg-[color:var(--cyan-wash)] border border-[color:var(--cyanw-border)] p-3.5">
               <p className="label-mono !text-[color:var(--cyan-deep)] mb-1.5">Solid</p>
               <p className="text-[11.5px] leading-relaxed">
                 Audience sizing. {n(r.audience.addressable)} is an exact count out of the cohort
                 model, reconciled to the documented reachability figures.
               </p>
             </div>
-            <div className="rounded-lg bg-[color:#fdf2e3] border border-[color:#f2d9b4] p-3.5">
-              <p className="label-mono !text-[color:#8a4a06] mb-1.5">Soft</p>
+            <div className="rounded-lg bg-[color:var(--amber-bg)] border border-[color:var(--amber-border)] p-3.5">
+              <p className="label-mono !text-[color:var(--amber-text)] mb-1.5">Soft</p>
               <p className="text-[11.5px] leading-relaxed">
                 Everything downstream of send. The rates are priors, not learned from Plum
                 campaigns. Treat the shape as directional, not the absolute numbers.

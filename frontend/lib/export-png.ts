@@ -124,10 +124,17 @@ export async function exportSvgToPng(
   svg: SVGSVGElement,
   options: ExportOptions = {}
 ): Promise<void> {
+  // Defaults follow the active theme: a dark-mode chart exports onto the
+  // dark card surface with the dark tick colour, so light text never lands
+  // on a white plate.
+  const rootStyle = window.getComputedStyle(document.documentElement);
+  const themeBg = rootStyle.getPropertyValue("--card").trim() || "#ffffff";
+  const themeTick = rootStyle.getPropertyValue("--tick").trim() || "#565064";
+
   const {
     filename = "chart",
     scale = 2,
-    background = "#ffffff",
+    background = themeBg,
     caption,
   } = options;
 
@@ -194,7 +201,7 @@ export async function exportSvgToPng(
   ctx.drawImage(img, pad, pad, width, height);
 
   if (caption) {
-    ctx.fillStyle = "#565064";
+    ctx.fillStyle = themeTick;
     ctx.font = "11px Vollkorn, Georgia, serif";
     ctx.textBaseline = "middle";
     ctx.fillText(caption, pad, pad + height + footer / 2 + 2);

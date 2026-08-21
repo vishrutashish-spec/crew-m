@@ -327,12 +327,15 @@ export const compact = (v: number) =>
 
 export const pct = (v: number, dp = 1) => `${(v * 100).toFixed(dp)}%`;
 
+// Theme-aware series tokens. CSS variables are valid SVG paint values, and
+// the PNG exporter inlines computed styles, so exports pick up the active
+// theme automatically. Light: ink/red/sand. Dark: cream leads, red lifts.
 export const CHART = {
-  ink: "#2B0B21",
-  red: "#FF3F52",
-  sand: "#F8DBC9",
-  inkSoft: "#6B3A58",
-  sandDeep: "#E8B899",
+  ink: "var(--series-1)",
+  red: "var(--series-2)",
+  sand: "var(--series-3)",
+  inkSoft: "var(--series-4)",
+  sandDeep: "var(--series-5)",
 } as const;
 
 /** Chart series colours, in the order they should be assigned. */

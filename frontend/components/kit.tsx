@@ -198,7 +198,7 @@ export function Stat({
 }) {
   const sizes = { sm: "text-[19px]", md: "text-[26px]", lg: "text-[34px]", xl: "text-[46px]" };
   const tones = {
-    ink: "text-[color:var(--ink)]",
+    ink: "text-[color:var(--ink-text)]",
     red: "text-[color:var(--red)]",
     cyan: "text-[color:var(--cyan-deep)]",
     muted: "text-muted-foreground",
@@ -270,7 +270,7 @@ export function SplitRibbon({
         {parts.map((p) => (
           <span key={p.label} className="flex items-center gap-1.5 text-[11px]">
             <span
-              className="w-2.5 h-2.5 rounded-full flex-shrink-0 border border-black/10"
+              className="w-2.5 h-2.5 rounded-full flex-shrink-0 border border-[color:var(--swatch-border)]"
               style={{ background: p.color }}
             />
             <span className="text-muted-foreground">{p.label}</span>
@@ -323,7 +323,7 @@ export function InsightCard({ insight }: { insight: import("@/lib/api").Insight 
               <p className="label-mono mb-1">How this was computed</p>
               <p className="text-[11.5px] font-mono text-foreground">{insight.arithmetic}</p>
             </div>
-            <div className="rounded-md bg-[color:var(--cyan-wash)] border border-[color:#b3e8ee] px-3 py-2">
+            <div className="rounded-md bg-[color:var(--cyan-wash)] border border-[color:var(--cyanw-border)] px-3 py-2">
               <p className="label-mono mb-1 !text-[color:var(--cyan-deep)]">Do this</p>
               <p className="text-[11.5px] text-foreground">{insight.action}</p>
             </div>
@@ -391,16 +391,16 @@ export function ChartTip({
 }) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-white border border-[color:var(--border-strong)] rounded-lg px-3 py-2 shadow-lg">
+    <div className="bg-[color:var(--card)] border border-[color:var(--border-strong)] rounded-lg px-3 py-2 shadow-lg">
       {label !== undefined && (
-        <p className="text-[11.5px] font-semibold text-[color:var(--ink)] mb-1.5 font-heading">{label}</p>
+        <p className="text-[11.5px] font-semibold text-[color:var(--ink-text)] mb-1.5 font-heading">{label}</p>
       )}
       <div className="space-y-1">
         {payload.map((p, i) => (
           <div key={i} className="flex items-center gap-2 text-[11.5px]">
             {p.color && (
               <span
-                className="w-2 h-2 rounded-full flex-shrink-0 border border-black/10"
+                className="w-2 h-2 rounded-full flex-shrink-0 border border-[color:var(--swatch-border)]"
                 style={{ background: p.color }}
               />
             )}
@@ -421,7 +421,7 @@ export function ChartTip({
 
 /** Shared axis styling so every chart's ticks match. */
 export const AXIS = {
-  tick: { fontSize: 11, fill: "#565064", fontFamily: "Vollkorn, Georgia, serif" },
+  tick: { fontSize: 11, fill: "var(--tick)", fontFamily: "Vollkorn, Georgia, serif" },
   axisLine: false as const,
   tickLine: false as const,
 };

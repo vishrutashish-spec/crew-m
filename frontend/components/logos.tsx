@@ -61,7 +61,7 @@ export function CrewMLogo({ compact = false }: { compact?: boolean }) {
     <span className="inline-flex items-center gap-3">
       <CrewMMark size={compact ? 30 : 38} />
       <span className="leading-none">
-        <span className="font-heading block text-[color:var(--ink)]"
+        <span className="font-heading block text-[color:var(--ink-text)]"
           style={{ fontSize: compact ? 16 : 19, letterSpacing: "-0.01em" }}>
           Crew M
         </span>
@@ -188,7 +188,7 @@ export function ChannelTickX({ x = 0, y = 0, payload }: TickProps) {
           </g>
         )}
       </svg>
-      <text y={38} textAnchor="middle" fontSize={11} fill="#565064"
+      <text y={38} textAnchor="middle" fontSize={11} fill="var(--tick)"
         fontFamily="Vollkorn, Georgia, serif">
         {label}
       </text>
@@ -219,7 +219,7 @@ export function ChannelTickY({ x = 0, y = 0, payload }: TickProps) {
           </g>
         )}
       </svg>
-      <text x={-62} y={4} textAnchor="start" fontSize={11} fill="#565064"
+      <text x={-62} y={4} textAnchor="start" fontSize={11} fill="var(--tick)"
         fontFamily="Vollkorn, Georgia, serif">
         {label}
       </text>

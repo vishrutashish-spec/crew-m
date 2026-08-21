@@ -139,7 +139,7 @@ function Body({ data }: { data: OverviewX }) {
                   interval={0} height={48} />
                 <YAxis tickFormatter={compact} {...AXIS} width={44} />
                 <Tooltip content={<ChartTip formatter={(v) => n(v)} />}
-                  cursor={{ fill: "rgba(43,11,33,0.04)" }} />
+                  cursor={{ fill: "var(--cursor-fill)" }} />
                 <Bar dataKey="reported" name="Reported reachable" radius={[5, 5, 0, 0]} barSize={36}>
                   {reachChart.map((d) => (
                     <Cell key={d.channel} fill={d.channel === "Push" ? CHART.sand : CHART.ink} />
@@ -210,28 +210,28 @@ function Body({ data }: { data: OverviewX }) {
                   tick={{ ...AXIS.tick, fontSize: 11 }} />
                 <Tooltip
                   content={<ChartTip formatter={(v) => `${v}%`} />}
-                  cursor={{ fill: "rgba(43,11,33,0.04)" }} />
+                  cursor={{ fill: "var(--cursor-fill)" }} />
                 <Bar dataKey="waPct" name="WhatsApp" fill={CHART.ink} radius={[0, 4, 4, 0]} barSize={9} />
                 <Bar dataKey="emailPct" name="Gmail" fill={CHART.red} radius={[0, 4, 4, 0]} barSize={9} />
                 <Bar dataKey="pushPct" name="Plum push" fill={CHART.sand} radius={[0, 4, 4, 0]} barSize={9}>
                   <LabelList dataKey="users" position="right"
                     formatter={(v: unknown) => (typeof v === "number" ? compact(v) : "")}
-                    style={{ fontSize: 10, fill: "#565064", fontFamily: "Vollkorn, Georgia, serif" }} />
+                    style={{ fontSize: 10, fill: "var(--tick)", fontFamily: "Vollkorn, Georgia, serif" }} />
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>
           <div className="flex items-center gap-5 mt-3 pt-3 border-t border-border flex-wrap">
             <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-              <span className="w-2.5 h-2.5 rounded-sm border border-black/10" style={{ background: CHART.ink }} />
+              <span className="w-2.5 h-2.5 rounded-sm border border-[color:var(--swatch-border)]" style={{ background: CHART.ink }} />
               <ChannelGlyph channel="whatsapp" size={14} /> WhatsApp
             </span>
             <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-              <span className="w-2.5 h-2.5 rounded-sm border border-black/10" style={{ background: CHART.red }} />
+              <span className="w-2.5 h-2.5 rounded-sm border border-[color:var(--swatch-border)]" style={{ background: CHART.red }} />
               <ChannelGlyph channel="email" size={14} /> Gmail
             </span>
             <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-              <span className="w-2.5 h-2.5 rounded-sm border border-black/10" style={{ background: CHART.sand }} />
+              <span className="w-2.5 h-2.5 rounded-sm border border-[color:var(--swatch-border)]" style={{ background: CHART.sand }} />
               <ChannelGlyph channel="push" size={14} /> Plum push
             </span>
             <span className="text-[11px] text-muted-foreground">
@@ -260,7 +260,7 @@ function Body({ data }: { data: OverviewX }) {
                   tickFormatter={(v: number) => pct(v, 0)} {...AXIS} width={44} />
                 <Tooltip
                   content={<ChartTip formatter={(v, name) => (name === "App ownership" ? pct(v) : n(v))} />}
-                  cursor={{ fill: "rgba(43,11,33,0.04)" }} />
+                  cursor={{ fill: "var(--cursor-fill)" }} />
                 <Bar dataKey="app" name="Has app" stackId="a" fill={CHART.ink} barSize={44} />
                 <Bar dataKey="noApp" name="No app" stackId="a" fill={CHART.sand}
                   radius={[5, 5, 0, 0]} barSize={44} />
@@ -395,14 +395,14 @@ function FunnelPanel({
             <YAxis tickFormatter={compact} {...AXIS} width={44} />
             <Tooltip
               content={<ChartTip formatter={(v, name) => (name === "Users" ? n(v) : pct(v))} />}
-              cursor={{ fill: "rgba(43,11,33,0.04)" }} />
+              cursor={{ fill: "var(--cursor-fill)" }} />
             <Bar dataKey="count" name="Users" radius={[5, 5, 0, 0]} barSize={40}>
               {data.map((d) => (
                 <Cell key={d.stage} fill={d.isWorst ? CHART.red : CHART.ink} />
               ))}
               <LabelList dataKey="step" position="top"
                 formatter={(v: unknown) => (typeof v === "number" && v < 1 ? pct(v, 0) : "")}
-                style={{ fontSize: 10, fill: "#565064", fontFamily: "Vollkorn, Georgia, serif" }} />
+                style={{ fontSize: 10, fill: "var(--tick)", fontFamily: "Vollkorn, Georgia, serif" }} />
             </Bar>
           </BarChart>
         </ResponsiveContainer>
@@ -420,7 +420,7 @@ function FunnelPanel({
 function Legend({ color, label }: { color: string; label: string }) {
   return (
     <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-      <span className="w-2.5 h-2.5 rounded-sm flex-shrink-0 border border-black/10"
+      <span className="w-2.5 h-2.5 rounded-sm flex-shrink-0 border border-[color:var(--swatch-border)]"
         style={{ background: color }} />
       {label}
     </span>

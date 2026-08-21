@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LayoutDashboard, Users, FlaskConical, BookOpen } from "lucide-react";
 import { CrewMLogo } from "@/components/logos";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const NAV = [
   { href: "/", label: "Overview", icon: LayoutDashboard },
@@ -58,6 +59,10 @@ export function Sidebar() {
 
       {/* Footer: the scope caveat lives here so it is always in view */}
       <div className="px-3.5 pb-4">
+        <div className="flex items-center justify-between px-1 mb-3">
+          <span className="label-mono">Theme</span>
+          <ThemeToggle />
+        </div>
         <div className="panel-flush p-3 bg-[color:var(--muted)]">
           <div className="flex items-center gap-2 mb-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-[color:var(--success)] live-dot" />
