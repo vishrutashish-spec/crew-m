@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   getPersonas,
   getAudienceRecommendation,
@@ -9,36 +9,29 @@ import {
   type AudienceScore,
   type SimulationResponse,
 } from "@/lib/api";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import {
-  AlertTriangle,
-  FlaskConical,
-  Check,
-  ChevronDown,
-  Clock,
-  Hash,
-  MessageSquare,
-  Zap,
-} from "lucide-react";
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
+} from "recharts";
+import { AlertTriangle, Check, ChevronDown, ArrowRight, RotateCcw } from "lucide-react";
 
 const OBJECTIVES = [
-  { value: "th_activation", label: "Telehealth Activation", desc: "Drive first TH consultation" },
-  { value: "hc_activation", label: "Health Checkup Activation", desc: "Drive first HC booking" },
-  { value: "app_install", label: "App Install", desc: "Move no-app users to install" },
+  { value: "th_activation", label: "Telehealth activation", desc: "Drive first TH consultation" },
+  { value: "hc_activation", label: "Health checkup activation", desc: "Drive first HC booking" },
+  { value: "app_install", label: "App install", desc: "Move no-app users to install" },
   { value: "reengagement", label: "Re-engagement", desc: "Bring dormant users back" },
-  { value: "hc_crosssell", label: "HC Cross-sell", desc: "Sell HC to TH-only users" },
+  { value: "hc_crosssell", label: "HC cross-sell", desc: "Sell HC to TH-only users" },
 ];
 
 const CHANNELS = [
-  { value: "", label: "Auto (recommended)" },
-  { value: "push", label: "Push Notification" },
+  { value: "", label: "Auto (best channel per audience)" },
+  { value: "push", label: "Push notification" },
   { value: "email", label: "Email" },
   { value: "sms", label: "SMS" },
   { value: "whatsapp", label: "WhatsApp" },
-  { value: "in_app", label: "In-App" },
 ];
 
 export default function Simulate() {
@@ -50,6 +43,7 @@ export default function Simulate() {
   const [sendHour, setSendHour] = useState<number | undefined>(undefined);
   const [audienceScores, setAudienceScores] = useState<AudienceScore[]>([]);
   const [result, setResult] = useState<SimulationResponse | null>(null);
+  const [prevResult, setPrevResult] = useState<SimulationResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [audienceLoading, setAudienceLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -71,9 +65,8 @@ export default function Simulate() {
       .finally(() => setAudienceLoading(false));
   }, [objective]);
 
-  async function runSimulation() {
+  const runSimulation = useCallback(async () => {
     setLoading(true);
-    setResult(null);
     try {
       const res = await simulateCampaign({
         objective,
@@ -82,13 +75,14 @@ export default function Simulate() {
         copy_text: copyText || undefined,
         send_hour: sendHour,
       });
+      if (result) setPrevResult(result);
       setResult(res);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Simulation failed");
     } finally {
       setLoading(false);
     }
-  }
+  }, [objective, channel, selectedPersonas, copyText, sendHour, result]);
 
   function togglePersona(id: number) {
     setSelectedPersonas((prev) =>
@@ -98,7 +92,7 @@ export default function Simulate() {
 
   if (error && personas.length === 0) {
     return (
-      <div className="py-12">
+      <div className="py-12 max-w-lg">
         <Card className="border-destructive/30">
           <CardContent className="pt-6">
             <div className="flex items-start gap-3">
@@ -106,9 +100,6 @@ export default function Simulate() {
               <div>
                 <p className="text-sm font-medium">Backend not running</p>
                 <p className="text-sm text-muted-foreground mt-1">Start the API server to use the simulator.</p>
-                <code className="block mt-3 text-xs bg-muted px-3 py-2 rounded-md font-mono">
-                  cd backend && python3 server.py
-                </code>
               </div>
             </div>
           </CardContent>
@@ -121,242 +112,320 @@ export default function Simulate() {
     <div className="py-6 space-y-6">
       <div className="flex items-end justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Simulate</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Campaign Simulator</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Configure a campaign and predict performance before sending
+            Configure, predict, and compare campaign scenarios
           </p>
         </div>
-        <Badge variant="outline" className="text-xs font-normal text-muted-foreground">PREDICTED</Badge>
+        <Badge variant="outline" className="text-[10px] font-normal text-muted-foreground tracking-wide">PREDICTED</Badge>
       </div>
 
       <div className="grid grid-cols-12 gap-6">
-        {/* Configuration */}
+        {/* Left: Configuration */}
         <div className="col-span-5 space-y-4">
+          {/* Objective */}
           <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Campaign Objective</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-1.5">
-              {OBJECTIVES.map((obj) => (
-                <button
-                  key={obj.value}
-                  onClick={() => setObjective(obj.value)}
-                  className={`w-full text-left px-3 py-2.5 rounded-md text-sm transition-all border ${
-                    objective === obj.value
-                      ? "bg-primary/5 border-primary/30 text-foreground"
-                      : "bg-transparent border-transparent hover:bg-muted"
-                  }`}
-                >
-                  <p className={objective === obj.value ? "font-medium" : ""}>{obj.label}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{obj.desc}</p>
-                </button>
-              ))}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-2">
-              <div className="flex items-center gap-2">
-                <Hash className="w-3.5 h-3.5 text-muted-foreground" />
-                <CardTitle className="text-sm font-medium text-muted-foreground">Channel</CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="relative">
-                <select
-                  value={channel}
-                  onChange={(e) => setChannel(e.target.value)}
-                  className="w-full bg-muted border border-border rounded-md px-3 py-2 text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-ring"
-                >
-                  {CHANNELS.map((ch) => (
-                    <option key={ch.value} value={ch.value}>{ch.label}</option>
-                  ))}
-                </select>
-                <ChevronDown className="w-4 h-4 text-muted-foreground absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <CardContent className="pt-4 pb-3">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mb-2">Campaign objective</p>
+              <div className="space-y-1">
+                {OBJECTIVES.map((obj) => (
+                  <button
+                    key={obj.value}
+                    onClick={() => setObjective(obj.value)}
+                    className={`w-full text-left px-3 py-2 rounded-md text-sm transition-all ${
+                      objective === obj.value
+                        ? "bg-primary/5 border border-primary/30"
+                        : "border border-transparent hover:bg-muted"
+                    }`}
+                  >
+                    <span className={objective === obj.value ? "font-medium" : ""}>{obj.label}</span>
+                    <span className="text-xs text-muted-foreground ml-2">{obj.desc}</span>
+                  </button>
+                ))}
               </div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="pb-2">
-              <div className="flex items-center gap-2">
-                <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-                <CardTitle className="text-sm font-medium text-muted-foreground">Send Time</CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="relative">
-                <select
-                  value={sendHour ?? ""}
-                  onChange={(e) => setSendHour(e.target.value ? parseInt(e.target.value) : undefined)}
-                  className="w-full bg-muted border border-border rounded-md px-3 py-2 text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-ring"
-                >
-                  <option value="">Auto (use persona peak hour)</option>
-                  {Array.from({ length: 24 }, (_, i) => (
-                    <option key={i} value={i}>{`${i.toString().padStart(2, "0")}:00`}</option>
-                  ))}
-                </select>
-                <ChevronDown className="w-4 h-4 text-muted-foreground absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-              </div>
-            </CardContent>
-          </Card>
+          {/* Channel + Timing */}
+          <div className="grid grid-cols-2 gap-3">
+            <Card>
+              <CardContent className="pt-4 pb-3">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mb-2">Channel</p>
+                <div className="relative">
+                  <select
+                    value={channel}
+                    onChange={(e) => setChannel(e.target.value)}
+                    className="w-full bg-muted border border-border rounded-md px-3 py-2 text-xs appearance-none focus:outline-none focus:ring-2 focus:ring-ring"
+                  >
+                    {CHANNELS.map((ch) => (
+                      <option key={ch.value} value={ch.value}>{ch.label}</option>
+                    ))}
+                  </select>
+                  <ChevronDown className="w-3.5 h-3.5 text-muted-foreground absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-4 pb-3">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mb-2">Send time</p>
+                <div className="relative">
+                  <select
+                    value={sendHour ?? ""}
+                    onChange={(e) => setSendHour(e.target.value ? parseInt(e.target.value) : undefined)}
+                    className="w-full bg-muted border border-border rounded-md px-3 py-2 text-xs appearance-none focus:outline-none focus:ring-2 focus:ring-ring"
+                  >
+                    <option value="">Auto (peak hour)</option>
+                    {Array.from({ length: 24 }, (_, i) => (
+                      <option key={i} value={i}>{`${i.toString().padStart(2, "0")}:00`}</option>
+                    ))}
+                  </select>
+                  <ChevronDown className="w-3.5 h-3.5 text-muted-foreground absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
+          {/* Copy */}
           <Card>
-            <CardHeader className="pb-2">
-              <div className="flex items-center gap-2">
-                <MessageSquare className="w-3.5 h-3.5 text-muted-foreground" />
-                <CardTitle className="text-sm font-medium text-muted-foreground">Campaign Copy (optional)</CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent>
+            <CardContent className="pt-4 pb-3">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mb-2">Campaign copy (optional)</p>
               <textarea
                 value={copyText}
                 onChange={(e) => setCopyText(e.target.value)}
                 placeholder="Enter campaign message for copy analysis..."
-                rows={3}
-                className="w-full bg-muted border border-border rounded-md px-3 py-2 text-sm placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring resize-none"
+                rows={2}
+                className="w-full bg-muted border border-border rounded-md px-3 py-2 text-xs placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring resize-none"
               />
             </CardContent>
           </Card>
 
+          {/* Run */}
           <button
             onClick={runSimulation}
-            disabled={loading}
-            className="w-full bg-primary hover:bg-primary/90 disabled:opacity-50 text-primary-foreground font-medium py-3 rounded-lg transition-colors flex items-center justify-center gap-2"
+            disabled={loading || selectedPersonas.length === 0}
+            className="w-full bg-primary hover:bg-primary/90 disabled:opacity-40 text-primary-foreground font-medium py-3 rounded-lg transition-colors flex items-center justify-center gap-2 text-sm"
           >
-            <FlaskConical className="w-4 h-4" />
-            {loading ? "Simulating..." : "Run Simulation"}
+            {loading ? (
+              <RotateCcw className="w-4 h-4 animate-spin" />
+            ) : (
+              <ArrowRight className="w-4 h-4" />
+            )}
+            {loading ? "Simulating..." : result ? "Re-simulate" : "Run simulation"}
           </button>
         </div>
 
-        {/* Right side */}
+        {/* Right: Audience + Results */}
         <div className="col-span-7 space-y-4">
+          {/* Audience Selector */}
           <Card>
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Target Audience</CardTitle>
-                <Badge variant="outline" className="text-xs font-normal text-muted-foreground">RECOMMENDED</Badge>
+            <CardContent className="pt-4 pb-3">
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Target audience</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {audienceLoading ? "Scoring..." : `${selectedPersonas.length} selected · ${audienceScores.reduce((s, a) => selectedPersonas.includes(a.persona_id) ? s + (personas.find(p => p.id === a.persona_id)?.size || 0) : s, 0).toLocaleString()} users`}
+                  </p>
+                </div>
+                <Badge variant="outline" className="text-[10px] font-normal text-muted-foreground tracking-wide">RECOMMENDED</Badge>
               </div>
-              <p className="text-xs text-muted-foreground">
-                {audienceLoading ? "Scoring personas..." : "Ranked by objective fit. Top 3 auto-selected."}
-              </p>
-            </CardHeader>
-            <CardContent className="space-y-1.5">
-              {audienceScores.map((score) => {
-                const persona = personas.find((p) => p.id === score.persona_id);
-                const isSelected = selectedPersonas.includes(score.persona_id);
-                return (
-                  <button
-                    key={score.persona_id}
-                    onClick={() => togglePersona(score.persona_id)}
-                    className={`w-full text-left px-3 py-3 rounded-md transition-all flex items-center gap-3 border ${
-                      isSelected
-                        ? "bg-primary/5 border-primary/30"
-                        : "border-transparent hover:bg-muted"
-                    }`}
-                  >
-                    <div className={`w-4 h-4 rounded border flex-shrink-0 flex items-center justify-center transition-colors ${
-                      isSelected ? "bg-primary border-primary" : "border-muted-foreground/30"
-                    }`}>
-                      {isSelected && <Check className="w-3 h-3 text-primary-foreground" />}
-                    </div>
-                    {persona && <PixelAvatar personaId={persona.id} size={28} />}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium truncate">{score.persona_name}</span>
-                        <span className="text-xs text-muted-foreground">
+              <div className="space-y-1 max-h-64 overflow-y-auto">
+                {audienceScores.map((score) => {
+                  const persona = personas.find((p) => p.id === score.persona_id);
+                  const isSelected = selectedPersonas.includes(score.persona_id);
+                  return (
+                    <button
+                      key={score.persona_id}
+                      onClick={() => togglePersona(score.persona_id)}
+                      className={`w-full text-left px-3 py-2.5 rounded-md transition-all flex items-center gap-3 ${
+                        isSelected ? "bg-primary/5 border border-primary/30" : "border border-transparent hover:bg-muted"
+                      }`}
+                    >
+                      <div className={`w-4 h-4 rounded border flex-shrink-0 flex items-center justify-center transition-colors ${
+                        isSelected ? "bg-primary border-primary" : "border-muted-foreground/30"
+                      }`}>
+                        {isSelected && <Check className="w-3 h-3 text-primary-foreground" />}
+                      </div>
+                      {persona && <PersonaAvatar personaId={persona.id} size={24} />}
+                      <div className="flex-1 min-w-0">
+                        <span className="text-xs font-medium truncate block">{score.persona_name}</span>
+                        <span className="text-[10px] text-muted-foreground">
                           {persona ? `${persona.size.toLocaleString()} users` : ""}
+                          {score.reasons[0] ? ` · ${score.reasons[0]}` : ""}
                         </span>
                       </div>
-                      <p className="text-xs text-muted-foreground truncate mt-0.5">{score.reasons[0]}</p>
-                    </div>
-                    <div className="text-right flex-shrink-0">
-                      <span className={`text-sm font-medium ${
-                        score.score >= 70 ? "text-success" : score.score >= 40 ? "text-warning" : "text-muted-foreground"
-                      }`}>
-                        {score.score}
-                      </span>
-                      <p className="text-[10px] text-muted-foreground">fit</p>
-                    </div>
-                  </button>
-                );
-              })}
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <span className={`text-xs font-medium tabular-nums ${
+                          score.score >= 70 ? "text-success" : score.score >= 40 ? "text-warning" : "text-muted-foreground"
+                        }`}>
+                          {score.score}
+                        </span>
+                        <div className="w-12">
+                          <Progress value={score.score} className="h-1" />
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             </CardContent>
           </Card>
 
-          {result && <SimulationResult result={result} />}
+          {/* Results */}
+          {result && <SimulationResult result={result} prevResult={prevResult} />}
+
+          {!result && !loading && (
+            <Card className="border-dashed">
+              <CardContent className="py-10 flex flex-col items-center text-center">
+                <svg className="w-8 h-8 text-muted-foreground mb-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M10 2v7.527a2 2 0 0 1-.211.896L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.069-10.127A2 2 0 0 1 14 9.527V2" />
+                  <path d="M8.5 2h7" /><path d="M7 16h10" />
+                </svg>
+                <p className="text-sm font-medium">Configure and run a simulation</p>
+                <p className="text-xs text-muted-foreground mt-1 max-w-xs">
+                  Select an objective, choose your audience, and predict campaign performance before sending.
+                </p>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </div>
   );
 }
 
-function SimulationResult({ result }: { result: SimulationResponse }) {
+function SimulationResult({ result, prevResult }: { result: SimulationResponse; prevResult: SimulationResponse | null }) {
+  const hasFunnel = result.funnel !== null;
+  const hasPrev = prevResult?.funnel !== null && prevResult !== null;
+
+  const funnelStages = hasFunnel ? [
+    { label: "Sent", count: result.funnel!.sent, rate: 1, prev: hasPrev ? prevResult!.funnel!.sent : null },
+    { label: "Delivered", count: result.funnel!.delivered, rate: result.funnel!.delivery_rate, prev: hasPrev ? prevResult!.funnel!.delivery_rate : null },
+    { label: "Opened", count: result.funnel!.opened, rate: result.funnel!.open_rate, prev: hasPrev ? prevResult!.funnel!.open_rate : null },
+    { label: "Clicked", count: result.funnel!.clicked, rate: result.funnel!.click_rate, prev: hasPrev ? prevResult!.funnel!.click_rate : null },
+    { label: "Converted", count: result.funnel!.converted, rate: result.funnel!.conversion_rate, prev: hasPrev ? prevResult!.funnel!.conversion_rate : null },
+  ] : [];
+
+  const chartData = funnelStages.map((s) => ({
+    name: s.label,
+    current: s.count,
+    ...(hasPrev && s.prev !== null ? { previous: Math.round((s.prev as number) * (prevResult?.audience_size || 0)) } : {}),
+  }));
+
   return (
     <Card>
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Zap className="w-4 h-4 text-primary" />
-            <CardTitle className="text-base font-semibold">Simulation Results</CardTitle>
+      <CardContent className="pt-5 pb-4 space-y-5">
+        {/* Header */}
+        <div className="flex items-start justify-between">
+          <div>
+            <p className="text-sm font-medium">Simulation results</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{result.evidence_basis}</p>
           </div>
           <div className="flex gap-1.5">
-            <Badge variant="outline" className="text-xs font-normal text-muted-foreground">
+            <Badge variant="outline" className="text-[10px] font-normal text-muted-foreground tracking-wide">
               {result.label}
             </Badge>
             <Badge
-              variant={result.confidence === "high" ? "default" : "secondary"}
-              className="text-xs font-normal"
+              variant={result.confidence === "high" ? "default" : result.confidence === "medium" ? "secondary" : "outline"}
+              className="text-[10px] font-normal"
             >
               {result.confidence} confidence
             </Badge>
           </div>
         </div>
-        <p className="text-xs text-muted-foreground">{result.evidence_basis}</p>
-      </CardHeader>
-      <CardContent className="space-y-5">
+
         {result.warning && (
-          <div className="bg-warning/10 border border-warning/30 rounded-md px-3 py-2 text-sm text-warning-foreground flex items-start gap-2">
-            <AlertTriangle className="w-4 h-4 text-warning flex-shrink-0 mt-0.5" />
+          <div className="bg-warning/10 border border-warning/20 rounded-md px-3 py-2 text-xs text-warning-foreground flex items-start gap-2">
+            <AlertTriangle className="w-3.5 h-3.5 text-warning flex-shrink-0 mt-0.5" />
             <span>{result.warning}</span>
           </div>
         )}
 
-        <div>
-          <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mb-1">Target Audience</p>
-          <p className="text-2xl font-semibold tracking-tight">{result.audience_size.toLocaleString()}</p>
-          <p className="text-xs text-muted-foreground">users in selected personas</p>
+        {/* Hero number */}
+        <div className="flex items-end gap-6">
+          <div>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mb-0.5">Audience size</p>
+            <p className="text-3xl font-semibold tracking-tight tabular-nums">{result.audience_size.toLocaleString()}</p>
+          </div>
+          {hasFunnel && (
+            <>
+              <div>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mb-0.5">Est. conversions</p>
+                <p className="text-3xl font-semibold tracking-tight tabular-nums text-primary">{result.funnel!.converted.toLocaleString()}</p>
+              </div>
+              <div className="pb-1">
+                <p className="text-xs text-muted-foreground">
+                  {(result.funnel!.conversion_rate * 100).toFixed(1)}% conv. rate
+                  {hasPrev && prevResult?.funnel && (
+                    <DeltaBadge current={result.funnel!.conversion_rate} prev={prevResult.funnel.conversion_rate} />
+                  )}
+                </p>
+              </div>
+            </>
+          )}
         </div>
 
-        <Separator />
+        {/* Funnel chart */}
+        {hasFunnel && (
+          <>
+            <Separator />
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Predicted funnel</p>
+                {hasPrev && (
+                  <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                    <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full" style={{ background: "oklch(0.35 0.12 320)" }} /> Current</span>
+                    <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full" style={{ background: "oklch(0.35 0.12 320 / 0.25)" }} /> Previous</span>
+                  </div>
+                )}
+              </div>
+              <div className="h-48">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={chartData} margin={{ left: 0, right: 0, top: 0, bottom: 0 }}>
+                    <XAxis dataKey="name" tick={{ fontSize: 11, fill: "oklch(0.5 0.02 320)" }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 10, fill: "oklch(0.5 0.02 320)" }} axisLine={false} tickLine={false} width={50} tickFormatter={(v: number) => v >= 1000 ? `${(v / 1000).toFixed(0)}K` : String(v)} />
+                    <Tooltip
+                      contentStyle={{ fontSize: 11, borderRadius: 8, border: "1px solid oklch(0.91 0.005 320)" }}
+                      formatter={(v: number, name: string) => [v.toLocaleString(), name === "current" ? "Current" : "Previous"]}
+                    />
+                    {hasPrev && <Bar dataKey="previous" fill="oklch(0.35 0.12 320 / 0.2)" radius={[4, 4, 0, 0]} barSize={20} />}
+                    <Bar dataKey="current" radius={[4, 4, 0, 0]} barSize={20}>
+                      {chartData.map((_, i) => (
+                        <Cell key={i} fill={i === chartData.length - 1 ? "oklch(0.65 0.18 15)" : "oklch(0.35 0.12 320)"} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
 
-        {result.funnel && (
-          <div>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mb-3">Predicted Funnel</p>
-            <div className="space-y-3">
-              <FunnelStep label="Sent" count={result.funnel.sent} rate={1} total={result.funnel.sent} />
-              <FunnelStep label="Delivered" count={result.funnel.delivered} rate={result.funnel.delivery_rate} total={result.funnel.sent} />
-              <FunnelStep label="Opened" count={result.funnel.opened} rate={result.funnel.open_rate} total={result.funnel.sent} />
-              <FunnelStep label="Clicked" count={result.funnel.clicked} rate={result.funnel.click_rate} total={result.funnel.sent} />
-              <FunnelStep label="Converted" count={result.funnel.converted} rate={result.funnel.conversion_rate} total={result.funnel.sent} highlight />
+              {/* Rate breakdown */}
+              <div className="grid grid-cols-4 gap-3 mt-3">
+                {funnelStages.slice(1).map((s) => (
+                  <div key={s.label} className="text-center">
+                    <p className="text-lg font-semibold tabular-nums">{(s.rate * 100).toFixed(1)}%</p>
+                    <p className="text-[10px] text-muted-foreground">{s.label} rate</p>
+                    {s.prev !== null && <DeltaBadge current={s.rate} prev={s.prev as number} />}
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+          </>
         )}
 
         <Separator />
 
+        {/* Channel + Timing */}
         <div className="grid grid-cols-2 gap-4">
           <div>
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mb-1">Channel</p>
             <p className="text-sm font-medium capitalize">{result.channel.selected}</p>
-            <Badge variant="outline" className="text-xs font-normal text-muted-foreground mt-1">
+            <Badge variant="outline" className="text-[10px] font-normal text-muted-foreground mt-1 tracking-wide">
               {result.channel.label}
             </Badge>
           </div>
           <div>
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mb-1">Timing</p>
             <p className="text-sm">{result.timing.note}</p>
-            <Badge variant="outline" className="text-xs font-normal text-muted-foreground mt-1">
+            <Badge variant="outline" className="text-[10px] font-normal text-muted-foreground mt-1 tracking-wide">
               {result.timing.label}
             </Badge>
           </div>
@@ -366,29 +435,28 @@ function SimulationResult({ result }: { result: SimulationResponse }) {
   );
 }
 
-function FunnelStep({ label, count, rate, total, highlight }: {
-  label: string; count: number; rate: number; total: number; highlight?: boolean;
-}) {
-  const pct = total > 0 ? (count / total) * 100 : 0;
+function DeltaBadge({ current, prev }: { current: number; prev: number }) {
+  const delta = current - prev;
+  if (Math.abs(delta) < 0.001) return null;
+  const pct = ((delta / Math.max(prev, 0.001)) * 100).toFixed(0);
+  const isPositive = delta > 0;
   return (
-    <div>
-      <div className="flex justify-between text-sm mb-1.5">
-        <span className={highlight ? "text-primary font-medium" : ""}>{label}</span>
-        <span className="font-medium">
-          {count.toLocaleString()}
-          <span className="text-muted-foreground ml-1.5 font-normal">({(rate * 100).toFixed(1)}%)</span>
-        </span>
-      </div>
-      <Progress value={pct} className="h-1.5" />
-    </div>
+    <span className={`text-[10px] font-medium ml-1.5 ${isPositive ? "text-success" : "text-destructive"}`}>
+      {isPositive ? "+" : ""}{pct}%
+    </span>
   );
 }
 
-function PixelAvatar({ personaId, size = 48 }: { personaId: number; size?: number }) {
+function PersonaAvatar({ personaId, size = 24 }: { personaId: number; size?: number }) {
   const palettes = [
-    ["#7c3aed", "#ede9fe"], ["#059669", "#d1fae5"], ["#d97706", "#fef3c7"],
-    ["#dc2626", "#fee2e2"], ["#7c3aed", "#f3e8ff"], ["#db2777", "#fce7f3"],
-    ["#0891b2", "#cffafe"], ["#65a30d", "#ecfccb"],
+    ["oklch(0.45 0.12 320)", "oklch(0.95 0.02 320)"],
+    ["oklch(0.45 0.15 155)", "oklch(0.95 0.02 155)"],
+    ["oklch(0.55 0.15 65)", "oklch(0.96 0.02 65)"],
+    ["oklch(0.55 0.18 15)", "oklch(0.96 0.02 15)"],
+    ["oklch(0.45 0.12 280)", "oklch(0.95 0.02 280)"],
+    ["oklch(0.45 0.15 200)", "oklch(0.95 0.02 200)"],
+    ["oklch(0.55 0.12 100)", "oklch(0.96 0.02 100)"],
+    ["oklch(0.45 0.18 340)", "oklch(0.95 0.02 340)"],
   ];
   const [fg, bg] = palettes[personaId % palettes.length];
   const seed = personaId * 7919 + 1;
@@ -403,8 +471,8 @@ function PixelAvatar({ personaId, size = 48 }: { personaId: number; size?: numbe
   }
   const px = size / 8;
   return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="rounded-md flex-shrink-0">
-      <rect width={size} height={size} fill={bg} />
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="rounded flex-shrink-0">
+      <rect width={size} height={size} fill={bg} rx={2} />
       {pixels.map((row, y) =>
         row.map((on, x) => on ? <rect key={`${x}-${y}`} x={x * px} y={y * px} width={px} height={px} fill={fg} /> : null)
       )}
