@@ -62,6 +62,12 @@ export interface Persona {
   lifecycle_distribution: Record<string, number>;
   top_th_specialties: Record<string, number>;
   hra_distribution: Record<string, number>;
+  age_distribution: Record<string, number>;
+  male_count: number;
+  female_count: number;
+  app_installed_count: number;
+  app_not_installed_count: number;
+  org_type_counts: Record<string, number>;
 }
 
 export interface DashboardResponse {

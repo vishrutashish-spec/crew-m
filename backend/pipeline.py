@@ -137,6 +137,28 @@ def cluster_users(df: pd.DataFrame, n_clusters: int = N_PERSONAS) -> dict:
 
             # HRA status distribution
             "hra_distribution": cluster_df["hra_status"].value_counts(normalize=True).to_dict(),
+
+            # Age distribution histogram
+            "age_distribution": {
+                label: int(((cluster_df["age"] >= lo) & (cluster_df["age"] <= hi)).sum())
+                for label, lo, hi in [("18-25", 18, 25), ("26-30", 26, 30), ("31-35", 31, 35), ("36-40", 36, 40), ("41-50", 41, 50), ("51+", 51, 100)]
+            },
+
+            # Gender distribution counts
+            "male_count": int((cluster_df["gender"] == "MALE").sum()),
+            "female_count": int((cluster_df["gender"] == "FEMALE").sum()),
+
+            # App installed counts
+            "app_installed_count": int(cluster_df["has_app_enc"].sum()),
+            "app_not_installed_count": int((1 - cluster_df["has_app_enc"]).sum()),
+
+            # Org type counts (absolute)
+            "org_type_counts": {
+                "ENT": int(cluster_df["segment_ent"].sum()),
+                "SMB": int(cluster_df["segment_smb"].sum()),
+                "MM": int(cluster_df["segment_mm"].sum()),
+                "EOR": int((1 - cluster_df[["segment_ent", "segment_smb", "segment_mm"]].sum(axis=1)).clip(lower=0).sum()),
+            },
         }
         personas.append(persona)
 
