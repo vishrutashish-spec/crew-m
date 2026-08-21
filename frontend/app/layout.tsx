@@ -26,6 +26,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex bg-background text-foreground">
+        <CursorTrail />
         <Sidebar />
         <main className="flex-1 ml-60 min-h-screen">
           <div className="max-w-[1400px] mx-auto px-6 lg:px-8 py-6">
