@@ -6,8 +6,19 @@ import { getDashboard, type DashboardResponse } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import {
+  Users,
+  Smartphone,
+  TrendingUp,
+  AlertTriangle,
+  ArrowRight,
+  FlaskConical,
+  Target,
+  Zap,
+  Activity,
+} from "lucide-react";
 
-export default function Dashboard() {
+export default function Overview() {
   const [data, setData] = useState<DashboardResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -17,13 +28,19 @@ export default function Dashboard() {
 
   if (error) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-12">
-        <Card className="bg-zinc-900 border-red-900/50">
+      <div className="py-12">
+        <Card className="border-destructive/30">
           <CardContent className="pt-6">
-            <p className="text-red-400">Backend not running. Start the API server:</p>
-            <code className="block mt-2 text-sm text-zinc-400 bg-zinc-800 p-3 rounded">
-              cd backend && python3 server.py
-            </code>
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium">Backend not running</p>
+                <p className="text-sm text-muted-foreground mt-1">Start the API server to load campaign intelligence data.</p>
+                <code className="block mt-3 text-xs bg-muted px-3 py-2 rounded-md font-mono">
+                  cd backend && python3 server.py
+                </code>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -32,10 +49,19 @@ export default function Dashboard() {
 
   if (!data) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-12">
-        <div className="animate-pulse space-y-4">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-32 bg-zinc-800 rounded-lg" />
+      <div className="py-6 space-y-6">
+        <div className="space-y-1">
+          <div className="h-7 w-32 bg-muted rounded animate-pulse" />
+          <div className="h-4 w-64 bg-muted rounded animate-pulse" />
+        </div>
+        <div className="grid grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-28 bg-muted rounded-lg animate-pulse" />
+          ))}
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          {[1, 2].map((i) => (
+            <div key={i} className="h-52 bg-muted rounded-lg animate-pulse" />
           ))}
         </div>
       </div>
@@ -45,83 +71,126 @@ export default function Dashboard() {
   const { model_confidence, top_personas, campaign_summary, key_metrics } = data;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-      <div>
-        <h1 className="text-2xl font-semibold">Dashboard</h1>
-        <p className="text-sm text-zinc-500 mt-1">
-          Model trained on {model_confidence.n_users_analyzed.toLocaleString()} users
-          <Badge variant="outline" className="ml-2 text-xs border-zinc-700 text-zinc-400">
+    <div className="py-6 space-y-8">
+      {/* Header */}
+      <div className="flex items-end justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Overview</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Campaign intelligence across {model_confidence.n_users_analyzed.toLocaleString()} analyzed users
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Badge variant="secondary" className="text-xs font-normal">
             {model_confidence.data_source === "synthetic_calibrated" ? "Synthetic (calibrated)" : "Live CT data"}
           </Badge>
-          <Badge variant="outline" className="ml-1 text-xs border-zinc-700 text-zinc-400">
-            OBSERVED
-          </Badge>
-        </p>
+          <Badge variant="outline" className="text-xs font-normal text-muted-foreground">OBSERVED</Badge>
+        </div>
       </div>
 
+      {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <MetricCard title="Eligible Users" value={key_metrics.total_eligible_users.toLocaleString()} subtitle="Total addressable base" />
-        <MetricCard title="No-App Users" value={`${(key_metrics.no_app_share * 100).toFixed(0)}%`} subtitle={`${Math.round(key_metrics.total_eligible_users * key_metrics.no_app_share).toLocaleString()} unreachable via push`} alert />
-        <MetricCard title="Org Activation" value={`${(key_metrics.org_activation_rate * 100).toFixed(0)}%`} subtitle="At least 1 booking" />
-        <MetricCard title="Employee Activation" value={`${(key_metrics.employee_activation_rate * 100).toFixed(0)}%`} subtitle={key_metrics.structural_gap} alert />
+        <MetricCard
+          icon={Users}
+          label="Eligible Users"
+          value={key_metrics.total_eligible_users.toLocaleString()}
+          sublabel="Total addressable base"
+        />
+        <MetricCard
+          icon={Smartphone}
+          label="No-App Users"
+          value={`${(key_metrics.no_app_share * 100).toFixed(0)}%`}
+          sublabel={`${Math.round(key_metrics.total_eligible_users * key_metrics.no_app_share).toLocaleString()} unreachable via push`}
+          variant="warning"
+        />
+        <MetricCard
+          icon={TrendingUp}
+          label="Org Activation"
+          value={`${(key_metrics.org_activation_rate * 100).toFixed(0)}%`}
+          sublabel="At least 1 booking"
+        />
+        <MetricCard
+          icon={Activity}
+          label="Employee Activation"
+          value={`${(key_metrics.employee_activation_rate * 100).toFixed(0)}%`}
+          sublabel={key_metrics.structural_gap}
+          variant="warning"
+        />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card className="bg-zinc-900 border-zinc-800">
+      {/* Model + Campaign Performance */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-zinc-400">Model Confidence</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Model Confidence</CardTitle>
+              <Badge variant="outline" className="text-xs font-normal text-muted-foreground">OBSERVED</Badge>
+            </div>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-5">
             <div>
-              <div className="flex justify-between text-sm mb-1">
-                <span className="text-zinc-400">Silhouette Score</span>
-                <span className="text-zinc-200">{model_confidence.silhouette_score.toFixed(3)}</span>
+              <div className="flex justify-between text-sm mb-2">
+                <span className="text-muted-foreground">Silhouette Score</span>
+                <span className="font-medium">{model_confidence.silhouette_score.toFixed(3)}</span>
               </div>
               <Progress value={model_confidence.silhouette_score * 100} className="h-2" />
-              <p className="text-xs text-zinc-500 mt-1">
-                {model_confidence.silhouette_score > 0.25 ? "Good" : model_confidence.silhouette_score > 0.15 ? "Fair" : "Weak"} cluster separation
+              <p className="text-xs text-muted-foreground mt-1.5">
+                {model_confidence.silhouette_score > 0.25 ? "Good" : model_confidence.silhouette_score > 0.15 ? "Fair" : "Weak"} cluster separation across {model_confidence.n_personas} personas
               </p>
             </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-zinc-400">Personas Discovered</span>
-              <span className="text-zinc-200">{model_confidence.n_personas}</span>
+            <div className="flex items-center justify-between pt-2 border-t">
+              <span className="text-sm text-muted-foreground">Personas Discovered</span>
+              <span className="text-lg font-semibold">{model_confidence.n_personas}</span>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-zinc-900 border-zinc-800">
+        <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-zinc-400">Campaign Performance (Avg)</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Campaign Performance (Avg)</CardTitle>
+              <Badge variant="outline" className="text-xs font-normal text-muted-foreground">OBSERVED</Badge>
+            </div>
           </CardHeader>
           <CardContent className="space-y-3">
-            <FunnelRow label="Delivery Rate" value={campaign_summary.avg_delivery_rate} />
-            <FunnelRow label="Open Rate" value={campaign_summary.avg_open_rate} />
-            <FunnelRow label="Click Rate" value={campaign_summary.avg_click_rate} />
-            <div className="flex justify-between text-sm pt-2 border-t border-zinc-800">
-              <span className="text-zinc-400">Total Campaigns</span>
-              <span className="text-zinc-200">{campaign_summary.total_campaigns}</span>
+            <FunnelRow label="Delivery Rate" value={campaign_summary.avg_delivery_rate} color="bg-plum" />
+            <FunnelRow label="Open Rate" value={campaign_summary.avg_open_rate} color="bg-chart-3" />
+            <FunnelRow label="Click Rate" value={campaign_summary.avg_click_rate} color="bg-coral" />
+            <div className="flex items-center justify-between text-sm pt-3 border-t">
+              <span className="text-muted-foreground">Total Campaigns</span>
+              <span className="font-medium">{campaign_summary.total_campaigns}</span>
             </div>
           </CardContent>
         </Card>
       </div>
 
+      {/* Top Personas */}
       <div>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-medium">Top Personas</h2>
-          <Link href="/personas" className="text-sm text-blue-400 hover:text-blue-300">View all →</Link>
+          <div>
+            <h2 className="text-base font-semibold">Top Personas</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">Discovered via K-Means clustering on behavioral features</p>
+          </div>
+          <Link href="/personas" className="text-sm text-primary hover:underline flex items-center gap-1">
+            View all <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-3">
           {top_personas.map((p) => (
-            <Link key={p.id} href={`/personas?id=${p.id}`}>
-              <Card className="bg-zinc-900 border-zinc-800 hover:border-zinc-600 transition-colors cursor-pointer">
-                <CardContent className="pt-5 pb-4 px-4">
-                  <PixelAvatar personaId={p.id} size={48} />
-                  <p className="font-medium text-sm mt-3 truncate">{p.name}</p>
-                  <p className="text-xs text-zinc-500">{p.size.toLocaleString()} users ({(p.share * 100).toFixed(1)}%)</p>
-                  <div className="mt-3 space-y-1">
-                    <MiniStat label="TH" value={`${(p.th_adoption * 100).toFixed(1)}%`} />
-                    <MiniStat label="HC" value={`${(p.hc_adoption * 100).toFixed(1)}%`} />
-                    <MiniStat label="App" value={`${(p.app_installed * 100).toFixed(0)}%`} />
+            <Link key={p.id} href="/personas">
+              <Card className="hover:border-primary/30 hover:shadow-sm transition-all cursor-pointer group">
+                <CardContent className="pt-4 pb-3 px-4">
+                  <div className="flex items-center gap-3 mb-3">
+                    <PersonaAvatar personaId={p.id} size={36} />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium truncate group-hover:text-primary transition-colors">{p.name}</p>
+                      <p className="text-xs text-muted-foreground">{p.size.toLocaleString()} users</p>
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <MiniBar label="TH" value={p.th_adoption} />
+                    <MiniBar label="HC" value={p.hc_adoption} />
+                    <MiniBar label="App" value={p.app_installed} />
                   </div>
                 </CardContent>
               </Card>
@@ -130,69 +199,148 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="flex gap-4">
-        <Link href="/simulator" className="flex-1">
-          <Card className="bg-zinc-900 border-zinc-800 hover:border-blue-800 transition-colors cursor-pointer">
-            <CardContent className="py-6 text-center">
-              <p className="font-medium">Campaign Simulator</p>
-              <p className="text-sm text-zinc-500 mt-1">Simulate performance with what-if scenarios</p>
+      {/* Quick Actions */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Link href="/simulate">
+          <Card className="hover:border-primary/30 hover:shadow-sm transition-all cursor-pointer group">
+            <CardContent className="py-5 flex items-center gap-4">
+              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <FlaskConical className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm font-medium group-hover:text-primary transition-colors">Campaign Simulator</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Evaluate campaign performance before sending</p>
+              </div>
+              <ArrowRight className="w-4 h-4 text-muted-foreground ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
             </CardContent>
           </Card>
         </Link>
-        <Link href="/personas" className="flex-1">
-          <Card className="bg-zinc-900 border-zinc-800 hover:border-blue-800 transition-colors cursor-pointer">
-            <CardContent className="py-6 text-center">
-              <p className="font-medium">Persona Explorer</p>
-              <p className="text-sm text-zinc-500 mt-1">Explore behavioral personas from user data</p>
+        <Link href="/audience">
+          <Card className="hover:border-primary/30 hover:shadow-sm transition-all cursor-pointer group">
+            <CardContent className="py-5 flex items-center gap-4">
+              <div className="w-10 h-10 rounded-lg bg-coral/10 flex items-center justify-center flex-shrink-0">
+                <Target className="w-5 h-5 text-coral" />
+              </div>
+              <div>
+                <p className="text-sm font-medium group-hover:text-primary transition-colors">Build Audience</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Define objectives and get targeting recommendations</p>
+              </div>
+              <ArrowRight className="w-4 h-4 text-muted-foreground ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
             </CardContent>
           </Card>
         </Link>
       </div>
+
+      {/* Recommendations */}
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center gap-2">
+            <Zap className="w-4 h-4 text-warning" />
+            <CardTitle className="text-sm font-medium">Recommendations</CardTitle>
+            <Badge variant="outline" className="text-xs font-normal text-muted-foreground">RECOMMENDED</Badge>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            <RecommendationRow
+              text="77% of eligible users have no app installed. SMS and WhatsApp are the only reachable channels for this cohort."
+              impact="High"
+              action="Build an app-install campaign targeting no-app users via SMS"
+            />
+            <RecommendationRow
+              text={`Employee activation (${(key_metrics.employee_activation_rate * 100).toFixed(0)}%) significantly lags org activation (${(key_metrics.org_activation_rate * 100).toFixed(0)}%). The structural gap suggests awareness, not access, is the bottleneck.`}
+              impact="High"
+              action="Create awareness campaigns for dormant employee segments"
+            />
+            <RecommendationRow
+              text="Dormant No-App personas represent the largest cluster. Re-engagement requires non-push channels and benefit-led messaging."
+              impact="Medium"
+              action="Simulate a WhatsApp re-engagement campaign for this persona"
+            />
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
 
-function MetricCard({ title, value, subtitle, alert }: { title: string; value: string; subtitle: string; alert?: boolean }) {
+function MetricCard({
+  icon: Icon,
+  label,
+  value,
+  sublabel,
+  variant,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  value: string;
+  sublabel: string;
+  variant?: "warning";
+}) {
   return (
-    <Card className="bg-zinc-900 border-zinc-800">
-      <CardContent className="pt-5 pb-4">
-        <p className="text-xs text-zinc-500 uppercase tracking-wider">{title}</p>
-        <p className={`text-2xl font-semibold mt-1 ${alert ? "text-amber-400" : "text-zinc-100"}`}>{value}</p>
-        <p className="text-xs text-zinc-500 mt-1">{subtitle}</p>
+    <Card>
+      <CardContent className="pt-4 pb-3">
+        <div className="flex items-center gap-2 mb-2">
+          <Icon className={`w-4 h-4 ${variant === "warning" ? "text-warning" : "text-muted-foreground"}`} />
+          <span className="text-xs text-muted-foreground uppercase tracking-wider font-medium">{label}</span>
+        </div>
+        <p className={`text-2xl font-semibold tracking-tight ${variant === "warning" ? "text-warning" : ""}`}>{value}</p>
+        <p className="text-xs text-muted-foreground mt-1">{sublabel}</p>
       </CardContent>
     </Card>
   );
 }
 
-function FunnelRow({ label, value }: { label: string; value: number }) {
+function FunnelRow({ label, value, color }: { label: string; value: number; color: string }) {
   return (
     <div>
-      <div className="flex justify-between text-sm mb-1">
-        <span className="text-zinc-400">{label}</span>
-        <span className="text-zinc-200">{(value * 100).toFixed(1)}%</span>
+      <div className="flex justify-between text-sm mb-1.5">
+        <span className="text-muted-foreground">{label}</span>
+        <span className="font-medium">{(value * 100).toFixed(1)}%</span>
       </div>
-      <Progress value={value * 100} className="h-1.5" />
+      <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+        <div className={`h-full rounded-full ${color}`} style={{ width: `${value * 100}%` }} />
+      </div>
     </div>
   );
 }
 
-function MiniStat({ label, value }: { label: string; value: string }) {
+function MiniBar({ label, value }: { label: string; value: number }) {
   return (
-    <div className="flex justify-between text-xs">
-      <span className="text-zinc-500">{label}</span>
-      <span className="text-zinc-300">{value}</span>
+    <div className="flex items-center gap-2">
+      <span className="text-[10px] text-muted-foreground w-6 flex-shrink-0">{label}</span>
+      <div className="flex-1 h-1 bg-muted rounded-full overflow-hidden">
+        <div className="h-full bg-primary/40 rounded-full" style={{ width: `${value * 100}%` }} />
+      </div>
+      <span className="text-[10px] text-muted-foreground w-8 text-right">{(value * 100).toFixed(0)}%</span>
     </div>
   );
 }
 
-function PixelAvatar({ personaId, size = 48 }: { personaId: number; size?: number }) {
-  const colors = [
-    ["#3b82f6", "#1d4ed8"], ["#10b981", "#047857"], ["#f59e0b", "#b45309"],
-    ["#ef4444", "#b91c1c"], ["#8b5cf6", "#6d28d9"], ["#ec4899", "#be185d"],
-    ["#06b6d4", "#0e7490"], ["#84cc16", "#4d7c0f"],
-  ];
-  const [primary, secondary] = colors[personaId % colors.length];
+function RecommendationRow({ text, impact, action }: { text: string; impact: string; action: string }) {
+  return (
+    <div className="flex gap-3 p-3 rounded-md bg-muted/50 border border-border/50">
+      <Lightbulb className="w-4 h-4 text-warning flex-shrink-0 mt-0.5" />
+      <div className="flex-1 min-w-0">
+        <p className="text-sm leading-relaxed">{text}</p>
+        <div className="flex items-center gap-3 mt-2">
+          <Badge variant={impact === "High" ? "default" : "secondary"} className="text-xs">
+            {impact} impact
+          </Badge>
+          <span className="text-xs text-primary">{action}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
 
+function PersonaAvatar({ personaId, size = 36 }: { personaId: number; size?: number }) {
+  const palettes = [
+    ["#7c3aed", "#ede9fe"], ["#059669", "#d1fae5"], ["#d97706", "#fef3c7"],
+    ["#dc2626", "#fee2e2"], ["#7c3aed", "#f3e8ff"], ["#db2777", "#fce7f3"],
+    ["#0891b2", "#cffafe"], ["#65a30d", "#ecfccb"],
+  ];
+  const [fg, bg] = palettes[personaId % palettes.length];
   const seed = personaId * 7919 + 1;
   const pixels: boolean[][] = [];
   for (let y = 0; y < 8; y++) {
@@ -203,14 +351,22 @@ function PixelAvatar({ personaId, size = 48 }: { personaId: number; size?: numbe
     }
     pixels.push([...row, ...[...row].reverse()]);
   }
-
   const px = size / 8;
   return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-      <rect width={size} height={size} fill={secondary} rx={4} />
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="rounded-md flex-shrink-0">
+      <rect width={size} height={size} fill={bg} />
       {pixels.map((row, y) =>
-        row.map((on, x) => on ? <rect key={`${x}-${y}`} x={x * px} y={y * px} width={px} height={px} fill={primary} /> : null)
+        row.map((on, x) => on ? <rect key={`${x}-${y}`} x={x * px} y={y * px} width={px} height={px} fill={fg} /> : null)
       )}
+    </svg>
+  );
+}
+
+function Lightbulb({ className }: { className?: string }) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5" />
+      <path d="M9 18h6" /><path d="M10 22h4" />
     </svg>
   );
 }
