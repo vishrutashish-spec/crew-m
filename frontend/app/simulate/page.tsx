@@ -59,13 +59,15 @@ interface SegmentRule {
   value: string;
 }
 
-const EXAMPLE_QUESTIONS = [
-  "What product have these users interacted with? (Telehealth / Health Checkup / Both / Neither)",
-  "How recently should they have been active? (Last 7 days / Last 30 days / Last 90 days / Any time)",
-  "Should they already have the app installed? (Yes / No / Doesn't matter)",
-  "What organisation size are you targeting? (Enterprise / SMB / Mid-Market / Any)",
-  "What is the primary goal for this audience? (First-time activation / Repeat usage / Cross-sell / Re-engagement)",
-];
+const BASE_QUESTIONS = {
+  thFunnel: "What telehealth funnel stage? (Never opened doctor list / Browsed but didn't book / Booked at least once / Completed consultation)",
+  hcFunnel: "What health checkup status? (Never viewed / Browsed listings / Added to cart but didn't book / Completed booking)",
+  product: "Which benefit product? (Telehealth / Health Checkup / Both / Neither used yet)",
+  appStatus: "Do they have the Plum app? (Yes, must have app / No, targeting users without app / Doesn't matter)",
+  orgSegment: "Which organisation segment? (Enterprise / SMB / Mid-Market / EOR / All)",
+  lifecycle: "What lifecycle stage? (New users under 60 days / Active in last 30 days / Lapsing 30–90 days / Dormant 90+ days / All)",
+  goal: "What is the campaign goal? (First-time activation / Repeat usage / Cross-sell HC→TH / Re-engagement)",
+};
 
 export default function Simulate() {
   const [personas, setPersonas] = useState<Persona[]>([]);
