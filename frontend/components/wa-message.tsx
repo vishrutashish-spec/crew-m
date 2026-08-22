@@ -22,31 +22,32 @@
  * same simulation always previews the same asset and a screenshot of a demo
  * stays true on a re-run.
  *
- * Provenance: the image is GENERATED creative shipped with the app, never a
- * live Plum asset, and it carries no member data. Swapping in real approved
- * artwork is a matter of replacing the file in public/creative under the same
- * name; nothing else needs to change.
+ * Provenance: only supplied, approved artwork is ever shown here. If the file
+ * is absent the frame renders visibly empty and says so, and NO substitute is
+ * drawn in its place: a generated stand-in that looks finished would be read as
+ * the approved asset in a demo or a screenshot, which is worse than a gap.
+ * See public/creative/README.md for the filenames and the rule.
  */
 
 const CREATIVE: Record<string, { src: string; alt: string }> = {
   th_activation: {
-    src: "/creative/evening-call.svg",
+    src: "/creative/evening-call.png",
     alt: "A desk phone by a window at dusk, for an evening telehealth consult slot",
   },
   hc_activation: {
-    src: "/creative/consult-handover.svg",
+    src: "/creative/consult-handover.png",
     alt: "Two colleagues handing over health checkup paperwork",
   },
   hc_crosssell: {
-    src: "/creative/rest-bench.svg",
+    src: "/creative/rest-bench.png",
     alt: "Two people resting on a bench in evening light",
   },
   app_install: {
-    src: "/creative/skyline-dusk.svg",
+    src: "/creative/skyline-dusk.png",
     alt: "A city skyline at dusk",
   },
   reengagement: {
-    src: "/creative/rest-bench.svg",
+    src: "/creative/rest-bench.png",
     alt: "Two people resting on a bench in evening light",
   },
 };
