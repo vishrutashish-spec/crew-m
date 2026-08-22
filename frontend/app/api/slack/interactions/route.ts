@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+const BASE_URL = "https://iw-crew-m-c4b9.insurwreck.com";
+
 interface InteractionRequest {
   actionId: string;
   campaignId: string;
@@ -49,8 +51,34 @@ export async function POST(request: Request) {
   );
   const [row] = patchRes.ok ? await patchRes.json() : [null];
 
+  // Approval is the gate for the real send — this is the only code path that
+  // triggers it, and only once, right after the PMM clicks Approve.
+  let sendResult: { ok: boolean; error?: string; messageId?: string; sentTo?: string } | null = null;
+  if (approved && row) {
+    try {
+      const res = await fetch(`${BASE_URL}/api/campaign/send`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          requestId: campaignId,
+          amName: row.am_name,
+          accountName: row.account_name,
+          campaignType: row.campaign_type,
+          copy: { subject: row.subject, body: row.body },
+          creative: { creativeUrl: row.creative_url, stub: row.creative_is_stub },
+        }),
+      });
+      sendResult = await res.json();
+    } catch (err) {
+      console.error("campaign/send call failed", err);
+      sendResult = { ok: false, error: "send_request_failed" };
+    }
+  }
+
   const decisionText = approved
-    ? `<@${approverUserId}> approved *${row?.campaign_name ?? campaignId}*. Paste this into CleverTap to build the real draft:\n\n*Subject:* ${row?.subject ?? ""}\n*Body:*\n${row?.body ?? ""}\n\n*Suggested audience:* ${row?.segment_suggestion ?? ""}`
+    ? sendResult?.ok
+      ? `<@${approverUserId}> approved *${row?.campaign_name ?? campaignId}* — email sent to ${sendResult.sentTo}.`
+      : `<@${approverUserId}> approved *${row?.campaign_name ?? campaignId}*, but the send failed (${sendResult?.error ?? "unknown error"}). Subject: ${row?.subject ?? ""}`
     : `<@${approverUserId}> rejected *${row?.campaign_name ?? campaignId}*.`;
 
   await slackApi(token, "chat.postMessage", {
@@ -65,10 +93,12 @@ export async function POST(request: Request) {
       channel: row.slack_channel,
       thread_ts: row.slack_thread_ts || undefined,
       text: approved
-        ? `Your ${row.campaign_type} campaign for ${row.account_name} was approved — PMM is building the real draft in CleverTap now.`
+        ? sendResult?.ok
+          ? `Your ${row.campaign_type} campaign for ${row.account_name} was approved and the email has gone out.`
+          : `Your ${row.campaign_type} campaign for ${row.account_name} was approved, but sending it failed — PMM has been notified.`
         : `Your ${row.campaign_type} campaign for ${row.account_name} was not approved this time. Ping the PMM channel if you want details.`,
     });
   }
 
-  return NextResponse.json({ ok: true, status });
+  return NextResponse.json({ ok: true, status, sendResult });
 }

@@ -180,7 +180,9 @@ export async function POST(request: Request) {
     body: JSON.stringify({ requestId, amName, accountName, campaignType, copy, creative }),
   }).then((r) => r.json());
 
-  // Tag the saved record with where it came from and where to post the approval.
+  // Tag the saved record with where it came from, so the PMM's approve/reject
+  // decision (posted by /api/campaign/draft, which is the one place both this
+  // chat bot and the modal flow funnel through) can notify the right person.
   if (draft.id && supabaseUrl && supabaseKey) {
     await fetch(`${supabaseUrl}/rest/v1/campaign_requests?id=eq.${draft.id}`, {
       method: "PATCH",
@@ -190,7 +192,6 @@ export async function POST(request: Request) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        status: "pending_approval",
         slack_channel: slackChannel,
         slack_thread_ts: threadTs ?? null,
       }),
@@ -201,41 +202,6 @@ export async function POST(request: Request) {
     channel: slackChannel,
     thread_ts: threadTs,
     text: `Got it — drafting the ${campaignType} campaign for ${accountName} now. I'll ping the PMM channel for approval and let you know what happens.`,
-  });
-
-  const pmmChannel = process.env.SLACK_PMM_CHANNEL_ID || slackChannel;
-  await slackApi(token, "chat.postMessage", {
-    channel: pmmChannel,
-    text: `New campaign draft ready for review: *${draft.campaignName}*`,
-    blocks: [
-      {
-        type: "section",
-        text: {
-          type: "mrkdwn",
-          text: `*${draft.campaignName}*\nRequested by <@${slackUser}>\n\n*Subject:* ${draft.subject}\n\n*Suggested audience:* ${draft.segmentSuggestion}`,
-        },
-      },
-      {
-        type: "actions",
-        block_id: "campaign_approval",
-        elements: [
-          {
-            type: "button",
-            text: { type: "plain_text", text: "Approve" },
-            style: "primary",
-            action_id: "approve_campaign",
-            value: draft.id ?? "",
-          },
-          {
-            type: "button",
-            text: { type: "plain_text", text: "Reject" },
-            style: "danger",
-            action_id: "reject_campaign",
-            value: draft.id ?? "",
-          },
-        ],
-      },
-    ],
   });
 
   return NextResponse.json({ ok: true, action: "draft", id: draft.id });
