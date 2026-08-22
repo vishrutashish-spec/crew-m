@@ -600,7 +600,15 @@ def analyze(text: str, channel: str, band: str, objective: str,
 # ---------------------------------------------------------------------------
 
 def predict(analysis: dict, channel: str, objective: str,
-            audience_sent: int | None = None) -> dict:
+            audience_sent: int | None = None, from_library: bool = False) -> dict:
+    """
+    from_library marks copy Crew M itself recommended, assembled out of the
+    shipped library, as opposed to copy someone pasted in to test. The library
+    case has copy-side precedent and passes every discipline check by
+    construction, so it is not reported at the same confidence as an untested
+    paste. The channel priors are modeled in both cases, which is why neither
+    ever reaches high confidence.
+    """
     base = A.CHANNEL_BENCHMARKS[channel]
     conv = A.OBJECTIVE_CONVERSION[objective]
     open_m, click_m, conv_m = 1.0, 1.0, 1.0
@@ -649,8 +657,16 @@ def predict(analysis: dict, channel: str, objective: str,
 
     out = {
         "label": "PREDICTED",
-        "confidence": "low",
-        "confidence_reason": A.BENCHMARK_PROVENANCE,
+        "confidence": A.CONFIDENCE_LIBRARY if from_library else A.CONFIDENCE_CUSTOM,
+        "confidence_reason": (A.CONFIDENCE_LIBRARY_REASON if from_library
+                              else A.CONFIDENCE_CUSTOM_REASON),
+        "from_library": from_library,
+        # What backs each row of the prediction, so the UI can show the basis
+        # instead of only a confidence word.
+        "basis": A.PREDICTION_BASIS,
+        "campaigns_in_account": A.CT_CAMPAIGNS_IN_ACCOUNT,
+        "journeys_in_account": A.CT_JOURNEYS_IN_ACCOUNT,
+        "library_size": LIBRARY_SIZE,
         "baseline": {"open": base["open"], "click": base["click"], "convert": conv},
         "predicted": {"open": round(open_rate, 4), "click": round(click_rate, 4),
                        "convert": round(conv_rate, 4)},
@@ -668,6 +684,16 @@ def predict(analysis: dict, channel: str, objective: str,
                           "opened": opened, "clicked": clicked, "converted": converted}
     return out
 
+
+# Size of the shipped copy library, counted rather than hardcoded so the
+# figure quoted in a prediction's basis cannot drift from the library.
+LIBRARY_SIZE = sum(
+    len(v) if isinstance(v, (list, tuple)) else 1
+    for name in ("WA_HC", "WA_TH", "WA_OTHER", "EMAIL_HC", "EMAIL_TH",
+                 "EMAIL_OTHER", "PUSH_HC", "PUSH_TH", "PUSH_OTHER")
+    if isinstance(globals().get(name), dict)
+    for v in globals()[name].values()
+)
 
 # ---------------------------------------------------------------------------
 # Generation
@@ -745,7 +771,8 @@ def generate(objective: str, cohort_keys: list[str], channel: str,
             a = analyze(raw["body"], channel, band, objective, title=raw["title"])
             # Utility category overrides the raw kind if the analysis disagrees:
             # the analysis is the arbiter, not the template's intent.
-            p = predict(a, channel, objective, audience_sent)
+            p = predict(a, channel, objective, audience_sent,
+                        from_library=True)
             variants.append({
                 "id": f"{objective}:{band}:{channel}:{i}",
                 "band": band,

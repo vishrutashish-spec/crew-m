@@ -45,8 +45,8 @@ const CREATIVE: Record<string, { src: string; alt: string }> = {
     alt: "Two people resting on a bench in evening light",
   },
   app_install: {
-    src: "/creative/skyline-dusk.png",
-    alt: "A city skyline at dusk",
+    src: "/creative/rest-bench.png",
+    alt: "Two people resting on a bench in evening light",
   },
   reengagement: {
     src: "/creative/rest-bench.png",

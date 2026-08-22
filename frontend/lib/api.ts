@@ -404,6 +404,12 @@ export interface CopyPrediction {
   label: string;
   confidence: string;
   confidence_reason: string;
+  /** True when Crew M recommended this copy out of the shipped library. */
+  from_library: boolean;
+  basis: { copy: string; delivery_open_click: string; convert: string };
+  campaigns_in_account: number;
+  journeys_in_account: number;
+  library_size: number;
   baseline: { open: number; click: number; convert: number };
   predicted: { open: number; click: number; convert: number };
   delta: { open: number; click: number; convert: number };
@@ -606,3 +612,40 @@ export const getTiming = (cohorts: string[]) =>
     `/api/timing?cohorts=${cohorts.join(",")}`);
 export const getSignalSuggestions = (cohorts: string[]) =>
   get<{ suggestions: string[] }>(`/api/signal/suggestions?cohorts=${cohorts.join(",")}`);
+
+/* --------------------------------------------------------------------------
+   CleverTap resync
+   -------------------------------------------------------------------------- */
+
+export interface ResyncField {
+  key: string; label: string;
+  anchored: number | null; live: number | null;
+  window: string; window_days: number; basis: string; event: string;
+  status: "moved" | "unchanged" | "failed" | "new";
+  drift?: number;
+}
+
+export interface ResyncResult {
+  ok: boolean;
+  requested_by: string;
+  pulled_at: string;
+  anchored_at: string;
+  scope: string;
+  dau_method: string;
+  fields: ResyncField[];
+  cannot_refresh: { field: string; reason: string }[];
+  refreshed?: number;
+  failed?: number;
+  error?: string;
+  live?: Record<string, number>;
+}
+
+export async function resyncCleverTap(requestedBy: string): Promise<ResyncResult> {
+  const r = await fetch(`${BASE}/api/ct/resync`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ requested_by: requestedBy }),
+  });
+  if (!r.ok) throw new Error(`Resync failed: ${r.status}`);
+  return r.json();
+}

@@ -3,12 +3,11 @@
 Drop the supplied artwork here, using these exact filenames. The WhatsApp
 message preview picks one per campaign objective (see components/wa-message.tsx).
 
-| Filename | The image it should be |
-|---|---|
-| `consult-handover.png` | Two colleagues at a desk, one handing over documents, glass wall onto planting behind |
-| `evening-call.png` | Desk phone by a window, city skyline at sunset |
-| `rest-bench.png` | Two people sitting back on a bench under a tree in evening light |
-| `skyline-dusk.png` | City skyline at dusk with a low sun and green foliage |
+| Filename | The image it should be | Used for |
+|---|---|---|
+| `consult-handover.png` | Two colleagues at a desk, one handing over documents, glass wall onto planting, plum logo bottom-left | Health checkup activation |
+| `evening-call.png` | Desk phone by a window, city skyline at sunset | Telehealth activation |
+| `rest-bench.png` | Two people sitting back on a bench under a tree in evening light | Cross-sell, app install, re-engagement |
 
 Rules for this folder:
 

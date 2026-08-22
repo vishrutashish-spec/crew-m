@@ -8,8 +8,8 @@
 
 import { useEffect, useState } from "react";
 import {
-  getMethodology, getVerification, getRules, API_BASE,
-  type Methodology, type DecisionParam,
+  getMethodology, getVerification, getRules, resyncCleverTap, API_BASE, n,
+  type Methodology, type DecisionParam, type ResyncResult,
 } from "@/lib/api";
 import {
   Panel, PanelHead, Chip, Stat, ErrorState, Skeleton, PageBanner, ProvenanceNote,

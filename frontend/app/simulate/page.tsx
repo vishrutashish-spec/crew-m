@@ -584,6 +584,7 @@ function VariantCard({ v, objective }: { v: CopyVariant; objective: string }) {
 }
 
 function PredictionRow({ p }: { p: CopyPrediction }) {
+  const [why, setWhy] = useState(false);
   const cell = (label: string, base: number, pred: number, delta: number, dp = 1) => (
     <div>
       <p className="label-mono !text-[8.5px] mb-1">{label}</p>
@@ -601,10 +602,50 @@ function PredictionRow({ p }: { p: CopyPrediction }) {
   );
   return (
     <div className="mt-3 rounded-lg border border-border bg-[color:var(--card)] px-3.5 py-2.5">
-      <div className="flex items-center gap-2 mb-2">
+      <div className="meta-row !mb-2">
         <Chip kind="PREDICTED" title={p.confidence_reason} />
-        <span className="text-[10px] text-muted-foreground">{p.confidence} confidence, deltas vs channel prior</span>
+        {/* A confidence caveat belongs on copy someone is testing. Crew M's own
+            recommendation states what it was modelled from instead. */}
+        <span className="text-[10px] text-muted-foreground">
+          {p.from_library
+            ? `modelled from ${p.library_size} shipped messages, deltas vs channel prior`
+            : `${p.confidence} confidence, deltas vs channel prior`}
+        </span>
+        <button onClick={() => setWhy(!why)}
+          className="ml-auto text-[10px] text-[color:var(--cyan-deep)] hover:underline flex-shrink-0">
+          {why ? "Hide basis" : "What predicted this"}
+        </button>
       </div>
+
+      {why && (
+        <div className="mb-3 rounded-lg border border-border bg-[color:var(--muted)] p-3 space-y-2">
+          {([
+            ["Copy", p.basis.copy],
+            ["Delivery, open, click", p.basis.delivery_open_click],
+            ["Convert", p.basis.convert],
+          ] as const).map(([k, v]) => (
+            <div key={k}>
+              <span className="label-mono !text-[8.5px]">{k}</span>
+              <p className="text-[10.5px] text-muted-foreground leading-relaxed mt-0.5">{v}</p>
+            </div>
+          ))}
+          {p.factors.length > 0 && (
+            <div className="pt-2 border-t border-border">
+              <span className="label-mono !text-[8.5px]">Style rules that moved it</span>
+              <ul className="mt-1 space-y-1">
+                {p.factors.map((f) => (
+                  <li key={f} className="text-[10.5px] text-muted-foreground leading-relaxed flex gap-1.5">
+                    <span className="text-[color:var(--cyan-deep)]">·</span>{f}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          <p className="text-[10px] text-muted-foreground pt-2 border-t border-border">
+            {p.confidence_reason}
+          </p>
+        </div>
+      )}
       <div className="grid grid-cols-3 md:grid-cols-4 gap-3">
         {cell("Open", p.baseline.open, p.predicted.open, p.delta.open)}
         {cell("Click", p.baseline.click, p.predicted.click, p.delta.click)}
