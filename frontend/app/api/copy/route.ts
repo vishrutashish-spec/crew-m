@@ -11,14 +11,12 @@ interface GenerateCopyRequest {
   logoFileId?: string;
   logoUrl?: string;
   slackUser?: string;
-  /** Free-text policy limits pasted by the AM in the /crew-m modal. */
-  benefitsSupplied?: string;
 }
 
 const COPY_SKILL_PATH = path.join(process.cwd(), "lib", "prompts", "copy-skill.md");
 
 export async function POST(request: Request) {
-  const { requestId, amName, accountName, campaignType, logoUrl, benefitsSupplied } =
+  const { requestId, amName, accountName, campaignType, logoUrl } =
     (await request.json()) as GenerateCopyRequest;
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -39,24 +37,15 @@ export async function POST(request: Request) {
     : new Date().getFullYear();
   const yearLabel = `${startYear}-${String((startYear + 1) % 100).padStart(2, "0")}`;
 
-  // AM-supplied limits are treated as verified: they come off the policy
-  // schedule and are the only source for maternity, ambulance, LASIK and Ayush,
-  // which are in no warehouse dataset.
-  const supplied = benefitsSupplied?.trim();
-  const suppliedBlock = supplied
-    ? `\n\nAdditional policy benefits supplied by the account manager. Treat these
-as verified and quote them exactly as written:\n\n${supplied}`
-    : "";
-
   const knownFacts = facts
     ? `Verified policy facts, read from Plum's warehouse. Quote these exactly.
 Do not alter, round, reformat or embellish any figure or date:
 
-${factsForPrompt(facts)}${suppliedBlock}`
+${factsForPrompt(facts)}`
     : `No verified policy data is on file for this account. Write every section
 below, but state NO insurer name, date, sum insured, maternity limit, copay or
 any other specific. Where a specific belongs, write that the detail will follow
-shortly. Never invent a figure and never write a placeholder like "[insurer]".${suppliedBlock}`;
+shortly. Never invent a figure and never write a placeholder like "[insurer]".`;
 
   const userPrompt = `Write the body copy for a ${isRenewal ? "RENEWAL" : "WELCOME"} benefits email to employees of "${accountName}".
 Requested by account manager ${amName}.

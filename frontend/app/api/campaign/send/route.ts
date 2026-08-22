@@ -14,7 +14,19 @@ import { NextResponse } from "next/server";
  */
 const ONLY_RECIPIENT = "oshin.sharma@plumhq.com";
 
-const ASSETS = "https://iw-crew-m-c4b9.insurwreck.com/email-assets";
+/**
+ * Email images are hosted in a SEPARATE Vercel project, not in this app.
+ *
+ * They lived in frontend/public/email-assets and kept 404-ing: teammates
+ * deploy this project from their own local trees, and any deploy from a tree
+ * without those files silently replaces production and breaks every image in
+ * every email already sent. Pushing to GitHub did not fix it, because a
+ * teammate deploying from a stale local checkout still wins.
+ *
+ * The assets project is deployed independently and nothing in the app's deploy
+ * cycle can touch it. Update it by redeploying that folder, not this one.
+ */
+const ASSETS = process.env.EMAIL_ASSETS_BASE ?? "https://iw-crew-m-email-assets.vercel.app";
 const FOOTER_DESKTOP = `${ASSETS}/footer-desktop-v2.png`;
 const FOOTER_MOBILE = `${ASSETS}/footer-mobile-v2.png`;
 const BENEFITS_DEEPLINK = "https://deeplink.plumhq.com/benefits";
@@ -106,11 +118,30 @@ function bodyToHtml(body: string) {
   return out.join("\n");
 }
 
+
+/**
+ * The CTA should not be the last thing before the footer. Split the body so a
+ * closing section (in practice "Reaching out to Plum") renders BELOW the
+ * button. Falls back to putting everything above if no such heading exists.
+ */
+function splitAtClosingSection(body: string): { above: string; below: string } {
+  const lines = body.split("\n");
+  const idx = lines.findIndex((l) =>
+    /^\s*(reaching out to plum|reaching us)\s*:?\s*$/i.test(l)
+  );
+  if (idx === -1) return { above: body, below: "" };
+  return {
+    above: lines.slice(0, idx).join("\n").trimEnd(),
+    below: lines.slice(idx).join("\n").trim(),
+  };
+}
+
 function buildHtml(opts: {
   subject: string; body: string;
   desktopHeader?: string; mobileHeader?: string;
 }) {
   const { body, desktopHeader, mobileHeader } = opts;
+  const { above, below } = splitAtClosingSection(body);
   const header = (src: string, cls: string, extra: string) => `
   <div class="${cls}"${extra}>
     <a href="${BENEFITS_DEEPLINK}" style="display:block;">
@@ -146,7 +177,7 @@ ${mobileHeader ? header(mobileHeader, "mobile-only", ` style="display:none; max-
 </td></tr>
 
 <tr><td class="body-pad" style="padding:32px 40px 8px 40px; font-family:Inter, Helvetica, Arial, sans-serif; font-size:16px; line-height:1.6; color:#3A0E2B;">
-${bodyToHtml(body)}
+${bodyToHtml(above)}
 </td></tr>
 
 <tr><td class="cta" align="center" style="padding:8px 40px 28px 40px;">
@@ -155,6 +186,10 @@ ${bodyToHtml(body)}
 <a href="${BENEFITS_DEEPLINK}" style="display:inline-block; padding:11px 22px; font-family:Inter, Helvetica, Arial, sans-serif; font-size:15px; font-weight:600; line-height:1.4; color:#FFFFFF; text-decoration:none; border-radius:8px;">See what your plan covers</a>
 </td></tr></table>
 </td></tr>
+
+${below ? `<tr><td class="body-pad" style="padding:4px 40px 30px 40px; font-family:Inter, Helvetica, Arial, sans-serif; font-size:16px; line-height:1.6; color:#3A0E2B;">
+${bodyToHtml(below)}
+</td></tr>` : ""}
 
 <tr><td style="padding:0; font-size:0; line-height:0;">
   <div class="desktop-only">
