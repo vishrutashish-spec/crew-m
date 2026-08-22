@@ -26,42 +26,24 @@
  * move. Quiet confidence instead of choreography.
  */
 
-export function CrewMWordmark({ width = 182 }: { width?: number }) {
-  const height = Math.round(width * (44 / 190));
+export function CrewMWordmark({ width = 172 }: { width?: number }) {
+  const height = Math.round(width * (46 / 168));
   return (
-    <svg width={width} height={height} viewBox="0 0 190 44" fill="none"
+    <svg width={width} height={height} viewBox="0 0 168 46" fill="none"
       aria-label="Crew M" style={{ display: "block", overflow: "visible" }}>
       <defs>
-        <linearGradient id="wm-g" x1="0" y1="8" x2="190" y2="36" gradientUnits="userSpaceOnUse">
+        <linearGradient id="wm-g" x1="0" y1="8" x2="168" y2="38" gradientUnits="userSpaceOnUse">
           <stop offset="0" stopColor="#0E9AA7" />
-          <stop offset="0.4" stopColor="#22C8D6" />
-          <stop offset="0.7" stopColor="#4FE3C1" />
+          <stop offset="0.42" stopColor="#22C8D6" />
+          <stop offset="0.72" stopColor="#4FE3C1" />
           <stop offset="1" stopColor="#3B82F6" />
         </linearGradient>
       </defs>
-      {/*
-        Geometric sport lettering: monoline strokes, true circular bowls, one
-        shared radius across c, e and the m arches. Broad and round rather
-        than pointy. A full 22px word gap keeps "Crew" and "M" separate, which
-        the tighter first cut did not. Static gradient, no motion, no node.
-      */}
-      <g stroke="url(#wm-g)" strokeWidth="6.6" strokeLinecap="round"
-         strokeLinejoin="round" fill="none">
-        {/* C: three-quarter circle, open to the right */}
-        <path d="M28.5 16 A10.5 10.5 0 1 0 28.5 34" />
-        {/* r: stem plus a quarter-arc shoulder */}
-        <path d="M45 35 V15.5" />
-        <path d="M45 20 A7 7 0 0 1 56.5 21.5" />
-        {/* e: circular bowl, flat crossbar, open lower right */}
-        <path d="M79 30 A10.5 10.5 0 1 0 70.5 35" />
-        <path d="M58.5 24.5 H79.5" />
-        {/* w: broad rounded double-v */}
-        <path d="M90 15 L96.5 35 L103 22.5 L109.5 35 L116 15" />
-        {/* M: stem plus two circular arches, set after a clear word gap */}
-        <path d="M138 35 V15" />
-        <path d="M138 22 A8.5 8.5 0 0 1 155 22 V35" />
-        <path d="M155 22 A8.5 8.5 0 0 1 172 22 V35" />
-      </g>
+      {/* Brigold: tall condensed sans, static cyan-spectrum gradient, no motion */}
+      <text x="0" y="34" fontFamily="Brigold, Vollkorn, Georgia, serif"
+        fontSize="38" letterSpacing="1.5" fill="url(#wm-g)">
+        Crew M
+      </text>
     </svg>
   );
 }

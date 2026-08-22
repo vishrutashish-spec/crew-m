@@ -91,11 +91,11 @@ export default function CohortsPage() {
         </div>
       )}
 
+      {!list ? <Skeleton /> : <CohortCompare cohorts={list.cohorts} />}
+
       <div className="rise d2">
         <SignalChat cohortKeys={[active]} org={org === "all" ? null : org} />
       </div>
-
-      {!list ? <Skeleton /> : <CohortCompare cohorts={list.cohorts} />}
 
       {detail ? (
         <Detail detail={detail} org={org} />

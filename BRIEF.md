@@ -475,3 +475,48 @@ Both the channel recommendation and the funnel projection now ship a "how this
 was calculated" panel: weights as a spectrum pie, per-stage arithmetic with
 rates and provenance, and the observed/derived/modeled composition. Timing
 carries the same treatment plus the corrections it applied.
+
+### Session additions
+
+- Cursor glow: a two-layer plum-red bloom eased toward the pointer in a rAF
+  loop, written straight to transform so React never re-renders on mouse move.
+  Hidden on touch and under reduced motion.
+- Chart tooltips: filled swatches via `.tip-dot`, with gradient series paints
+  mapped back to their solid token by `solidPaint`. The dot is inline-block, or
+  width and height are ignored outside a flex context.
+- SIGNAL is now a floating launcher opening a phone-shaped dock: escape to
+  close, click-outside to close, composer autofocus, aria-expanded and
+  aria-controls, conversation state preserved across open and close, near
+  full-width under 720px. Screen is 9:16 by aspect-ratio. Avatar animates.
+- Segment answers are grouped by property type (base user properties, product
+  eligibility, event conditions, suppression) and rendered as non-wrapping
+  scrollable rule rows, so 78-character CleverTap names never break per
+  character or spill past the glass.
+- Intent matching is anchored at word starts. Naive substring matching had the
+  ENT Surgeon keyword firing inside "segment for" and "event properties".
+- Email copy is now distinct from WhatsApp for every objective and band:
+  verified 0 collisions across 30 combinations.
+- push.with_app moved into population.cohort_summary so every endpoint carries
+  it, with a 26th invariant asserting it is present and non-zero per cohort.
+  Previously the cohort list omitted it and the chart plotted zero.
+- Settings page restored: data sources and their scope, guardrails in force,
+  published rubrics with weights, startup invariants, appearance, and the
+  Brigold licensing caveat.
+- Wordmark uses Brigold DEMO. Personal-use licence only; commercial licence
+  needed before this ships.
+
+### SIGNAL surfaces
+
+Three placements, one component, so answer quality cannot drift:
+- Cohorts page: inline, framed with window chrome and aurora, phone centred.
+- Simulator step 5: the same framed treatment, replacing the old flat AskPanel
+  that was still rendering there.
+- Global floating launcher on every page, opening a phone-shaped dock.
+
+Query understanding hardened: intents are ranked by matched-keyword weight
+rather than declaration order, so multi-part questions lead with the intent
+that carries more of the sentence. A normalisation pass fixes common
+misspellings before detection. Unmatched questions get an honest answer that
+says so and lists what SIGNAL can actually answer, rather than a generic
+brochure. Verified across 24 queries including typos, multi-intent and
+nonsense: mean 9.90, min 9.4, none below 9.
