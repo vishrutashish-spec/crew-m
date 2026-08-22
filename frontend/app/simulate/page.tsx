@@ -17,6 +17,7 @@ import {
 } from "@/components/kit";
 import { ChannelGlyph, ChannelTickY, PlumGlyph, WhatsAppGlyph, GmailGlyph } from "@/components/logos";
 import { SignalChat } from "@/components/signal-chat";
+import { WaMessage } from "@/components/wa-message";
 import {
   CartesianGrid,
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, LabelList,
@@ -492,7 +493,14 @@ function CopyStudio({
             </button>
           </div>
           {customResult && (
-            <AnalysisBlock analysis={customResult.analysis} prediction={customResult.prediction} channel={channel} />
+            <div className="space-y-3">
+              {/* Preview your own words in the real message shape, not just scored */}
+              {channel === "whatsapp" && customText.trim() && (
+                <WaMessage body={customText} objective={objective}
+                  category={customResult.analysis.category} />
+              )}
+              <AnalysisBlock analysis={customResult.analysis} prediction={customResult.prediction} channel={channel} />
+            </div>
           )}
         </div>
       </div>
@@ -502,7 +510,7 @@ function CopyStudio({
 
 /* ---------------------------------------------------------------- variants */
 
-function VariantCard({ v }: { v: CopyVariant }) {
+function VariantCard({ v, objective }: { v: CopyVariant; objective: string }) {
   const [open, setOpen] = useState(false);
   const a = v.analysis;
 
@@ -515,12 +523,7 @@ function VariantCard({ v }: { v: CopyVariant }) {
       <div className="p-4">
         {/* Message preview */}
         {v.channel === "whatsapp" && (
-          <div className="flex items-start gap-2.5">
-            <WhatsAppGlyph size={20} />
-            <div className="flex-1 rounded-xl rounded-tl-sm border border-border bg-[color:var(--wa-bubble)] px-3.5 py-3">
-              <p className="text-[12px] leading-relaxed whitespace-pre-line">{v.body}</p>
-            </div>
-          </div>
+          <WaMessage body={v.body} objective={objective} category={a.category} />
         )}
         {v.channel === "push" && (
           <div className="flex items-start gap-2.5 rounded-xl border border-border bg-[color:var(--muted)] px-3.5 py-3">
