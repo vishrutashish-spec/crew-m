@@ -263,7 +263,7 @@ action being promoted, and end with "${accountName}<> Plum".`;
   if (wordCount < MIN_WORDS) {
     console.error(
       `copy generation too short for ${accountName}: ${wordCount} words (min ${MIN_WORDS})`,
-      JSON.stringify({ stopReason: data?.stop_reason, usage: data?.usage })
+      JSON.stringify({ rawPreview: text.slice(0, 300) })
     );
     return NextResponse.json(
       { error: "copy_too_short", words: wordCount, minimum: MIN_WORDS },
