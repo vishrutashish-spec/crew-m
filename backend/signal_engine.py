@@ -133,8 +133,17 @@ def _kw_hit(low: str, kw: str) -> bool:
     anchor keeps stems working while still killing the bug that mattered, where
     the ENT keyword matched inside "segment for" and "event properties" because
     the "ent" there is preceded by a letter.
+
+    A keyword prefixed with "=" opts into a FULL word boundary instead, for
+    short words where a start anchor is not enough. "man" was matching "many"
+    and "management", and "men" was matching "mental health", so a question
+    like "how many people can I reach" was being read as a question about men.
     """
-    return re.search(r"(?<![a-z])" + re.escape(kw.strip()), low) is not None
+    kw = kw.strip()
+    if kw.startswith("="):
+        return re.search(r"(?<![a-z])" + re.escape(kw[1:]) + r"(?![a-z])",
+                         low) is not None
+    return re.search(r"(?<![a-z])" + re.escape(kw), low) is not None
 
 
 # Common misspellings and shorthand seen in real use. Normalised before intent
