@@ -377,11 +377,13 @@ function FunnelPanel({
   stages: Overview["totals"]["th_funnel"];
   className?: string;
 }) {
+  // The worst stage is still the steepest single-step drop, since that is what
+  // names the bottleneck. What gets LABELLED is the share of the first stage.
   const worst = stages.slice(1).reduce((min, s) => (s.from_prev < min.from_prev ? s : min), stages[1]);
   const data = stages.map((s) => ({
     stage: s.stage,
     count: s.count,
-    step: s.from_prev,
+    step: s.cumulative,          // share of stage one, never of the previous stage
     isWorst: s.stage === worst?.stage,
   }));
 
