@@ -84,13 +84,29 @@ const BY_ANGLE: Record<string, ArtKey> = {
   checkpoint: "consult",
 };
 
+/** Fixed order, so an offset walks the set deterministically. */
+const ART_ORDER: ArtKey[] = ["evening", "consult", "rest"];
+
+/**
+ * The creative for one message.
+ *
+ * `angle` picks the starting image, so switching angle tabs switches the
+ * picture. `offset` then walks forward through the set, so the several
+ * variants shown together on one screen never repeat the same image. Without
+ * the offset every card on the page carried identical artwork, which reads as
+ * no variety at all even though the angle really was changing it.
+ */
 export function creativeFor(
   objective: string | null | undefined,
   angle?: string | null,
+  offset = 0,
 ) {
-  const key = (angle && BY_ANGLE[angle])
+  const base = (angle && BY_ANGLE[angle])
     || (objective && BY_OBJECTIVE[objective])
     || "evening";
+  const i = ART_ORDER.indexOf(base);
+  const key = ART_ORDER[(((i < 0 ? 0 : i) + offset) % ART_ORDER.length
+    + ART_ORDER.length) % ART_ORDER.length];
   return ART[key];
 }
 
@@ -107,6 +123,7 @@ export function WaMessage({
   body,
   objective,
   angle,
+  offset = 0,
   category,
   time = "10:04",
   showMedia = true,
@@ -115,12 +132,14 @@ export function WaMessage({
   objective?: string | null;
   /** Messaging angle, which selects the creative alongside the objective. */
   angle?: string | null;
+  /** Position among the variants on screen, so siblings never share an image. */
+  offset?: number;
   /** WhatsApp template category. Only marketing templates carry a CTA row. */
   category?: string;
   time?: string;
   showMedia?: boolean;
 }) {
-  const art = creativeFor(objective, angle);
+  const art = creativeFor(objective, angle, offset);
   const cta = (objective && CTA[objective]) || "Book a consult";
   const marketing = category === "marketing";
   // Reset when the objective changes, so a newly-placed file is picked up.
