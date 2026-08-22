@@ -19,7 +19,7 @@ const N = (key: string, label: string, subject: string, body: string): HraNarrat
 
 export const HRA_NARRATIVES: HraNarrative[] = [
   N("curiosity", "Curiosity about your body", "What's your body not telling you?", `
-Hey {{name}},
+Hey there,
 
 Have you been feeling tired lately, or noticed an ache that comes and goes? Here's the truth: nobody's actually built a way for you to check what those signals mean, until now. Meet your health assessment, right at the center of the new Plum app home.
 
@@ -46,7 +46,7 @@ Plum
 `),
 
   N("early-detection", "Early detection", "Catch it before it becomes a problem", `
-Hey {{name}},
+Hey there,
 
 Most health issues don't show symptoms right away. By the time you notice something's wrong, it's often been building for years. That's what your health assessment is built to catch, early enough to actually do something about it. It's now right at the center of the new Plum app home.
 
@@ -73,7 +73,7 @@ Plum
 `),
 
   N("personalization", "Personalization", "Generic health advice was never going to work for you", `
-Hey {{name}},
+Hey there,
 
 Drink more water. Sleep 8 hours. Move more. You've heard it all, and none of it accounts for your actual body. Your health assessment is built to fix that, ten questions that turn into a plan made for you, not a generic one. It's now right at the center of the new Plum app home.
 
@@ -100,7 +100,7 @@ Plum
 `),
 
   N("social-proof", "Social proof / benchmark", "What does your health score look like next to your team's?", `
-Hey {{name}},
+Hey there,
 
 Something we noticed: most people vastly overestimate how healthy they are, until they actually check. Less than half of people who take their health assessment score as well as they expected.
 
@@ -115,7 +115,7 @@ Plum
 `),
 
   N("free", "Free of cost", "This is already yours, might as well use it", `
-Hey {{name}},
+Hey there,
 
 Your Plum plan already includes a full health assessment, heart risk, sleep, stress, aches, nutrition, activity, and mental wellbeing, covered, no extra cost, no fine print.
 
@@ -126,7 +126,7 @@ Plum
 `),
 
   N("self-id", "Self-identification / quiz", "Which one sounds like you?", `
-Hey {{name}},
+Hey there,
 
 You sleep 8 hours and still feel like 4. You've stopped mentioning the stress, it's just background noise now. You've got an ache you've learned to work around instead of fixing. You genuinely don't know your family's heart health history.
 
@@ -137,7 +137,7 @@ Plum
 `),
 
   N("myth-busting", "Myth-busting", `"I feel fine" isn't the same as "I'm fine"`, `
-Hey {{name}},
+Hey there,
 
 Three things people usually get wrong about their own health:
 
@@ -154,7 +154,7 @@ Plum
 `),
 
   N("anecdote", "Anecdote-led", "The checkup that would've told him sooner", `
-Hey {{name}},
+Hey there,
 
 A colleague of ours brushed off feeling tired for months. Just work stress, he figured. Turned out his sleep, his stress, and a family history he'd never really looked at were all pointing the same direction, he just hadn't connected the dots.
 
@@ -173,7 +173,7 @@ Plum
 `),
 
   N("minimalist", "Ultra-minimalist", "Ten questions. Ten minutes.", `
-Hey {{name}},
+Hey there,
 
 Your health assessment is ready.
 
