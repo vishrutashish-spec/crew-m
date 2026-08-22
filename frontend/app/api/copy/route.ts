@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import fs from "node:fs";
 import path from "node:path";
 import { lookupAccountFacts, factsForPrompt } from "@/lib/account-facts";
+import { getHraNarrative, renderHraBody } from "@/lib/hra-narratives";
 
 interface GenerateCopyRequest {
   requestId: string;
@@ -14,6 +15,8 @@ interface GenerateCopyRequest {
   logoFileId?: string;
   logoUrl?: string;
   slackUser?: string;
+  /** Pick a specific HRA narrative by key; omitted rotates deterministically. */
+  narrative?: string;
 }
 
 const COPY_SKILL_PATH = path.join(process.cwd(), "lib", "prompts", "copy-skill.md");
@@ -53,7 +56,7 @@ function lookupProductAngle(text: string) {
 }
 
 export async function POST(request: Request) {
-  const { requestId, amName, accountName, campaignType, campaignBrief, logoUrl } =
+  const { requestId, amName, accountName, campaignType, campaignBrief, logoUrl, narrative } =
     (await request.json()) as GenerateCopyRequest;
 
   const normalizedType = String(campaignType).toLowerCase();
@@ -66,6 +69,19 @@ export async function POST(request: Request) {
   }
 
   const copySkill = fs.readFileSync(COPY_SKILL_PATH, "utf-8");
+
+  // HRA adoption uses the team's own hand-written narratives verbatim. These
+  // are deliberate marketing copy; sending them through the model would only
+  // degrade them, so this path never calls the LLM at all.
+  if (/^hra$/i.test(String(campaignType).trim())) {
+    const seed = [...String(requestId ?? "")].reduce((a, c) => a + c.charCodeAt(0), 0);
+    const n = getHraNarrative(narrative, seed);
+    const body = renderHraBody(n, (amName ?? "there").trim().split(/\s+/)[0] || "there");
+    return NextResponse.json({
+      requestId, accountName, campaignType,
+      subject: n.subject, body, narrative: n.key, narrativeLabel: n.label,
+    });
+  }
 
   const facts = lookupAccountFacts(accountName);
   const isRenewal = normalizedType === "renewal";

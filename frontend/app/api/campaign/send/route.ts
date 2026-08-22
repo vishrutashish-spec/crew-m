@@ -37,6 +37,7 @@ const BENEFITS_DEEPLINK = "https://deeplink.plumhq.com/benefits";
  * the right in-app screen instead of the generic benefits page.
  */
 const PRODUCT_DEEPLINKS: Array<{ match: RegExp; url: string }> = [
+  { match: /\bhra\b|health\s*risk\s*assessment/i, url: "https://deeplink.plumhq.com/home?screen=hra" },
   { match: /health\s*-?\s*check\s*-?up|\bhc\b/i, url: "https://deeplink.plumhq.com/home?screen=hc" },
   { match: /tele\s*-?\s*health|\bth\b|doctor\s*consult|teleconsult/i, url: "https://deeplink.plumhq.com/care" },
 ];
@@ -82,6 +83,12 @@ const ACCOUNT_CREATIVES: Record<string, { desktop: string; mobile: string }> = {
 };
 
 const GENERIC_HEADERS: Record<string, { desktop: string; mobile: string }> = {
+  // HRA is a Plum product campaign, not client co-branded - these templates
+  // (Figma 160:620 / 160:638) have no partner logo slot by design.
+  hra: {
+    desktop: `${ASSETS}/hra-desktop.png`,
+    mobile: `${ASSETS}/hra-mobile.png`,
+  },
   welcome: {
     desktop: `${ASSETS}/generic-welcome-desktop.png`,
     mobile: `${ASSETS}/generic-welcome-mobile.png`,
@@ -94,7 +101,7 @@ const GENERIC_HEADERS: Record<string, { desktop: string; mobile: string }> = {
 // plumhq.app.link and deeplink.plumhq.com are JS interstitials that render
 // blank in several mail clients (confirmed 2026-08-22). Link the stores
 // directly, exactly as the production Open Financial email does.
-const PLAY_STORE = "https://play.google.com/store/apps/details?id=com.plumhq.employee.production";
+const APP_DOWNLOAD = "https://plumhq.app.link";
 
 interface SendRequest {
   requestId?: string;
@@ -162,8 +169,9 @@ function buildHtml(opts: {
   desktopHeader?: string; mobileHeader?: string;
   deeplink: string;
   headerAlt?: string;
+  ctaLabel: string;
 }) {
-  const { body, desktopHeader, mobileHeader, deeplink, headerAlt } = opts;
+  const { body, desktopHeader, mobileHeader, deeplink, headerAlt, ctaLabel } = opts;
   const { above, below } = splitAtClosingSection(body);
   // Headline, subtext and the co-branding lockup are all baked into this PNG
   // (deliberate - GT Alpina cannot load as a webfont in email). So when a
@@ -214,7 +222,7 @@ ${bodyToHtml(above)}
 <tr><td class="cta" align="center" style="padding:8px 40px 28px 40px;">
 <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
 <td align="center" bgcolor="#571541" style="border-radius:8px;">
-<a href="${deeplink}" style="display:inline-block; padding:11px 22px; font-family:Inter, Helvetica, Arial, sans-serif; font-size:15px; font-weight:600; line-height:1.4; color:#FFFFFF; text-decoration:none; border-radius:8px;">See what your plan covers</a>
+<a href="${deeplink}" style="display:inline-block; padding:11px 22px; font-family:Inter, Helvetica, Arial, sans-serif; font-size:15px; font-weight:600; line-height:1.4; color:#FFFFFF; text-decoration:none; border-radius:8px;">${ctaLabel}</a>
 </td></tr></table>
 </td></tr>
 
@@ -224,12 +232,12 @@ ${bodyToHtml(below)}
 
 <tr><td style="padding:0; font-size:0; line-height:0;">
   <div class="desktop-only">
-    <a href="${PLAY_STORE}" style="display:block;">
+    <a href="${APP_DOWNLOAD}" style="display:block;">
       <img src="${FOOTER_DESKTOP}" alt="Download the Plum app" style="display:block; width:100%; height:auto; border:0; background-color:#F7EEF3; font-family:Inter, Helvetica, Arial, sans-serif; font-size:14px; color:#3A0E2B; text-align:center;">
     </a>
   </div>
   <div class="mobile-only" style="display:none; max-height:0; overflow:hidden;">
-    <a href="${PLAY_STORE}" style="display:block;">
+    <a href="${APP_DOWNLOAD}" style="display:block;">
       <img src="${FOOTER_MOBILE}" alt="Download the Plum app" style="display:block; width:100%; height:auto; border:0; background-color:#F7EEF3; font-family:Inter, Helvetica, Arial, sans-serif; font-size:14px; color:#3A0E2B; text-align:center;">
     </a>
   </div>
@@ -259,6 +267,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "resend_not_configured" }, { status: 500 });
   }
 
+  const typeKey = (campaignType ?? "").trim().toLowerCase();
   const subject = copy?.subject?.trim();
   const body = copy?.body?.trim();
   if (!subject || !body) {
@@ -268,10 +277,14 @@ export async function POST(request: Request) {
   // Second gate, in case a caller assembles copy without going through
   // /api/copy: never send a body that is obviously a failed generation.
   const words = body.split(/\s+/).length;
-  if (words < 150) {
-    console.error(`refusing to send ${accountName}: body is only ${words} words`);
+  // HRA narratives are deliberately short - the minimalist one is 24 words -
+  // so the failed-generation floor only really applies to model-written copy.
+  // Keep a low floor here purely to catch an empty body.
+  const minWords = /^hra$/i.test(typeKey) ? 12 : 150;
+  if (words < minWords) {
+    console.error(`refusing to send ${accountName}: body is only ${words} words (min ${minWords})`);
     return NextResponse.json(
-      { ok: false, error: "body_too_short", words, minimum: 150 },
+      { ok: false, error: "body_too_short", words, minimum: minWords },
       { status: 400 }
     );
   }
@@ -281,7 +294,6 @@ export async function POST(request: Request) {
   // Header precedence: a creative passed in by the pipeline, then this
   // account's own co-branded creative, then the generic one for this campaign
   // type.
-  const typeKey = (campaignType ?? "").trim().toLowerCase();
   const acctKey = `${(accountName ?? "").trim().toLowerCase()}|${typeKey}`;
   const account = ACCOUNT_CREATIVES[acctKey];
   // No bespoke or generic header exists yet for anything beyond welcome/
@@ -310,10 +322,13 @@ export async function POST(request: Request) {
   const deeplink = deeplinkFor(typeKey);
 
   // Carries the baked-in header message for clients that block images.
-  const greeting = typeKey === "renewal" ? "Welcome back!" : "Welcome to Plum!";
-  const headerAlt =
-    `${greeting} ${accountName ?? ""} and Plum. `.replace(/\s+/g, " ") +
-    "Your health and wellness benefits are on their way.";
+  const headerAlt = /^hra$/i.test(typeKey)
+    ? "Meet your Health Risk Assessment. Answer a few questions and personalise your health journey."
+    : `${typeKey === "renewal" ? "Welcome back!" : "Welcome to Plum!"} ${accountName ?? ""} and Plum. `
+        .replace(/\s+/g, " ") + "Your health and wellness benefits are on their way.";
+
+  const isHra = /^hra$/i.test(typeKey);
+  const ctaLabel = isHra ? "Take your health assessment" : "See what your plan covers";
 
   const html = buildHtml({
     subject, body,
@@ -321,6 +336,7 @@ export async function POST(request: Request) {
     mobileHeader: chosen?.mobile,
     deeplink,
     headerAlt,
+    ctaLabel,
   });
 
   if (preview) {
