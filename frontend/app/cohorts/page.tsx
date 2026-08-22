@@ -10,6 +10,8 @@ import {
   InsightCard, ErrorState, Skeleton, ChartTip, AXIS, SeriesDefs, GRAD, PageBanner,
 } from "@/components/kit";
 import { ChannelGlyph } from "@/components/logos";
+import { SignalChat } from "@/components/signal-chat";
+import { getCohortIntel, type CohortIntel } from "@/lib/api";
 import {
   CartesianGrid,
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
@@ -90,6 +92,10 @@ export default function CohortsPage() {
       )}
 
       {!list ? <Skeleton /> : <CohortCompare cohorts={list.cohorts} />}
+
+      <div className="rise d2">
+        <SignalChat cohortKeys={[active]} org={org === "all" ? null : org} />
+      </div>
 
       {detail ? (
         <Detail detail={detail} org={org} />
@@ -210,21 +216,23 @@ function Detail({ detail, org }: { detail: CohortDetail; org: string }) {
     <div className="space-y-5">
       {/* ---- Cohort header ---- */}
       <Panel ground="aurora" ticked className="p-6 rise">
-        <div className="relative grid grid-cols-12 gap-7 items-center">
+        <div className="relative grid grid-cols-12 gap-7 items-start">
           <div className="col-span-12 lg:col-span-3">
-            <div className="flex items-center gap-2 mb-2">
+            {/* meta row keeps this label/chip pair on the same baseline as
+                every Stat beside it, so the row scans as one line */}
+            <div className="meta-row">
               <span className="label-mono">Cohort</span>
               <Chip kind="MODELED" title="Age composition is modeled: see methodology" />
             </div>
-            <h2 className="text-[32px] leading-none">{c.label}</h2>
-            <p className="figure text-[26px] mt-3">{n(c.total)}</p>
-            <p className="text-[11.5px] text-muted-foreground mt-1.5">
+            <h2 className="section-title !text-[34px] !leading-none">{c.label}</h2>
+            <p className="figure text-[28px] mt-3">{n(c.total)}</p>
+            <p className="text-[12px] text-muted-foreground mt-2">
               {pct(c.share_of_base)} of the eligible base
               {org !== "all" && <> · {ORGS.find((o) => o.key === org)?.label}</>}
             </p>
           </div>
 
-          <div className="col-span-12 lg:col-span-3 flex items-center justify-center">
+          <div className="col-span-12 lg:col-span-3 flex items-start justify-center pt-1">
             <div className="relative w-[132px] h-[132px]">
               <ResponsiveContainer width="100%" height="100%">
                 <RadialBarChart data={appGauge} innerRadius="66%" outerRadius="100%"
@@ -240,11 +248,13 @@ function Detail({ detail, org }: { detail: CohortDetail; org: string }) {
             </div>
           </div>
 
-          <div className="col-span-12 lg:col-span-6 grid grid-cols-2 sm:grid-cols-4 gap-5">
+          {/* two columns, not four: at four the provenance chips collided
+              with the next label. Two gives each meta row room to breathe. */}
+          <div className="col-span-12 lg:col-span-6 grid grid-cols-2 gap-x-8 gap-y-6">
             <Stat label="Has app" value={compact(c.app)} sub={`${pct(c.app_share)} of cohort`} size="sm" chip="OBSERVED" />
-            <Stat label="No app" value={compact(c.no_app)} sub={`${pct(c.no_app_share)} of cohort`} size="sm" tone="red" />
+            <Stat label="No app" value={compact(c.no_app)} sub={`${pct(c.no_app_share)} of cohort`} size="sm" tone="red" chip="OBSERVED" />
             <Stat label="Active 30d" value={compact(c.mau)} sub={`${pct(c.mau_share_of_app)} of app base`} size="sm" chip="DERIVED" />
-            <Stat label="Quiet 30d+" value={compact(c.app_dormant)} sub="Installed, not opened" size="sm" />
+            <Stat label="Quiet 30d+" value={compact(c.app_dormant)} sub="Installed, not opened" size="sm" chip="DERIVED" />
           </div>
         </div>
       </Panel>
@@ -298,16 +308,12 @@ function Detail({ detail, org }: { detail: CohortDetail; org: string }) {
                 { label: "Female", value: c.female, color: CHART.sand },
               ]} />
             </div>
-            <div className="pt-4 border-t border-border flex items-start gap-3">
-              <div className="w-9 h-9 rounded-lg metal-cyan flex items-center justify-center flex-shrink-0">
-                <Clock className="w-4 h-4 text-white" />
+            <div className="pt-4 border-t border-border">
+              <div className="meta-row">
+                <span className="label-mono">Real booking peak</span>
+                <Chip kind="OBSERVED" />
               </div>
-              <div>
-                <p className="figure text-[19px]">{c.peak_hour}:00</p>
-                <p className="text-[10.5px] text-muted-foreground mt-0.5">
-                  Best send hour · peak window 20:00-23:00
-                </p>
-              </div>
+              <SendClock cohortKey={c.key} />
             </div>
           </div>
         </Panel>
@@ -439,5 +445,41 @@ function Legend({ color, label }: { color: string; label: string }) {
         style={{ background: color }} />
       {label}
     </span>
+  );
+}
+
+
+/* --------------------------------------------------------------------------
+   SendClock: the observed booking peak for this cohort, pulled from the real
+   consultation clock rather than the modeled peak-hour table the panel used
+   to show. Falls back silently if the intel endpoint is unavailable.
+   -------------------------------------------------------------------------- */
+
+function SendClock({ cohortKey }: { cohortKey: string }) {
+  const [intel, setIntel] = useState<CohortIntel | null>(null);
+  useEffect(() => {
+    let live = true;
+    getCohortIntel(cohortKey).then((d) => { if (live) setIntel(d); }).catch(() => {});
+    return () => { live = false; };
+  }, [cohortKey]);
+
+  if (!intel) {
+    return <div className="h-[52px] bg-[color:var(--muted)] rounded-lg animate-pulse" />;
+  }
+  const clk = intel.booking_clock;
+  const hh = (h: number) => `${String(h).padStart(2, "0")}:00`;
+  return (
+    <div className="flex items-start gap-3">
+      <div className="w-9 h-9 rounded-lg metal-cyan flex items-center justify-center flex-shrink-0">
+        <Clock className="w-4 h-4 text-white" />
+      </div>
+      <div className="min-w-0">
+        <p className="figure text-[21px]">{hh(clk.peak_hour)} IST</p>
+        <p className="text-[11px] text-muted-foreground mt-1 leading-snug">
+          From {n(clk.n)} real bookings. {pct(clk.morning_share, 0)} land 09:00 to
+          14:00 and {pct(clk.evening_share, 0)} land 17:00 to 21:00.
+        </p>
+      </div>
+    </div>
   );
 }

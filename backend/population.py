@@ -282,6 +282,17 @@ def verify(model: dict) -> list[str]:
             assert c["hc_funnel"][label] <= c["app"], f"{k}: HC {label} > app"
     checks.append(f"all {len(cells)} cells pass containment checks")
 
+    # Deliverable push must be present and non-zero on every cohort summary.
+    # This exact field going missing made the cohort chart plot zero bars.
+    for ck in COHORT_KEYS:
+        cs = cohort_summary(model, ck)
+        wa = cs["reach"]["push"].get("with_app")
+        if wa is None:
+            raise AssertionError(f"cohort {ck}: push.with_app missing from summary")
+        if wa <= 0:
+            raise AssertionError(f"cohort {ck}: push.with_app is {wa}, expected > 0")
+    checks.append("every cohort reports deliverable push > 0")
+
     return checks
 
 
@@ -322,7 +333,7 @@ def cohort_summary(model: dict, cohort_key: str,
 
     reach = {}
     for ch in A.CHANNELS:
-        reach[ch] = {
+        block = {
             "count": s(f"reach_{ch}"),
             "of_total": _rate(s(f"reach_{ch}"), total),
             "campaign_ready": s(f"ready_{ch}"),
@@ -331,6 +342,13 @@ def cohort_summary(model: dict, cohort_key: str,
             "basis": ("requires app install + live push token"
                       if ch == "push" else "member record, app not required"),
         }
+        if ch == "push":
+            # Deliverable push is the app-installed portion only. Computed here
+            # so every endpoint carries it: when this lived in the route, the
+            # cohort LIST omitted it and the chart silently plotted zero.
+            block["with_app"] = block["app_portion"]
+            block["stale_tokens"] = block["count"] - block["app_portion"]
+        reach[ch] = block
 
     org_breakdown = {}
     for org in ORG_KEYS:
@@ -432,6 +450,9 @@ def totals(model: dict, org_filter: str | None = None) -> dict:
                 "count": s(f"reach_{ch}"),
                 "of_total": _rate(s(f"reach_{ch}"), total),
                 "campaign_ready": s(f"ready_{ch}"),
+                **({"with_app": s("reach_push_app"),
+                    "stale_tokens": s("reach_push") - s("reach_push_app")}
+                   if ch == "push" else {}),
             } for ch in A.CHANNELS
         },
         "th_funnel": _funnel(cells, "th", A.TH_FUNNEL, app),

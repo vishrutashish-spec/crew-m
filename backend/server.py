@@ -27,7 +27,9 @@ import population as P
 import insights as I
 import copy_engine as CE
 import decisions as D
-import assistant as AS
+import signal_engine as SIG
+import cohort_intel as CI
+import timing as T
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("crewm")
@@ -151,13 +153,6 @@ def overview(org: Optional[str] = Query(None)):
     cells = [c for c in model["cells"].values()
              if org_f is None or c["org"] == org_f]
 
-    # Real vs apparent push, computed here so the UI never has to derive it.
-    real_push = sum(c["reach_push_app"] for c in cells)
-    totals["reach"]["push"]["with_app"] = real_push
-    totals["reach"]["push"]["stale_tokens"] = (
-        totals["reach"]["push"]["count"] - real_push
-    )
-
     return {
         "label": "OBSERVED",
         "org_filter": org_f,
@@ -216,15 +211,6 @@ def cohort_detail(cohort_key: str, org: Optional[str] = Query(None)):
     if not summary:
         raise HTTPException(404, f"Unknown cohort '{cohort_key}'")
     logger.info(f"DATA_ACCESS: cohort {cohort_key} detail (org={org_f or 'all'})")
-
-    cells = [c for c in model["cells"].values()
-             if c["cohort"] == cohort_key
-             and (org_f is None or c["org"] == org_f)]
-    real_push = sum(c["reach_push_app"] for c in cells)
-    summary["reach"]["push"]["with_app"] = real_push
-    summary["reach"]["push"]["stale_tokens"] = (
-        summary["reach"]["push"]["count"] - real_push
-    )
 
     return {
         "label": "OBSERVED",
@@ -460,9 +446,15 @@ def _simulate_core(model: dict, objective: str, cohort_keys: list[str],
             "click_to_convert": conv,
             "label": "PREDICTED",
         },
+        "funnel_explain": T.funnel_explain(channel, objective, sent, {
+            "sent": sent, "delivered": delivered, "opened": opened,
+            "clicked": clicked, "converted": converted,
+            "conversion_rate": round(converted / sent, 6) if sent else 0.0,
+        }),
+        "timing_detail": T.recommend(channel, cohort_keys),
         "timing": {
             "send_hour": send_hour,
-            "note": f"Peak window is 20:00-23:00; this selection skews to {send_hour}:00",
+            "note": f"Observed booking peaks are 11:00 and 18:00-19:00 IST; this slot is {send_hour}:00",
             "label": "RECOMMENDED" if send_hour_in is None else "OBSERVED",
         },
         "warnings": warnings,
@@ -546,14 +538,59 @@ def assistant_answer(req: AssistantRequest):
         raise HTTPException(400, "Keep questions under 600 characters")
     org_f = _org(req.org)
     logger.info(f"DATA_ACCESS: assistant query intents on cohorts={req.cohort_keys}")
-    return AS.answer(model, msg, req.cohort_keys, org_f, req.objective, req.channel)
+    return SIG.answer(model, msg, req.cohort_keys, org_f, req.objective, req.channel)
 
 
 @app.get("/api/rules")
 def rules():
     """The decision rubrics: every recommendation's parameters and weights."""
     get_model()
-    return D.registry()
+    reg = D.registry()
+    reg["rules"] = [r for r in reg["rules"] if r["id"] != "assistant_quality"]
+    reg["rules"] += [SIG.RUBRIC, T.TIMING_RULE, T.FUNNEL_RULE]
+    return reg
+
+
+@app.get("/api/signal/suggestions")
+def signal_suggestions(cohorts: Optional[str] = Query(None)):
+    get_model()
+    keys = [k for k in (cohorts or "").split(",") if k] or ["26_35"]
+    return {"suggestions": SIG.suggestions(keys)}
+
+
+@app.get("/api/intel/{cohort_key}")
+def cohort_intelligence(cohort_key: str):
+    """Clinical and behavioural evidence for one cohort: specialty mix,
+    biomarker abnormality, real booking clock. All OBSERVED."""
+    model = get_model()
+    if cohort_key not in P.COHORT_KEYS:
+        raise HTTPException(404, f"Unknown cohort '{cohort_key}'")
+    logger.info(f"DATA_ACCESS: cohort intelligence for {cohort_key} (aggregates only)")
+    summary = P.cohort_summary(model, cohort_key, None)
+    return {
+        "label": "OBSERVED",
+        "cohort": cohort_key,
+        "provenance": CI.provenance(),
+        "specialty_mix": CI.specialty_mix(cohort_key),
+        "rising_specialties": CI.rising_specialties(cohort_key),
+        "biomarkers": CI.biomarkers(cohort_key),
+        "steepest_gradients": CI.steepest_gradient(3),
+        "engagement": CI.th_engagement(cohort_key),
+        "booking_clock": CI.booking_clock(cohort_key),
+        "consulter_vs_base": CI.consulter_vs_base(
+            cohort_key, summary.get("share_of_base", 0) if summary else 0),
+        "gender": CI.gender_split(),
+    }
+
+
+@app.get("/api/timing")
+def timing_recommendations(cohorts: Optional[str] = Query(None)):
+    """Send-time recommendations per channel, with the observed booking clock
+    and the arithmetic behind each one."""
+    get_model()
+    keys = [k for k in (cohorts or "").split(",") if k in P.COHORT_KEYS] or ["26_35"]
+    return {"label": "RECOMMENDED", "cohorts": keys,
+            "channels": T.all_channels(keys), "rule": T.TIMING_RULE}
 
 
 @app.get("/api/copy/options")

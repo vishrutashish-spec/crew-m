@@ -9,12 +9,14 @@ import {
   type CopyAnalysis, type CopyPrediction,
   askAssistant, getRules, SPECTRUM,
   type AssistantReply, type DecisionParam,
+  type FunnelExplain, type TimingDetail,
 } from "@/lib/api";
 import {
   Panel, PanelHead, ChartFrame, Chip, Stat, ErrorState, ChartTip, AXIS, SeriesDefs, GRAD,
-  PageBanner, MacBar,
+  PageBanner, MacBar, ProvenanceNote, StepHead,
 } from "@/components/kit";
 import { ChannelGlyph, ChannelTickY, PlumGlyph, WhatsAppGlyph, GmailGlyph } from "@/components/logos";
+import { SignalChat } from "@/components/signal-chat";
 import {
   CartesianGrid,
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, LabelList,
@@ -97,8 +99,9 @@ export default function SimulatePage() {
 
       {/* ---------- STEP 1 ---------- */}
       <Panel className="p-5 rise d1" ground="dot">
-        <PanelHead
-          title="1 · Choose age cohorts"
+        <StepHead
+          step={1}
+          title="Choose age cohorts"
           sub="Cohorts are the primary audience dimension. Select one or more."
           chip="MODELED"
           right={
@@ -160,7 +163,7 @@ export default function SimulatePage() {
 
       {/* ---------- STEP 2 ---------- */}
       <Panel className="p-5 rise d2">
-        <PanelHead title="2 · Narrow the audience" sub="Everything here filters the cohorts you picked above" />
+        <StepHead step={2} title="Narrow the audience" sub="Everything here filters the cohorts you picked above" />
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           <Field label="Objective" hint={opts?.objectives.find((o) => o.key === objective)?.desc}>
             <select className="field" value={objective} onChange={(e) => setObjective(e.target.value)}>
@@ -179,9 +182,9 @@ export default function SimulatePage() {
             </select>
           </Field>
 
-          <Field label="Send hour" hint="Peak window is 20:00 to 23:00">
+          <Field label="Send hour" hint="Real booking peaks are 11:00 and 18:00 to 19:00 IST">
             <select className="field" value={sendHour} onChange={(e) => setSendHour(e.target.value)}>
-              <option value="">Auto, cohort peak</option>
+              <option value="">Auto, observed booking peak</option>
               {Array.from({ length: 24 }, (_, i) => (
                 <option key={i} value={i}>{String(i).padStart(2, "0")}:00</option>
               ))}
@@ -285,13 +288,25 @@ export default function SimulatePage() {
         copyOpts={copyOpts}
       />
 
-      {/* ---------- STEP 5: ask ---------- */}
-      <AskPanel
-        cohortKeys={selected}
-        org={org === "all" ? null : org}
-        objective={objective}
-        channel={channel || result?.channel.selected || null}
-      />
+      {/* ---------- STEP 5: SIGNAL ----------
+          Rendered non-compact so it brings its own window chrome and aurora
+          ground. A bare phone floating in a wide empty panel reads thin; the
+          framed version keeps the phone as the centrepiece with a surface
+          under it. */}
+      <div className="rise">
+        <div className="mb-4">
+          <span className="step-num">STEP 5</span>
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <h3 className="section-title">Ask SIGNAL</h3>
+            <Chip kind="DERIVED" />
+          </div>
+          <p className="text-[12.5px] text-muted-foreground mt-1.5">
+            Grounded answers only. Every reply cites the figures it used and scores
+            itself against the published rubric.
+          </p>
+        </div>
+        <SignalChat cohortKeys={selected} org={org === "all" ? null : org} />
+      </div>
     </div>
   );
 }
@@ -369,8 +384,9 @@ function CopyStudio({
 
   return (
     <Panel className="p-5 rise d4" ground="grid">
-      <PanelHead
-        title="4 · Copy studio"
+      <StepHead
+        step={4}
+        title="Copy studio"
         sub="Variants assembled from Plum's approved copy library, disciplined per channel, with predicted performance for this exact audience"
         chip="GENERATED"
         right={
@@ -684,9 +700,9 @@ function Result({ result: r }: { result: SimResult }) {
   return (
     <div className="space-y-5 rise">
       <Panel ground="aurora" ticked className="p-6">
-        <div className="relative grid grid-cols-12 gap-7 items-center">
+        <div className="relative grid grid-cols-12 gap-7 items-start">
           <div className="col-span-12 lg:col-span-5">
-            <div className="flex items-center gap-2 mb-2 flex-wrap">
+            <div className="meta-row">
               <span className="label-mono">Addressable audience</span>
               <Chip kind="DERIVED" />
             </div>
@@ -800,6 +816,9 @@ function Result({ result: r }: { result: SimResult }) {
         </ChartFrame>
       </div>
 
+      {r.funnel_explain && <FunnelExplainer fx={r.funnel_explain} />}
+      {r.timing_detail && <TimingPanel t={r.timing_detail} />}
+
       <div className="grid grid-cols-12 gap-5">
         <Panel className="col-span-12 lg:col-span-8 p-5">
           <PanelHead title="How much to trust this" chip="PREDICTED" />
@@ -832,27 +851,14 @@ function Result({ result: r }: { result: SimResult }) {
         </Panel>
 
         <Panel className="col-span-12 lg:col-span-4 p-5" ticked>
-          <PanelHead title="Timing" chip={r.timing.label} />
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl metal-cyan flex items-center justify-center flex-shrink-0">
-              <Clock className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <p className="figure text-[30px]">{String(r.timing.send_hour).padStart(2, "0")}:00</p>
-              <p className="text-[10.5px] text-muted-foreground mt-1">Local time</p>
-            </div>
-          </div>
-          <p className="text-[11.5px] text-muted-foreground mt-4 pt-4 border-t border-border leading-relaxed">
-            {r.timing.note}
+          <PanelHead title="Suppression in this selection" chip="OBSERVED" />
+          <p className="figure text-[32px] text-[color:var(--red)]">
+            {n(r.selection.dnd_in_selection)}
           </p>
-          {r.selection.dnd_in_selection > 0 && (
-            <p className="text-[11px] text-muted-foreground mt-3 pt-3 border-t border-border">
-              <span className="text-[color:var(--red)] font-semibold tnum">
-                {n(r.selection.dnd_in_selection)}
-              </span>{" "}
-              DND-suppressed people sit inside this selection.
-            </p>
-          )}
+          <p className="text-[12px] text-muted-foreground mt-2 leading-relaxed">
+            people carry is_in_DND_CT inside this selection and must be excluded
+            explicitly. Nothing enforces it centrally.
+          </p>
         </Panel>
       </div>
     </div>
@@ -975,18 +981,20 @@ function DecisionBreakdown({ result: r }: { result: SimResult }) {
                   <div className="ribbon">
                     <span style={{
                       width: `${(ch.total / Math.max(maxScore, 1)) * 100}%`,
+                      // Selected reads as the cyan-to-seafoam spectrum rather
+                      // than pure blue; unselected uses a visible mid-tone
+                      // instead of --border-strong, which rendered near-black.
                       background: key === d.selected
-                        ? "linear-gradient(90deg, #22C8D6, #3B82F6)"
-                        : "var(--border-strong)",
+                        ? "linear-gradient(90deg, #0E9AA7, #22C8D6 55%, #4FE3C1)"
+                        : "linear-gradient(90deg, var(--series-3), var(--sand-deep))",
                     }} />
                   </div>
                 </div>
               ))}
               {r.conversion_provenance && (
-                <p className="text-[10.5px] text-muted-foreground pt-2 border-t border-border">
-                  Click-to-convert basis: <Chip kind={r.conversion_provenance.kind} />{" "}
-                  {r.conversion_provenance.basis}.
-                </p>
+                <ProvenanceNote label="Click to convert basis" kind={r.conversion_provenance.kind}>
+                  {r.conversion_provenance.basis}
+                </ProvenanceNote>
               )}
             </div>
           </div>
@@ -1002,213 +1010,225 @@ function DecisionBreakdown({ result: r }: { result: SimResult }) {
    rubric, computed from the reply itself.
    ========================================================================== */
 
-interface ChatMsg {
-  role: "user" | "ai";
-  text: string;
-  reply?: AssistantReply;
-}
-
-const SUGGESTED = [
-  "Which channel for this selection?",
-  "How many can we actually reach on push?",
-  "Write a WhatsApp message for this cohort",
-  "How do I know these numbers are reliable?",
-];
-
-function AskPanel({
-  cohortKeys, org, objective, channel,
-}: {
-  cohortKeys: string[];
-  org: string | null;
-  objective: string;
-  channel: string | null;
-}) {
-  const [messages, setMessages] = useState<ChatMsg[]>([]);
-  const [input, setInput] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [rubric, setRubric] = useState<DecisionParam[] | null>(null);
-  const [rubricOpen, setRubricOpen] = useState(false);
-
-  useEffect(() => {
-    getRules().then((r) => {
-      const rule = r.rules.find((x) => x.id === "assistant_quality");
-      if (rule) setRubric(rule.parameters);
-    }).catch(() => {});
-  }, []);
-
-  async function send(text?: string) {
-    const msg = (text ?? input).trim();
-    if (!msg || busy) return;
-    setInput("");
-    setMessages((m) => [...m, { role: "user", text: msg }]);
-    setBusy(true);
-    try {
-      const reply = await askAssistant({
-        message: msg, cohort_keys: cohortKeys, org, objective, channel,
-      });
-      setMessages((m) => [...m, { role: "ai", text: reply.answer, reply }]);
-    } catch (e) {
-      setMessages((m) => [...m, {
-        role: "ai",
-        text: e instanceof Error ? `That did not work: ${e.message}` : "That did not work.",
-      }]);
-    } finally {
-      setBusy(false);
-    }
-  }
+function FunnelExplainer({ fx }: { fx: FunnelExplain }) {
+  const [open, setOpen] = useState(false);
+  const pie = fx.rule.parameters.map((p, i) => ({
+    name: p.label, value: p.weight, fill: SPECTRUM[i % SPECTRUM.length], desc: p.desc,
+  }));
 
   return (
-    <Panel className="p-5 rise" ground="grid">
-      <PanelHead
-        title="5 · Ask Crew M"
-        sub="Grounded answers only: every reply cites the figures it used and scores itself against the published rubric"
-        chip="DERIVED"
-        right={
-          <div className="relative">
-            <button className="btn !px-3 !py-1.5 !text-[11px]" onClick={() => setRubricOpen(!rubricOpen)}>
-              Scored on {rubric?.length ?? 9} parameters
-              <ChevronDown className={`w-3 h-3 transition-transform ${rubricOpen ? "rotate-180" : ""}`} />
-            </button>
-            {rubricOpen && rubric && (
-              <div className="glass absolute right-0 top-full mt-2 w-[340px] z-30 rounded-2xl p-4">
-                <p className="label-mono mb-2.5">Answer quality rubric · weights sum to 100</p>
-                <div className="space-y-2">
-                  {rubric.map((p, i) => (
-                    <div key={p.key} className="flex items-start gap-2 text-[11px]">
-                      <span className="w-2 h-2 rounded-full mt-1 flex-shrink-0"
-                        style={{ background: SPECTRUM[i % SPECTRUM.length] }} />
-                      <span className="flex-1">
-                        <span className="font-medium">{p.label}</span>
-                        <span className="text-muted-foreground block text-[10px] leading-snug">{p.desc}</span>
+    <Panel className="p-0 overflow-hidden">
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center gap-3 px-5 py-4 text-left hover:bg-[color:var(--muted)] transition-colors"
+        aria-expanded={open}
+      >
+        <span className="w-8 h-8 rounded-lg metal-cyan flex items-center justify-center flex-shrink-0">
+          <ChevronDown className={`w-4 h-4 text-white transition-transform ${open ? "rotate-180" : ""}`} />
+        </span>
+        <span className="flex-1">
+          <span className="section-title !text-[16px] block">How this funnel was calculated</span>
+          <span className="text-[12px] text-muted-foreground">
+            {fx.steps.length} stages · {fx.composition.observed} observed,{" "}
+            {fx.composition.derived} derived, {fx.composition.modeled} modeled
+          </span>
+        </span>
+        <Chip kind="PREDICTED" />
+      </button>
+
+      {open && (
+        <div className="px-5 pb-5 pt-1 border-t border-border">
+          <div className="grid grid-cols-12 gap-6">
+            {/* stage-by-stage arithmetic */}
+            <div className="col-span-12 lg:col-span-8 space-y-2">
+              {fx.steps.map((st) => (
+                <div key={st.stage} className="panel-flush p-3.5">
+                  <div className="meta-row">
+                    <span className="label-mono">{st.stage}</span>
+                    <Chip kind={st.provenance} />
+                    {st.rate !== null && (
+                      <span className="text-[11px] text-muted-foreground tnum ml-auto">
+                        rate {pct(st.rate, 2)}
                       </span>
-                      <span className="tnum font-semibold flex-shrink-0">{p.weight}</span>
-                    </div>
-                  ))}
+                    )}
+                  </div>
+                  <div className="flex items-baseline justify-between gap-3">
+                    <code className="text-[11.5px] text-muted-foreground">{st.math}</code>
+                    <span className="figure text-[19px] flex-shrink-0">{n(st.value)}</span>
+                  </div>
+                  <p className="text-[10.5px] text-muted-foreground mt-1.5">{st.basis}</p>
                 </div>
-              </div>
-            )}
-          </div>
-        }
-      />
-
-      {/* Thread */}
-      <div className="relative space-y-3 mb-4">
-        {messages.length === 0 && (
-          <div className="flex items-start gap-3 py-2">
-            <span className="w-8 h-8 rounded-lg metal-ink flex items-center justify-center flex-shrink-0">
-              <MessageCircle className="w-4 h-4 text-[color:var(--sand)]" />
-            </span>
-            <p className="text-[12px] text-muted-foreground leading-relaxed pt-1.5">
-              Ask about reach, channels, conversion, timing, DND, devices or copy for your current
-              selection. Answers use only figures the cohort model serves.
-            </p>
-          </div>
-        )}
-        {messages.map((m, i) => (
-          m.role === "user" ? (
-            <div key={i} className="flex justify-end">
-              <div className="max-w-[70%] rounded-2xl rounded-br-md px-4 py-2.5 metal-ink">
-                <p className="text-[12.5px] text-white leading-relaxed">{m.text}</p>
-              </div>
+              ))}
             </div>
-          ) : (
-            <AiMessage key={i} msg={m} />
-          )
-        ))}
-        {busy && (
-          <div className="flex items-center gap-2.5 text-[12px] text-muted-foreground">
-            <RotateCw className="w-3.5 h-3.5 animate-spin" /> Checking the model
-          </div>
-        )}
-      </div>
 
-      {/* Suggestions + input */}
-      {messages.length === 0 && (
-        <div className="relative flex flex-wrap gap-2 mb-3">
-          {SUGGESTED.map((q) => (
-            <button key={q} className="btn !px-3 !py-1.5 !text-[11px]" onClick={() => send(q)}>
-              {q}
-            </button>
-          ))}
+            {/* weights + honesty */}
+            <div className="col-span-12 lg:col-span-4">
+              <p className="label-mono mb-2">Weight of each input</p>
+              <div className="h-[150px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie data={pie} dataKey="value" nameKey="name" cx="50%" cy="50%"
+                      innerRadius={38} outerRadius={62} paddingAngle={3} strokeWidth={0} />
+                    <Tooltip content={<ChartTip formatter={(v) => `${v}% weight`} />} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="space-y-1.5 mt-2">
+                {pie.map((p) => (
+                  <div key={p.name} className="flex items-center gap-2 text-[11px]" title={p.desc}>
+                    <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: p.fill }} />
+                    <span className="text-muted-foreground truncate">{p.name}</span>
+                    <span className="tnum font-semibold ml-auto">{p.value}%</span>
+                  </div>
+                ))}
+              </div>
+              <p className="text-[11px] text-muted-foreground mt-3.5 pt-3.5 border-t border-border leading-relaxed">
+                {fx.honesty}
+              </p>
+            </div>
+          </div>
         </div>
       )}
-      <div className="relative flex gap-2.5">
-        <input
-          className="field flex-1"
-          placeholder="Ask about this campaign plan"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && send()}
-        />
-        <button onClick={() => send()} disabled={busy || !input.trim()}
-          className="btn btn-primary !px-5">
-          <Send className="w-4 h-4" />
-        </button>
-      </div>
     </Panel>
   );
 }
 
-function AiMessage({ msg }: { msg: ChatMsg }) {
-  const [showScore, setShowScore] = useState(false);
-  const r = msg.reply;
+/* ==========================================================================
+   Timing panel: the real booking clock, the send slot, and why.
+   ========================================================================== */
+
+function TimingPanel({ t }: { t: TimingDetail }) {
+  const [open, setOpen] = useState(false);
+  const clock = Object.entries(t.clock.shares).map(([h, v]) => ({
+    hour: `${String(h).padStart(2, "0")}`,
+    share: v,
+    isPeak: `${String(h).padStart(2, "0")}:00` === t.primary.intent_peak
+         || `${String(h).padStart(2, "0")}:00` === t.secondary.intent_peak,
+  }));
+
   return (
-    <div className="flex items-start gap-3">
-      <span className="w-8 h-8 rounded-lg metal-cyan flex items-center justify-center flex-shrink-0 mt-1">
-        <MessageCircle className="w-4 h-4 text-white" />
-      </span>
-      <div className="flex-1 min-w-0 panel-flush p-4">
-        <p className="text-[12.5px] leading-relaxed whitespace-pre-line">{msg.text}</p>
-        {r?.action && (
-          <p className="text-[11.5px] mt-2.5 pt-2.5 border-t border-border">
-            <span className="label-mono !text-[color:var(--cyan-deep)] mr-2">Do this</span>
-            {r.action}
-          </p>
-        )}
-        {r && (
-          <>
-            <div className="flex flex-wrap gap-1.5 mt-3">
-              {r.facts.slice(0, 4).map((f, i) => (
-                <span key={i} className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg border border-border bg-[color:var(--card)] text-[10px]">
-                  <Chip kind={f.provenance} />
-                  <span className="text-muted-foreground">{f.label}:</span>
-                  <span className="tnum font-semibold">{f.value}</span>
-                </span>
-              ))}
-            </div>
-            <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-border">
-              <button onClick={() => setShowScore(!showScore)}
-                className="text-[11px] text-[color:var(--cyan-deep)] hover:underline">
-                {showScore ? "Hide scoring" : "How this answer was scored"}
-              </button>
-              <span className="inline-flex items-center gap-1.5">
-                <span className="label-mono !text-[9px]">Quality</span>
-                <span className={`tnum font-heading font-bold text-[15px] ${
-                  r.score.total >= 9 ? "text-[color:var(--success)]"
-                  : r.score.total >= 7 ? "text-[color:var(--warning)]" : "text-[color:var(--red)]"
-                }`}>
-                  {r.score.total}/{r.score.out_of}
-                </span>
-              </span>
-            </div>
-            {showScore && (
-              <div className="mt-2.5 space-y-1.5">
-                {r.score.parameters.map((p, i) => (
-                  <div key={p.key} className="flex items-center gap-2.5 text-[10.5px]">
-                    <span className="w-28 text-muted-foreground truncate flex-shrink-0">{p.label}</span>
-                    <div className="ribbon flex-1 !h-[6px]">
-                      <span style={{ width: `${p.score * 100}%`, background: SPECTRUM[i % SPECTRUM.length] }} />
-                    </div>
-                    <span className="tnum w-14 text-right text-muted-foreground flex-shrink-0">
-                      {p.points}/{p.weight}
-                    </span>
-                  </div>
-                ))}
+    <Panel className="p-5" ground="dot">
+      <PanelHead
+        title="Send time"
+        sub={`Built on ${n(t.clock.observations)} real bookings in ${t.clock.tz}, not a stated peak window`}
+        chip="RECOMMENDED"
+        right={
+          <div className="flex items-center gap-2">
+            <ChannelGlyph channel={t.channel} size={18} />
+            <span className="text-[12px] font-medium">{t.channel_label}</span>
+          </div>
+        }
+      />
+
+      <div className="relative grid grid-cols-12 gap-6 items-start">
+        {/* the two slots */}
+        <div className="col-span-12 md:col-span-4 space-y-3">
+          {[t.primary, t.secondary].map((slot, i) => (
+            <div key={slot.window}
+              className={`rounded-xl border p-4 ${i === 0
+                ? "border-[color:var(--cyan)] bg-[color:var(--cyan-wash)]"
+                : "border-border bg-[color:var(--muted)]"}`}>
+              <div className="meta-row">
+                <span className="label-mono">{i === 0 ? "Primary slot" : "Second slot"}</span>
+                {i === 0 && <Chip kind="RECOMMENDED" />}
               </div>
-            )}
-          </>
-        )}
+              <p className="figure text-[30px]">{slot.send_at}</p>
+              <p className="text-[11.5px] text-muted-foreground mt-2 leading-relaxed">
+                Lands {slot.lead_minutes} min before the {slot.intent_peak} intent peak,
+                which carries {pct(slot.intent_share)} of bookings.
+              </p>
+              {slot.inbox_sweep && (
+                <p className="text-[10.5px] text-muted-foreground mt-1.5">
+                  Inside the {slot.inbox_sweep} inbox sweep
+                </p>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* the observed clock */}
+        <div className="col-span-12 md:col-span-8">
+          <p className="label-mono mb-2">When this audience actually books, by hour {t.clock.tz}</p>
+          <div className="h-[168px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={clock} margin={{ left: -14, right: 6, top: 4, bottom: 0 }}>
+                <SeriesDefs />
+                <CartesianGrid strokeDasharray="3 7" stroke="var(--border)" vertical={false} />
+                <XAxis dataKey="hour" {...AXIS} interval={2} tick={{ ...AXIS.tick, fontSize: 10 }} />
+                <YAxis tickFormatter={(v: number) => pct(v, 0)} {...AXIS} width={40} />
+                <Tooltip content={<ChartTip formatter={(v) => pct(v, 2)} />}
+                  cursor={{ fill: "var(--cursor-fill)" }} />
+                <Bar dataKey="share" name="Share of bookings" radius={[3, 3, 0, 0]}>
+                  {clock.map((d) => (
+                    <Cell key={d.hour} fill={d.isPeak ? GRAD.red : GRAD.ink} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-3 pt-3 border-t border-border">
+            <Stat label="Morning 09-14" value={pct(t.clock.morning_share)} size="sm" />
+            <Stat label="Evening 17-21" value={pct(t.clock.evening_share)} size="sm" />
+            <Stat label="Night 21-24" value={pct(t.clock.night_share)} size="sm" />
+            <Stat label="Dead 01-06" value={pct(t.clock.dead_share)} size="sm" tone="red" />
+          </div>
+        </div>
       </div>
-    </div>
+
+      <button onClick={() => setOpen(!open)}
+        className="relative mt-4 text-[12px] text-[color:var(--cyan-deep)] hover:underline">
+        {open ? "Hide how this is calculated" : "How this is calculated"}
+      </button>
+
+      {open && (
+        <div className="relative mt-3 pt-4 border-t border-border grid grid-cols-12 gap-5">
+          <div className="col-span-12 lg:col-span-5 space-y-2">
+            <p className="label-mono mb-1">Weights</p>
+            {t.rule.parameters.map((p, i) => (
+              <div key={p.key}>
+                <div className="flex items-baseline justify-between gap-2 mb-1">
+                  <span className="text-[11.5px] font-medium">{p.label}</span>
+                  <span className="tnum text-[11.5px] font-semibold">{p.weight}%</span>
+                </div>
+                <div className="ribbon !h-[6px]">
+                  <span style={{ width: `${p.weight}%`, background: SPECTRUM[i % SPECTRUM.length] }} />
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-1">{p.desc}</p>
+              </div>
+            ))}
+          </div>
+          <div className="col-span-12 lg:col-span-7 space-y-3">
+            <div className="panel-flush p-3.5">
+              <p className="label-mono mb-1.5">Why this channel sends when it does</p>
+              <p className="text-[12px] leading-relaxed">{t.why}</p>
+              <p className="text-[11px] text-muted-foreground mt-2">
+                Read latency: {t.read_latency}. Quiet hours {t.quiet_hours} are never used.
+              </p>
+            </div>
+            <div className="panel-flush p-3.5">
+              <p className="label-mono mb-1.5">Journey slots this channel carries</p>
+              {t.journey_slots.length ? t.journey_slots.map((j) => (
+                <p key={`${j.day}`} className="text-[11.5px]">
+                  Day {j.day}
+                  {j.touch ? `, touch ${j.touch}` : ", supplementary"}: {j.role}
+                </p>
+              )) : <p className="text-[11.5px] text-muted-foreground">Not used in the standard journey.</p>}
+            </div>
+            {t.corrections.map((c) => (
+              <div key={c.claim} className="rounded-lg border border-[color:var(--red)]/25 bg-[color:var(--red)]/[0.04] p-3.5">
+                <div className="meta-row">
+                  <span className="label-mono">Corrected</span>
+                  <Chip kind="OBSERVED" />
+                </div>
+                <p className="text-[11.5px] leading-relaxed">
+                  <span className="line-through text-muted-foreground">{c.claim}</span>
+                  {" "}{c.finding}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </Panel>
   );
 }

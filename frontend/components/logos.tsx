@@ -19,79 +19,36 @@
 /* ------------------------------------------------------------------ Crew M */
 
 /*
- * The wordmark IS the logo. No badge, no backdrop: custom-lettered monoline
- * capitals drawn as SVG strokes with a forward lean. The W is a literal
- * waveform and the M a chart line, the cyan spectrum flows through the
- * letters as an animated gradient, and a bright spark travels the whole word
- * end to end (pathLength-normalised dash sweep). The brand's signal node
- * floats above the W's centre peak. Motion honours prefers-reduced-motion.
+ * Wordmark v5, locked by feedback: no custom letterforms, no animation, no
+ * pointy geometry. "Crew M" set in Vollkorn Bold (the product's own serif,
+ * broad and round) as SVG text, filled with a static cyan-spectrum gradient.
+ * One small seafoam node after the M is the only ornament, and it does not
+ * move. Quiet confidence instead of choreography.
  */
 
-/*
- * Letterforms, v4. The rounded monoline read comical, so this is the Nike
- * register instead: heavy, condensed, oblique, flat-cut. Strokes use butt
- * caps and miter joins (no rounding anywhere), stem weight is 6.4 on a
- * 27-unit cap height, the whole word leans 10 degrees forward. The W and M
- * keep their waveform/chart-line geometry, now sharpened to race-livery
- * angles. Gradient flow, travelling spark and the signal node all stay.
- */
-
-const WORD_PATH =
-  "M21 7.2 H8.2 V30.8 H21 " +                       /* C, squared */
-  "M32.2 34 V7.2 H43 V19 H32.2 " +                   /* R, stem + blocky bowl */
-  "M38.8 19 L45.6 34 " +                             /* R leg */
-  "M66 7.2 H55.2 V30.8 H66 M55.2 18.6 H63.4 " +      /* E */
-  "M71.8 6.4 L76.9 31.6 L82 13.6 L87.1 31.6 L92.2 6.4 " + /* W, the waveform */
-  "M104.2 34 V7.2 L112.4 20.6 L120.6 7.2 V34";       /* M, the chart line */
-
-export function CrewMWordmark({ width = 168, spark = true }: {
-  width?: number; spark?: boolean;
-}) {
-  const height = Math.round(width * (38 / 138));
+export function CrewMWordmark({ width = 172 }: { width?: number }) {
+  const height = Math.round(width * (46 / 168));
   return (
-    <svg width={width} height={height} viewBox="0 0 138 38" fill="none"
+    <svg width={width} height={height} viewBox="0 0 168 46" fill="none"
       aria-label="Crew M" style={{ display: "block", overflow: "visible" }}>
       <defs>
-        <linearGradient id="wm-g" x1="0" y1="0" x2="138" y2="0" gradientUnits="userSpaceOnUse">
-          <stop offset="0" stopColor="#0E9AA7">
-            <animate attributeName="stop-color" dur="7s" repeatCount="indefinite"
-              values="#0E9AA7;#22C8D6;#4FE3C1;#3B82F6;#0E9AA7" />
-          </stop>
-          <stop offset="0.5" stopColor="#22C8D6">
-            <animate attributeName="stop-color" dur="7s" repeatCount="indefinite"
-              values="#22C8D6;#4FE3C1;#3B82F6;#22C8D6;#22C8D6" />
-          </stop>
-          <stop offset="1" stopColor="#3B82F6">
-            <animate attributeName="stop-color" dur="7s" repeatCount="indefinite"
-              values="#3B82F6;#0E9AA7;#22C8D6;#4FE3C1;#3B82F6" />
-          </stop>
+        <linearGradient id="wm-g" x1="0" y1="8" x2="168" y2="38" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stopColor="#0E9AA7" />
+          <stop offset="0.42" stopColor="#22C8D6" />
+          <stop offset="0.72" stopColor="#4FE3C1" />
+          <stop offset="1" stopColor="#3B82F6" />
         </linearGradient>
       </defs>
-      <g transform="translate(5.5 0) skewX(-10)">
-        {/* echo of the stroke: depth, never a backdrop */}
-        <path d={WORD_PATH} stroke="url(#wm-g)" strokeWidth="10" strokeLinecap="butt"
-          strokeLinejoin="miter" opacity="0.13" />
-        {/* the letters */}
-        <path d={WORD_PATH} stroke="url(#wm-g)" strokeWidth="6.4" strokeLinecap="butt"
-          strokeLinejoin="miter" />
-        {/* the spark travelling through the word */}
-        {spark && (
-          <path d={WORD_PATH} pathLength={100} stroke="#EAFFFF" strokeWidth="6.4"
-            strokeLinecap="butt" strokeLinejoin="miter" opacity="0.85"
-            strokeDasharray="5 95" className="wm-spark">
-            <animate attributeName="stroke-dashoffset" from="100" to="0"
-              dur="3.8s" repeatCount="indefinite" />
-          </path>
-        )}
-        {/* the signal node, above the waveform's centre peak */}
-        <circle className="mark-node" cx="82" cy="5.2" r="3.6" fill="#22C8D6" opacity="0.22" />
-        <circle cx="82" cy="5.2" r="1.7" fill="#4FE3C1" />
-      </g>
+      {/* Brigold: tall condensed sans, static cyan-spectrum gradient, no motion */}
+      <text x="0" y="34" fontFamily="Brigold, Vollkorn, Georgia, serif"
+        fontSize="38" letterSpacing="1.5" fill="url(#wm-g)">
+        Crew M
+      </text>
     </svg>
   );
 }
 
-/** Boxless glyph for tight spots: the waveform + node alone. */
+/** Compact glyph: a broad, rounded wave with the node. Nothing pointy. */
 export function CrewMMark({ size = 30 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 32 32" fill="none" aria-label="Crew M"
@@ -102,9 +59,9 @@ export function CrewMMark({ size = 30 }: { size?: number }) {
           <stop offset="1" stopColor="#3B82F6" />
         </linearGradient>
       </defs>
-      <path d="M3 26 L10 7 L16 20 L22 5.5 L29 26" stroke="url(#wm-s)" strokeWidth="4.2"
-        strokeLinecap="butt" strokeLinejoin="miter" />
-      <circle className="mark-node" cx="22" cy="3" r="1.7" fill="#4FE3C1" />
+      <path d="M3 21 C8 9, 12 9, 16 17 S24 27 29 13" stroke="url(#wm-s)"
+        strokeWidth="4.6" strokeLinecap="round" fill="none" />
+      <circle cx="29" cy="7.5" r="2" fill="#4FE3C1" />
     </svg>
   );
 }
@@ -112,9 +69,9 @@ export function CrewMMark({ size = 30 }: { size?: number }) {
 export function CrewMLogo({ compact = false }: { compact?: boolean }) {
   return (
     <span className="inline-block">
-      <CrewMWordmark width={compact ? 118 : 172} spark={!compact} />
+      <CrewMWordmark width={compact ? 116 : 168} />
       {!compact && (
-        <span className="label-mono block mt-2 !text-[9px] !tracking-[0.22em]">
+        <span className="label-mono block mt-1.5 !text-[9px] !tracking-[0.22em]">
           Campaign intelligence
         </span>
       )}

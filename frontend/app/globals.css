@@ -30,6 +30,20 @@
   font-style: normal;
   font-display: swap;
 }
+/*
+  Brigold DEMO: tall condensed sans, used for the wordmark only.
+  LICENSING: this is the 1001Fonts "Free For Personal Use" demo. Its EULA
+  excludes commercial use, and names logos, websites and company apps
+  explicitly. Fine for a prototype and a demo; a commercial license is
+  required before Crew M ships anywhere real, or swap in a licensed face.
+*/
+@font-face {
+  font-family: "Brigold";
+  src: url("/fonts/Brigold-Demo.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
 
 @theme inline {
   --color-background: var(--background);
@@ -137,7 +151,7 @@
   /* Theme-aware derivatives. Charts, ticks and soft blocks read these, never
      raw hexes, so the whole product reskins from one place. */
   --ink-text: #2b0b21;          /* heading/figure text: flips light in dark */
-  --heading-gradient: linear-gradient(118deg, #2b0b21 0%, #571c3f 52%, #c22742 100%);
+  --heading-gradient: linear-gradient(118deg, #300d26 0%, #6d2050 48%, #e02a49 100%);
   --series-1: #2b0b21;          /* primary chart series */
   --series-2: #ff3f52;          /* secondary */
   --series-3: #f8dbc9;          /* tertiary */
@@ -183,7 +197,7 @@
 
   /* Brand constants stay put (metal surfaces, the logo); text flips. */
   --ink-text: #f3e9ee;
-  --heading-gradient: linear-gradient(118deg, #fff6ef 0%, #f8dbc9 42%, #ff6273 100%);
+  --heading-gradient: linear-gradient(118deg, #fff8f2 0%, #ffe2cc 40%, #ff5f74 100%);
 
   --red: #ff4f62;
   --red-deep: #e02339;
@@ -454,13 +468,7 @@
   text-transform: uppercase;
   color: var(--red);
 }
-.banner-kicker::before {
-  content: "";
-  width: 22px;
-  height: 2px;
-  border-radius: 2px;
-  background: linear-gradient(90deg, var(--red), var(--sand));
-}
+
 
 /* Data ribbon, a thin stacked bar used as an inline visual primitive */
 .ribbon {
@@ -482,7 +490,7 @@
 
 .label-mono {
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 11.5px;
   font-weight: 500;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -937,4 +945,449 @@ select.field:focus, input.field:focus, textarea.field:focus {
 .dark .mac-bar {
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.03));
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+
+/* ===========================================================================
+   Chip and label alignment. The rule: a provenance chip never sits inside a
+   sentence or between a label and its number. It sits on the meta line above
+   the value, left-aligned with it, so a column of stats scans as a column.
+   =========================================================================== */
+
+.meta-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 20px;
+  margin-bottom: 6px;
+}
+.meta-row .label-mono { margin: 0; white-space: nowrap; }
+
+/* Inline chips inside prose get pushed onto their own aligned line instead */
+.chip-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-top: 10px;
+  margin-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+/* Section headings: up 5pt from the old 15px, and never prefixed by a dash */
+.section-title {
+  font-family: var(--font-serif);
+  font-weight: 700;
+  font-size: 20px;
+  line-height: 1.2;
+  letter-spacing: -0.015em;
+  background-image: var(--heading-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.step-num {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--red);
+  display: block;
+  margin-bottom: 3px;
+}
+
+/* Accent text in plum red, up 4pt */
+.accent-text { color: var(--red); font-size: 15px; font-weight: 600; }
+
+/* ===========================================================================
+   The phone. Glass shell, real chrome, message bubbles. White-ground safe.
+   =========================================================================== */
+
+.phone { width: 100%; max-width: 372px; }
+.phone-frame {
+  border-radius: 44px;
+  padding: 10px;
+  background: linear-gradient(150deg, rgba(255,255,255,0.55), rgba(255,255,255,0.18));
+  -webkit-backdrop-filter: blur(24px) saturate(1.7);
+  backdrop-filter: blur(24px) saturate(1.7);
+  border: 1px solid rgba(255,255,255,0.6);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.9),
+    0 22px 60px -24px rgba(43,11,33,0.34),
+    0 3px 10px rgba(43,11,33,0.07);
+}
+.dark .phone-frame {
+  background: linear-gradient(150deg, rgba(255,255,255,0.10), rgba(255,255,255,0.03));
+  border-color: rgba(255,255,255,0.14);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.15),
+    0 28px 70px -26px rgba(0,0,0,0.85),
+    0 4px 12px rgba(0,0,0,0.4);
+}
+.phone-screen {
+  position: relative;
+  border-radius: 35px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  height: 512px;
+}
+.phone-status {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 9px 20px 5px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--foreground);
+  position: relative;
+}
+.phone-notch {
+  position: absolute; left: 50%; transform: translateX(-50%); top: 6px;
+  width: 74px; height: 17px; border-radius: 999px;
+  background: var(--ink);
+}
+.dark .phone-notch { background: #000; }
+.phone-head {
+  display: flex; align-items: center; gap: 9px;
+  padding: 8px 14px 10px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, var(--bar-top), var(--bar-bottom));
+}
+.phone-thread {
+  flex: 1; overflow-y: auto; padding: 12px;
+  display: flex; flex-direction: column; gap: 10px;
+  background:
+    radial-gradient(circle at 18% 8%, rgba(34,200,214,0.045), transparent 45%),
+    var(--card);
+}
+.bubble {
+  max-width: 84%; padding: 9px 12px; border-radius: 15px;
+  border: 1px solid var(--border);
+}
+.bubble-ai { background: var(--muted); border-top-left-radius: 5px; }
+.bubble-me {
+  background: linear-gradient(135deg, #1c6f79, #0e9aa7);
+  border-color: transparent; border-top-right-radius: 5px; color: #fff;
+}
+.dark .bubble-me { background: linear-gradient(135deg, #0f6b74, #14808c); }
+.phone-composer {
+  display: flex; align-items: center; gap: 8px;
+  padding: 9px 11px; border-top: 1px solid var(--border);
+  background: linear-gradient(180deg, var(--bar-top), var(--bar-bottom));
+}
+.phone-input {
+  flex: 1; background: var(--card); border: 1px solid var(--input);
+  border-radius: 999px; padding: 8px 13px; font-size: 12px; color: var(--foreground);
+}
+.phone-input:focus { outline: none; border-color: var(--cyan); }
+.phone-send {
+  width: 32px; height: 32px; border-radius: 999px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; color: #fff;
+  background: linear-gradient(135deg, #22c8d6, #0e9aa7);
+}
+.phone-send:disabled { opacity: 0.4; }
+.phone-home {
+  height: 4px; width: 108px; margin: 6px auto 8px;
+  border-radius: 999px; background: var(--border-strong);
+}
+.typing { display: inline-flex; gap: 4px; padding: 2px 0; }
+.typing i {
+  width: 6px; height: 6px; border-radius: 999px; background: var(--muted-foreground);
+  animation: typing-bounce 1.3s ease-in-out infinite;
+}
+.typing i:nth-child(2) { animation-delay: 0.16s; }
+.typing i:nth-child(3) { animation-delay: 0.32s; }
+@keyframes typing-bounce {
+  0%, 60%, 100% { opacity: 0.3; transform: translateY(0); }
+  30% { opacity: 1; transform: translateY(-3px); }
+}
+@media (prefers-reduced-motion: reduce) { .typing i { animation: none; } }
+
+/* ===========================================================================
+   Cursor glow. A soft plum-red bloom that trails the pointer with easing, so
+   it reads as a light source rather than a chasing dot. Pointer-events none,
+   never shown on touch, and disabled under reduced motion.
+   =========================================================================== */
+
+.cursor-glow {
+  position: fixed;
+  top: 0; left: 0;
+  width: 460px; height: 460px;
+  margin: -230px 0 0 -230px;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 9998;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  background: radial-gradient(
+    circle closest-side,
+    rgba(255, 63, 82, 0.16) 0%,
+    rgba(255, 63, 82, 0.09) 32%,
+    rgba(255, 63, 82, 0.035) 58%,
+    rgba(255, 63, 82, 0) 78%
+  );
+  filter: blur(26px);
+  will-change: transform;
+}
+.cursor-glow.on { opacity: 1; }
+.cursor-glow-core {
+  position: fixed;
+  top: 0; left: 0;
+  width: 132px; height: 132px;
+  margin: -66px 0 0 -66px;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  background: radial-gradient(
+    circle closest-side,
+    rgba(255, 90, 106, 0.2) 0%,
+    rgba(255, 63, 82, 0.08) 45%,
+    rgba(255, 63, 82, 0) 72%
+  );
+  filter: blur(11px);
+  will-change: transform;
+}
+.cursor-glow-core.on { opacity: 1; }
+.dark .cursor-glow {
+  background: radial-gradient(
+    circle closest-side,
+    rgba(255, 79, 98, 0.2) 0%,
+    rgba(255, 79, 98, 0.11) 32%,
+    rgba(255, 79, 98, 0.04) 58%,
+    rgba(255, 79, 98, 0) 78%
+  );
+}
+@media (hover: none), (prefers-reduced-motion: reduce) {
+  .cursor-glow, .cursor-glow-core { display: none; }
+}
+
+/* ===========================================================================
+   Recharts tooltip: the default legend dot renders as a hollow ring. Fill it
+   with the series colour so the swatch matches the bar it describes.
+   =========================================================================== */
+
+.recharts-tooltip-item-list .recharts-tooltip-item-separator { opacity: 0.5; }
+.tip-dot {
+  /* inline-block matters: on a bare inline span, width and height are ignored
+     and the swatch collapses. Flex children get blockified anyway, but this
+     makes the dot correct wherever it is used. */
+  display: inline-block;
+  width: 9px; height: 9px; border-radius: 999px;
+  flex-shrink: 0;
+  border: 1px solid rgba(0, 0, 0, 0.18);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.55) inset;
+}
+.dark .tip-dot {
+  border-color: rgba(255, 255, 255, 0.25);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.14) inset;
+}
+
+/* ===========================================================================
+   Phone at 9:16, plus the floating launcher and its panel.
+   =========================================================================== */
+
+.phone { width: 100%; max-width: 318px; }
+.signal-dock .phone { max-width: 360px; }
+.phone-screen {
+  aspect-ratio: 9 / 16;
+  height: auto;
+  min-height: 0;
+}
+
+.signal-fab {
+  position: fixed;
+  right: 26px; bottom: 26px;
+  z-index: 60;
+  width: 62px; height: 62px;
+  border-radius: 20px;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  background: linear-gradient(140deg, rgba(255,255,255,0.6), rgba(255,255,255,0.25));
+  -webkit-backdrop-filter: blur(20px) saturate(1.7);
+  backdrop-filter: blur(20px) saturate(1.7);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.85),
+    0 14px 34px -12px rgba(43,11,33,0.4),
+    0 2px 6px rgba(43,11,33,0.12);
+  transition: transform 0.24s cubic-bezier(0.22,1,0.36,1), box-shadow 0.24s;
+}
+.dark .signal-fab {
+  border-color: rgba(255,255,255,0.16);
+  background: linear-gradient(140deg, rgba(255,255,255,0.1), rgba(255,255,255,0.03));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.16),
+    0 18px 44px -14px rgba(0,0,0,0.8);
+}
+.signal-fab:hover { transform: translateY(-3px) scale(1.04); }
+.signal-fab-ring {
+  position: absolute; inset: -5px;
+  border-radius: 24px;
+  background: conic-gradient(from 0deg, #22C8D6, #4FE3C1, #3B82F6, #22C8D6);
+  opacity: 0.5;
+  filter: blur(7px);
+  animation: halo-spin 7s linear infinite;
+  pointer-events: none;
+}
+.signal-fab-badge {
+  position: absolute; top: -3px; right: -3px;
+  width: 13px; height: 13px; border-radius: 999px;
+  background: #4FE3C1;
+  border: 2px solid var(--background);
+}
+
+/*
+  The dock is phone-shaped, not a wide panel. Earlier it spread to 840px and
+  the phone became a thumbnail inside a generic card, which lost the whole
+  point. Now the phone is the dock: it sits at its natural width and the
+  identity strip and suggestions live inside the frame with it.
+*/
+.signal-dock {
+  position: fixed;
+  right: 26px; bottom: 104px;
+  z-index: 61;
+  width: 396px;
+  max-height: calc(100vh - 140px);
+  border-radius: 46px;
+  animation: dock-in 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+  transform-origin: bottom right;
+}
+.signal-dock .phone { max-width: none; }
+.signal-dock .phone-screen { height: min(660px, calc(100vh - 210px)); }
+@keyframes dock-in {
+  from { opacity: 0; transform: translateY(14px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@media (max-width: 720px) {
+  .signal-dock {
+    right: 10px; left: 10px; bottom: 92px;
+    width: auto;
+  }
+  .signal-dock .phone-screen { height: calc(100vh - 190px); }
+  .signal-fab { right: 16px; bottom: 16px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .signal-dock { animation: none; }
+  .signal-fab-ring { animation: none; }
+  .signal-fab:hover { transform: none; }
+}
+
+/*
+  Long CleverTap property names overflowed the glass. word-break: break-word
+  "fixed" it by shattering them one character per line in a 284px bubble, which
+  was worse. Prose wraps normally; machine tokens get their own non-wrapping
+  row that scrolls horizontally instead.
+*/
+.bubble, .bubble * { min-width: 0; }
+.bubble p { overflow-wrap: break-word; }
+.rule-row {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 1.5;
+  white-space: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 5px 8px;
+  margin-top: 4px;
+  border-radius: 7px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  scrollbar-width: thin;
+}
+.rule-row::-webkit-scrollbar { height: 5px; }
+.rule-why {
+  display: block;
+  font-size: 10px;
+  line-height: 1.45;
+  color: var(--muted-foreground);
+  padding: 2px 8px 0;
+  overflow-wrap: break-word;
+  white-space: normal;
+}
+.rule-group {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--red);
+  margin-top: 9px;
+}
+
+/* Avatar idle animation: a slow breathing scale plus a scanline sweep. */
+@keyframes avatar-breathe {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.045); }
+}
+@keyframes avatar-scan {
+  0%   { transform: translateY(-120%); opacity: 0; }
+  12%  { opacity: 0.75; }
+  88%  { opacity: 0.75; }
+  100% { transform: translateY(320%); opacity: 0; }
+}
+.avatar-live { animation: avatar-breathe 3.6s ease-in-out infinite; }
+.avatar-wrap { position: relative; overflow: hidden; border-radius: 22%; }
+.avatar-scan {
+  position: absolute; left: 0; right: 0; height: 34%;
+  background: linear-gradient(180deg, transparent, rgba(79,227,193,0.4), transparent);
+  animation: avatar-scan 3.2s ease-in-out infinite;
+  pointer-events: none;
+}
+.avatar-thinking { animation-duration: 1.1s; }
+@media (prefers-reduced-motion: reduce) {
+  .avatar-live { animation: none; }
+  .avatar-scan { display: none; }
+}
+
+
+/* ===========================================================================
+   SIGNAL inside the phone: identity strip, suggestion tray, rubric sheet.
+   Everything the side panel used to hold now lives in the frame.
+   =========================================================================== */
+
+.phone-identity {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 13px;
+  border-bottom: 1px solid var(--border);
+  background:
+    radial-gradient(circle at 12% 10%, rgba(34,200,214,0.10), transparent 55%),
+    linear-gradient(180deg, var(--bar-top), var(--bar-bottom));
+}
+.phone-identity-name {
+  font-family: var(--font-serif);
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 1;
+  background-image: linear-gradient(100deg, #0E9AA7, #22C8D6 45%, #3B82F6);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.phone-tray {
+  border-top: 1px solid var(--border);
+  padding: 9px 11px 4px;
+  background: var(--card);
+}
+.phone-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 6px 10px; margin: 0 5px 5px 0;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: var(--muted);
+  font-size: 10.5px;
+  color: var(--foreground);
+  max-width: 100%;
+  transition: border-color 0.16s, color 0.16s;
+}
+.phone-chip:hover { border-color: var(--cyan); color: var(--cyan-deep); }
+.phone-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.phone-sheet {
+  position: absolute; inset: auto 0 0 0;
+  z-index: 20;
+  max-height: 72%;
+  overflow-y: auto;
+  border-radius: 22px 22px 33px 33px;
+  padding: 14px;
 }
