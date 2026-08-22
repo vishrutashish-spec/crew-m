@@ -33,7 +33,7 @@ export default function SettingsPage() {
   useEffect(() => {
     fetch(`${API}/api/health`).then((r) => r.json()).then(setHealth)
       .catch((e) => setError(e.message));
-    getVerification().then((v) => setChecks(v as { checks: string[]; sim_checks: string[] })).catch(() => {});
+    getVerification().then((v) => setChecks(v as unknown as { checks: string[]; sim_checks: string[] })).catch(() => {});
     getMethodology().then(setMeth).catch(() => {});
     getRules().then((r) => setRules(r.rules)).catch(() => {});
   }, []);
