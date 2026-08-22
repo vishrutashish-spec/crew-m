@@ -206,35 +206,45 @@ action being promoted, and end with "${accountName}<> Plum".`;
     process.env.ANTHROPIC_API_BASE ??
     "https://api.anthropic.com";
 
-  const res = await fetch(`${apiBase}/v1/messages`, {
-    method: "POST",
-    headers: {
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-      "content-type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "claude-sonnet-5",
-      // This model thinks before answering — a low budget can burn the
-      // whole response on the (discarded) thinking block and return no text.
-      // Confirmed live: a health-checkup request silently produced an empty
-      // body at 4096 (the parse succeeded on "{}", so nothing errored) —
-      // matches chat/route.ts's budget, which never hits this.
-      max_tokens: 8192,
-      system: copySkill,
-      messages: [{ role: "user", content: userPrompt }],
-    }),
-  });
+  // The model thinks before answering — a low budget can burn the whole
+  // response on the (discarded) thinking block and return no text block at
+  // all, which then parses as "{}" and silently ships an empty campaign
+  // rather than erroring. Confirmed live for a health-checkup request even
+  // at 8192. Retry once before giving up, since it doesn't reproduce every
+  // time for the same prompt.
+  let text = "{}";
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const res = await fetch(`${apiBase}/v1/messages`, {
+      method: "POST",
+      headers: {
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "claude-sonnet-5",
+        max_tokens: 8192,
+        system: copySkill,
+        messages: [{ role: "user", content: userPrompt }],
+      }),
+    });
 
-  if (!res.ok) {
-    const errText = await res.text();
-    console.error("Anthropic request failed", res.status, errText);
-    return NextResponse.json({ error: "copy_generation_failed" }, { status: 502 });
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error("Anthropic request failed", res.status, errText);
+      if (attempt === 1) return NextResponse.json({ error: "copy_generation_failed" }, { status: 502 });
+      continue;
+    }
+
+    const data = await res.json();
+    const blocks: Array<{ type: string; text?: string }> = data?.content ?? [];
+    const found = blocks.find((b) => b.type === "text")?.text;
+    if (found) {
+      text = found;
+      break;
+    }
+    console.error("Anthropic response had no text block on attempt", attempt, JSON.stringify(data).slice(0, 500));
   }
-
-  const data = await res.json();
-  const blocks: Array<{ type: string; text?: string }> = data?.content ?? [];
-  const text: string = blocks.find((b) => b.type === "text")?.text ?? "{}";
 
   let parsed: { subject?: string; body?: string };
   try {
