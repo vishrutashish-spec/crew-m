@@ -81,10 +81,14 @@ INTENTS = [
                  "criteria", "user propert", "event propert", "properties",
                  "property", "attribute", "condition", "query", "targeting",
                  "target for", "install targeting", "target"]),
-    ("gender", ["gender", "male", "female", "men", "women", "woman", "man",
+    ("gender", ["gender", "male", "female", "=men", "women", "woman", "=man",
                 "boys", "girls", "sex split", "by gender", "male vs",
                 "female vs", "men vs", "women vs"]),
-    ("specialty", ["dermat", "specialty", "speciality", "gynae", "gyno", "psycholog",
+    ("specialty", ["mental health", "anxiety", "stress", "burnout", "therapy",
+                   "counsel", "skin", "acne", "hair fall", "bone", "joint",
+                   "knee", "back pain", "gut", "acidity", "eyesight", "vision",
+                   "physio", "orthoped", "ortho",
+                   "dermat", "specialty", "speciality", "gynae", "gyno", "psycholog",
                    "psychiatr", "nutrition", "ortho", "pediatric", "paediatric",
                    "cardio", "endocrin", "gastro", "neurolog", "ent surgeon",
                    "consult pattern", "consultation pattern", "which doctor",
@@ -103,11 +107,15 @@ INTENTS = [
     ("push_gap", ["stale", "token", "push gap", "push problem", "push"]),
     ("dnd", ["dnd", "suppress", "opt out", "do not disturb"]),
     ("device", ["ios", "android", "device", "platform"]),
+    ("activation", ["activation", "activated", "activate", "adoption",
+                    "adopted", "org rate", "employee rate", "penetration",
+                    "activation gap"]),
     ("compare", ["compare", "which cohort", "best cohort", "biggest cohort",
-                 "versus", " vs "]),
+                 "which age group", "which band", "which is the",
+                 "versus", " vs ", "rank", "ladder"]),
     ("accuracy", ["accurate", "accuracy", "trust", "provenance", "source",
                   "how do you know", "reliable", "where does"]),
-    ("views", ["screen", "page", "panel", "chart", "graph", "tab", "view",
+    ("views", ["screen", "page", "panel", "chart", "graph", "=tab", "view",
                "dashboard", "what does this show", "explain this",
                "walk me through", "what am i looking at", "how do i read",
                "overview", "simulator", "methodology", "settings",
@@ -133,8 +141,17 @@ def _kw_hit(low: str, kw: str) -> bool:
     anchor keeps stems working while still killing the bug that mattered, where
     the ENT keyword matched inside "segment for" and "event properties" because
     the "ent" there is preceded by a letter.
+
+    A keyword prefixed with "=" opts into a FULL word boundary instead, for
+    short words where a start anchor is not enough. "man" was matching "many"
+    and "management", and "men" was matching "mental health", so a question
+    like "how many people can I reach" was being read as a question about men.
     """
-    return re.search(r"(?<![a-z])" + re.escape(kw.strip()), low) is not None
+    kw = kw.strip()
+    if kw.startswith("="):
+        return re.search(r"(?<![a-z])" + re.escape(kw[1:]) + r"(?![a-z])",
+                         low) is not None
+    return re.search(r"(?<![a-z])" + re.escape(kw), low) is not None
 
 
 # Common misspellings and shorthand seen in real use. Normalised before intent
@@ -187,9 +204,18 @@ def _detect(msg: str) -> list[str]:
     return [n for _, _, n in scored]
 
 
-def _cohorts_from(msg: str, fallback: list[str]) -> list[str]:
+def _explicit_cohorts(msg: str) -> list[str]:
+    """
+    Cohorts the question itself names, as distinct from whatever the interface
+    has selected. The difference matters: if someone asks about 36-40, the
+    answer must open on 36-40, not on whichever band happens to peak.
+    """
     low = _normalise(msg)
-    named = [k for k, al in COHORT_ALIASES.items() if any(a in low for a in al)]
+    return [k for k, al in COHORT_ALIASES.items() if any(a in low for a in al)]
+
+
+def _cohorts_from(msg: str, fallback: list[str]) -> list[str]:
+    named = _explicit_cohorts(msg)
     return named or [k for k in fallback if k in CE.BANDS] or ["26_35"]
 
 
@@ -224,12 +250,14 @@ def _sum(model, keys, org):
 def h_specialty(model, keys, org, msg, facts, seed):
     cohort = keys[0]
     lab = _label([cohort])
+    # Take the LONGEST token that resolves, not the first. Taking the first let
+    # an early word in the sentence win over the actual subject of the question.
     named = None
+    _best = 0
     for tok in re.findall(r"[a-zA-Z\-]+", msg):
-        s = CI.find_specialty(tok)
-        if s:
-            named = s
-            break
+        hit = CI.find_specialty(tok)
+        if hit and len(tok) > _best:
+            named, _best = hit, len(tok)
 
     prov = CI.provenance()["th"]
     if named:
@@ -317,15 +345,33 @@ def h_biomarker(model, keys, org, msg, facts, seed):
         ]
         series = ", ".join(f"{_label([c])} {v}%" for c, v in t["series"].items())
         here = t["series"].get(cohort)
-        text = (
-            f"{_pick('finding', seed)} {t['marker']} runs abnormal in {t['worst_pct']}% "
-            f"of {_label([t['worst_cohort']])} bookings against {t['overall_pct']}% "
-            f"across all of them. Threshold used: {t['basis']}. "
-            f"Across the age range: {series}. That is a {t['spread']}-point spread, "
-            f"which is why this is an age-targeted angle rather than a general one."
-        )
-        if here is not None:
-            text += f" For {lab} specifically it is {here}%."
+        asked = bool(_explicit_cohorts(msg)) and here is not None
+
+        if asked:
+            # The band was named in the question, so open on it.
+            peak_note = (
+                f" The worst band is {_label([t['worst_cohort']])} at "
+                f"{t['worst_pct']}%."
+                if t["worst_cohort"] != cohort
+                else " That is also the worst band of the six."
+            )
+            text = (
+                f"{_pick('finding', seed)} In {lab}, {t['marker']} runs abnormal "
+                f"in {here}% of bookings, against {t['overall_pct']}% across all "
+                f"ages.{peak_note} Threshold used: {t['basis']}. "
+                f"Across the age range: {series}. A {t['spread']}-point spread, "
+                "which is what makes this an age-targeted angle."
+            )
+        else:
+            text = (
+                f"{_pick('finding', seed)} {t['marker']} runs abnormal in {t['worst_pct']}% "
+                f"of {_label([t['worst_cohort']])} bookings against {t['overall_pct']}% "
+                f"across all of them. Threshold used: {t['basis']}. "
+                f"Across the age range: {series}. That is a {t['spread']}-point spread, "
+                f"which is why this is an age-targeted angle rather than a general one."
+            )
+            if here is not None:
+                text += f" For {lab} specifically it is {here}%."
         facts.append({"label": "Angle call",
                       "value": f"target {_label([t['worst_cohort']])}",
                       "provenance": "RECOMMENDED"})
@@ -594,6 +640,48 @@ def h_reach(model, keys, org, msg, facts, seed):
         {"label": "Email deliverable", "value": f"{_n(em)} ({_pct(em/total)})", "provenance": "DERIVED"},
         {"label": "Push deliverable", "value": f"{_n(real)} ({_pct(real/total)})", "provenance": "DERIVED"},
     ]
+    # If the question names one channel, answer about THAT channel first
+    # instead of reciting all three in the same order every time.
+    low = _normalise(msg)
+    named_ch = None
+    for ch, words in (("whatsapp", ("whatsapp", "wa ")),
+                      ("email", ("email", "gmail", "inbox")),
+                      ("push", ("push", "notification", "token"))):
+        if any(_kw_hit(low, w) for w in words):
+            named_ch = ch
+            break
+    if named_ch:
+        n_reach = {"whatsapp": wa, "email": em, "push": real}[named_ch]
+        pretty = A.CHANNEL_LABELS[named_ch]
+        extra = ""
+        if named_ch == "push":
+            extra = (f" The panel will quote {_n(rep)}, but {_n(rep - real)} of "
+                     "those are stale tokens on apps that are gone.")
+        else:
+            extra = (" It keys off the member record, so no app install is "
+                     "needed and the number does not decay.")
+        lines = [
+            f"{_pick('lead', seed)} On {pretty}, {lab} gives you "
+            f"{_n(n_reach)} deliverable, {_pct(n_reach / total)} of the "
+            f"{_n(total)} in the selection.{extra}"
+        ]
+        facts += [
+            {"label": f"{lab} selection", "value": _n(total),
+             "provenance": "OBSERVED"},
+            {"label": f"{pretty} deliverable",
+             "value": f"{_n(n_reach)} ({_pct(n_reach / total)})",
+             "provenance": "DERIVED"},
+        ]
+        if named_ch == "push":
+            facts.append({"label": "Stale tokens excluded",
+                          "value": _n(rep - real), "provenance": "DERIVED"})
+        else:
+            alt = "push" if named_ch != "push" else "whatsapp"
+            facts.append({"label": "Deliverable push, for contrast",
+                          "value": _n(real), "provenance": "DERIVED"})
+        act = (f"Size the campaign on {_n(n_reach)}, not on the cohort total.")
+        return lines, act, facts
+
     text = (
         f"{_pick('lead', seed)} {lab} holds {_n(total)} people. WhatsApp reaches "
         f"{_n(wa)} ({_pct(wa/total)}), email {_n(em)} ({_pct(em/total)}), and push "
@@ -770,7 +858,184 @@ def h_device(model, keys, org, msg, facts, seed):
     return [text], act, facts
 
 
+# Metrics a "which cohort is most/least X" question can rank on. Each entry is
+# the label, the words that select it, a sort key, and a formatter. Adding a
+# metric here makes it askable; nothing else needs touching.
+RANKABLE = [
+    ("size", ("biggest", "largest", "smallest", "size", "headcount",
+              "most people", "fewest people"),
+     lambda c: c["total"], lambda c: _n(c["total"])),
+    ("app ownership", ("app", "install", "ownership", "owns the app"),
+     lambda c: c["app_share"], lambda c: _pct(c["app_share"])),
+    ("telehealth booking rate", ("telehealth", "teleconsult", "consult rate",
+                                 "th rate"),
+     lambda c: c["th_booked_of_app"], lambda c: _pct(c["th_booked_of_app"])),
+    ("checkup booking rate", ("checkup", "health check", "hc rate", "panel"),
+     lambda c: c["hc_booked_of_app"], lambda c: _pct(c["hc_booked_of_app"])),
+    ("WhatsApp reach", ("whatsapp", "wa reach"),
+     lambda c: c["reach"]["whatsapp"]["count"],
+     lambda c: _n(c["reach"]["whatsapp"]["count"])),
+    ("email reach", ("email", "gmail", "inbox"),
+     lambda c: c["reach"]["email"]["count"],
+     lambda c: _n(c["reach"]["email"]["count"])),
+    ("deliverable push", ("push", "token"),
+     lambda c: c["reach"]["push"].get("with_app") or 0,
+     lambda c: _n(c["reach"]["push"].get("with_app") or 0)),
+    ("DND suppression", ("dnd", "suppress", "opt out"),
+     lambda c: c["dnd_share"], lambda c: _pct(c["dnd_share"])),
+]
+
+ASCENDING = ("least", "lowest", "worst", "fewest", "smallest", "bottom",
+             "weakest", "poorest")
+
+
+def _ranked(model, org, msg):
+    """
+    Resolve a most/least question to (label, direction, ordered cohorts).
+
+    Returns None when no metric is named, so the caller can fall back to the
+    general comparison instead of ranking on something arbitrary.
+    """
+    low = _normalise(msg)
+    chosen = None
+    best = 0
+    for label, words, key, fmt in RANKABLE:
+        for w in words:
+            if _kw_hit(low, w) and len(w) > best:
+                chosen, best = (label, key, fmt), len(w)
+    if not chosen:
+        return None
+    label, key, fmt = chosen
+    asc = any(_kw_hit(low, w) for w in ASCENDING)
+    cs = [c for c in (P.cohort_summary(model, k, org) for k in CE.BANDS) if c]
+    cs.sort(key=key, reverse=not asc)
+    return label, ("lowest" if asc else "highest"), cs, key, fmt
+
+
+def h_activation(model, keys, org, msg, facts, seed):
+    """
+    The org-versus-employee activation gap, which was falling through to the
+    generic fallback despite being one of the two headline findings.
+    """
+    org_rate = A.ORG_ACTIVATION_RATE
+    emp_rate = A.EMPLOYEE_ACTIVATION_RATE
+    gap = A.ACTIVATION_GAP_POINTS
+    cs = [c for c in (P.cohort_summary(model, k, org) for k in CE.BANDS) if c]
+    best = max(cs, key=lambda c: c["th_booked_of_app"]) if cs else None
+
+    lines = [
+        f"{_pick('caution', seed)} {_pct(org_rate, 0)} of organisations have "
+        f"activated, against {_pct(emp_rate, 0)} of employees. That is a "
+        f"{gap} point gap, and it is the whole shape of the problem: getting "
+        "the company to say yes is largely solved, reaching the individual "
+        "inside it is not."
+    ]
+    lines.append(
+        "The earlier version of this number was wrong and worth knowing about. "
+        "It asked whether anyone in a group had ever booked, which is always "
+        "true, so org activation came out at 100% and the gap looked like 92 "
+        "points. The real comparison is the one above."
+    )
+    sel = next((c for c in cs if c["key"] in (keys or [])), None)
+    if sel:
+        lines.append(
+            f"For {sel['label']} specifically: {_n(sel['total'])} people, "
+            f"{_pct(sel['app_share'])} holding the app, and "
+            f"{_pct(sel['th_booked_of_app'])} of that app base has booked "
+            "telehealth. The employee-side gap is what you are working on in "
+            "this band, not the account-side one."
+        )
+    if best:
+        lines.append(
+            f"Where the employee side is least bad: {best['label']} books "
+            f"telehealth at {_pct(best['th_booked_of_app'])} of its app base. "
+            "That is the ceiling to argue from, not an average."
+        )
+    implied = round(A.TOTAL_ELIGIBLE * emp_rate)
+    lines.append(
+        f"In absolute terms that is roughly {_n(implied)} employees who have "
+        f"ever booked, out of {_n(A.TOTAL_ELIGIBLE)} eligible. The remaining "
+        f"{_n(A.TOTAL_ELIGIBLE - implied)} are the actual addressable space."
+    )
+    facts += [
+        {"label": "Employees who have ever booked", "value": _n(implied),
+         "provenance": "DERIVED"},
+        {"label": "Organisation activation", "value": _pct(org_rate, 0),
+         "provenance": "OBSERVED"},
+        {"label": "Employee activation", "value": _pct(emp_rate, 0),
+         "provenance": "OBSERVED"},
+        {"label": "Gap", "value": f"{gap} points", "provenance": "DERIVED"},
+    ]
+    if best:
+        facts.append({"label": "Best cohort on booking rate",
+                      "value": f"{best['label']}, {_pct(best['th_booked_of_app'])}",
+                      "provenance": "DERIVED"})
+    facts.append({
+        "label": "Where the effort belongs",
+        "value": "employee reach inside already-activated organisations",
+        "provenance": "RECOMMENDED"})
+    facts.append({
+        "label": "Org share is modeled",
+        "value": "org type split is a distribution, not a CleverTap property",
+        "provenance": "MODELED"})
+    act = ("Spend the effort on employee reach inside already-activated "
+           "organisations. The account-level argument is already won.")
+    return lines, act, facts
+
+
 def h_compare(model, keys, org, msg, facts, seed):
+    # If the question names a metric, rank on THAT and lead with the answer,
+    # rather than returning the same three-metric summary for every question.
+    ranked = _ranked(model, org, msg)
+    if ranked:
+        label, direction, cs, key, fmt = ranked
+        win, lose = cs[0], cs[-1]
+        ladder = ", ".join(f"{c['label']} {fmt(c)}" for c in cs)
+
+        # The ranking alone is half an answer. Whether the spread is wide
+        # enough to act on is the other half, and it is computable rather
+        # than assertable: a 1.4x spread and a 57x spread call for opposite
+        # decisions, and saying the same closing line for both is what makes
+        # an assistant feel templated.
+        hi, lo = max(key(c) for c in cs), min(key(c) for c in cs)
+        ratio = (hi / lo) if lo else None
+        if ratio is None:
+            verdict = ("One band sits at zero, so the ratio is undefined and "
+                       "the gap is the whole story.")
+        elif ratio >= 3:
+            verdict = (f"That is a {ratio:.1f}x spread, wide enough that one "
+                       "campaign across all six bands wastes most of it. "
+                       "Split it.")
+        elif ratio >= 1.6:
+            verdict = (f"A {ratio:.1f}x spread. Real, but not dramatic: worth "
+                       "a variant, not a separate campaign.")
+        else:
+            verdict = (f"Only a {ratio:.2f}x spread, so this metric barely "
+                       "separates the bands. Do not segment on it. Whatever "
+                       "is holding the number down is common to everyone.")
+
+        lines = [
+            f"{_pick('lead', seed)} On {label}, {win['label']} is {direction} "
+            f"at {fmt(win)}, against {fmt(lose)} at the other end. "
+            f"Full order: {ladder}. {verdict}"
+        ]
+        facts += [
+            {"label": f"{direction.capitalize()} on {label}",
+             "value": f"{win['label']}, {fmt(win)}", "provenance": "DERIVED"},
+            {"label": "Other end",
+             "value": f"{lose['label']}, {fmt(lose)}", "provenance": "DERIVED"},
+            {"label": "Bands compared", "value": f"{len(cs)}",
+             "provenance": "OBSERVED"},
+            {"label": "Ranked on", "value": label, "provenance": "DERIVED"},
+            {"label": "Spread",
+             "value": (f"{hi / lo:.2f}x" if lo else "undefined, one band at zero"),
+             "provenance": "DERIVED"},
+        ]
+        act = (f"Lead with {win['label']} on {label}. "
+               f"{lose['label']} needs a different argument, not the same one "
+               f"sent harder.")
+        return lines, act, facts
+
     cs = [c for c in (P.cohort_summary(model, k, org) for k in CE.BANDS) if c]
     biggest = max(cs, key=lambda c: c["total"])
     best_app = max(cs, key=lambda c: c["app_share"])
@@ -925,6 +1190,7 @@ HANDLERS = {
     "timing": h_timing, "channel": h_channel, "reach": h_reach,
     "conversion": h_conversion, "push_gap": h_push_gap, "dnd": h_dnd,
     "device": h_device, "compare": h_compare, "accuracy": h_accuracy,
+    "activation": h_activation,
     "help": h_help,
 }
 
@@ -1326,7 +1592,7 @@ RUBRIC = {
 
 _DEPTH_INTENTS = {"specialty", "biomarker", "segment", "timing", "accuracy",
                   "compare", "channel", "reach", "copy", "push_gap", "dnd",
-                  "conversion", "help" "views", "gender",}
+                  "conversion", "help" "views", "gender", "activation",}
 
 
 def _score(answer: str, facts: list[dict], action: str, intents: list[str],

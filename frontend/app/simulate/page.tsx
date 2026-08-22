@@ -457,7 +457,9 @@ function CopyStudio({
                 </span>
               </div>
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-                {g.variants.map((v) => <VariantCard key={v.id} v={v} objective={objective} />)}
+                {g.variants.map((v) => (
+                  <VariantCard key={v.id} v={v} objective={objective} angle={angle} />
+                ))}
               </div>
             </div>
           ))}
@@ -494,7 +496,7 @@ function CopyStudio({
             <div className="space-y-3">
               {/* Preview your own words in the real message shape, not just scored */}
               {channel === "whatsapp" && customText.trim() && (
-                <WaMessage body={customText} objective={objective}
+                <WaMessage body={customText} objective={objective} angle={angle}
                   category={customResult.analysis.category} />
               )}
               <AnalysisBlock analysis={customResult.analysis} prediction={customResult.prediction} channel={channel} />
@@ -508,7 +510,9 @@ function CopyStudio({
 
 /* ---------------------------------------------------------------- variants */
 
-function VariantCard({ v, objective }: { v: CopyVariant; objective: string }) {
+function VariantCard({ v, objective, angle }: {
+  v: CopyVariant; objective: string; angle: string | null;
+}) {
   const [open, setOpen] = useState(false);
   const a = v.analysis;
 
@@ -521,7 +525,8 @@ function VariantCard({ v, objective }: { v: CopyVariant; objective: string }) {
       <div className="p-4">
         {/* Message preview */}
         {v.channel === "whatsapp" && (
-          <WaMessage body={v.body} objective={objective} category={a.category} />
+          <WaMessage body={v.body} objective={objective} angle={angle}
+            category={a.category} />
         )}
         {v.channel === "push" && (
           <div className="flex items-start gap-2.5 rounded-xl border border-border bg-[color:var(--muted)] px-3.5 py-3">
