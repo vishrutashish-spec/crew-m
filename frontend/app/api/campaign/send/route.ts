@@ -270,6 +270,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "missing_copy" }, { status: 400 });
   }
 
+  // Second gate, in case a caller assembles copy without going through
+  // /api/copy: never send a body that is obviously a failed generation.
+  const words = body.split(/\s+/).length;
+  if (words < 150) {
+    console.error(`refusing to send ${accountName}: body is only ${words} words`);
+    return NextResponse.json(
+      { ok: false, error: "body_too_short", words, minimum: 150 },
+      { status: 400 }
+    );
+  }
+
   // A bespoke creative wins; otherwise fall back to the generic header for
   // this campaign type so the email is never sent without a banner.
   // Header precedence: a creative passed in by the pipeline, then this
