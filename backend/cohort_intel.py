@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from functools import lru_cache
 
 _PATH = os.path.join(os.path.dirname(__file__), "aggregates", "real_aggregates.json")
@@ -103,8 +104,31 @@ def specialty_index(cohort: str, specialty: str) -> dict | None:
     }
 
 
+# Words that appear in ordinary questions and must never resolve to a
+# specialty. Kept explicit rather than inferred, because a silent
+# mis-resolution here produces a confident answer about the wrong condition.
+STOPWORDS = {
+    "is", "the", "in", "on", "at", "of", "for", "and", "a", "an", "to", "as",
+    "what", "which", "who", "how", "why", "when", "where", "do", "does", "did",
+    "are", "was", "can", "should", "would", "will", "most", "least", "more",
+    "less", "common", "commonly", "pattern", "patterns", "cohort", "cohorts",
+    "band", "bands", "age", "group", "groups", "people", "users", "members",
+    "me", "my", "i", "it", "its", "that", "this", "these", "those", "with",
+    "by", "vs", "versus", "than", "then", "about", "into", "from", "have",
+    "has", "had", "get", "give", "show", "tell", "problem", "problems",
+    "health", "issue", "issues", "consult", "consults", "consultation",
+    "consultations", "book", "books", "booked", "booking", "bookings",
+    "send", "sending", "sent", "reach", "target", "segment", "campaign",
+}
+
+
 def find_specialty(term: str) -> str | None:
-    """Resolve a loose mention to a real specialty name."""
+    """
+    Resolve a loose mention to a real specialty name, or None.
+
+    Returning None is the correct answer far more often than it looks, and is
+    much better than a confident wrong specialty.
+    """
     t = term.lower().strip()
     names = list(data()["specialty_totals"].keys())
     for n in names:
@@ -128,12 +152,27 @@ def find_specialty(term: str) -> str | None:
         "neuro": "Neurologist", "eye": "Ophthalmologist", "physio": "Physiotherapist",
         "psychiatr": "Psychiatrist",
     }
+    # An alias only counts if the token STARTS with it. "cardio" matching
+    # "cardiologist" is intended; a bare substring match is not.
     for k, v in aliases.items():
-        if k in t and v in names:
+        if t.startswith(k) and v in names:
             return v
+
+    # The loose pass used to accept any substring, which let stopwords resolve
+    # to real specialties: "is" matched Cardiologist, "the" matched
+    # Physiotherapist, "in" matched Endocrinologist. A question about
+    # dermatology therefore answered about cardiology, because "is" appears
+    # before "dermatology" in the sentence. Now a token must be at least four
+    # characters, must not be a stopword, and must share a prefix with a whole
+    # word inside the specialty name.
+    if len(t) < 4 or t in STOPWORDS:
+        return None
     for n in names:
-        if t and (t in n.lower() or n.lower().split()[0] in t):
-            return n
+        for word in re.split(r"[^a-z]+", n.lower()):
+            if len(word) < 4:
+                continue
+            if word.startswith(t) or t.startswith(word):
+                return n
     return None
 
 

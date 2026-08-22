@@ -224,12 +224,14 @@ def _sum(model, keys, org):
 def h_specialty(model, keys, org, msg, facts, seed):
     cohort = keys[0]
     lab = _label([cohort])
+    # Take the LONGEST token that resolves, not the first. Taking the first let
+    # an early word in the sentence win over the actual subject of the question.
     named = None
+    _best = 0
     for tok in re.findall(r"[a-zA-Z\-]+", msg):
-        s = CI.find_specialty(tok)
-        if s:
-            named = s
-            break
+        hit = CI.find_specialty(tok)
+        if hit and len(tok) > _best:
+            named, _best = hit, len(tok)
 
     prov = CI.provenance()["th"]
     if named:
