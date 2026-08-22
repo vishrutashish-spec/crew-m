@@ -76,12 +76,16 @@ def _clean(t: str) -> str:
 # ---------------------------------------------------------------------------
 
 INTENTS = [
-    ("segment", ["filter", "segment", "build", "rules", "how do i target",
-                 "who should i target", "audience should", "criteria"]),
+    ("segment", ["filter", "filters", "segment", "segmentation", "build", "rules",
+                 "how do i target", "who should i target", "audience should",
+                 "criteria", "user propert", "event propert", "properties",
+                 "property", "attribute", "condition", "query", "targeting",
+                 "target for", "install targeting", "target"]),
     ("specialty", ["dermat", "specialty", "speciality", "gynae", "gyno", "psycholog",
                    "psychiatr", "nutrition", "ortho", "pediatric", "paediatric",
-                   "cardio", "endocrin", "gastro", "neurolog", "ent ", "consult pattern",
-                   "which doctor", "what doctors", "physician"]),
+                   "cardio", "endocrin", "gastro", "neurolog", "ent surgeon",
+                   "consult pattern", "consultation pattern", "which doctor",
+                   "what doctors", "physician", "specialist"]),
     ("biomarker", ["biomarker", "marker", "vitamin", "b12", "hba1c", "cholesterol",
                    "ldl", "hdl", "triglyc", "glucose", "thyroid", "tsh", "liver",
                    "uric", "haemoglobin", "hemoglobin", "anaemia", "anemia",
@@ -112,9 +116,22 @@ COHORT_ALIASES = {
 }
 
 
+def _kw_hit(low: str, kw: str) -> bool:
+    """
+    Match a keyword on word boundaries.
+
+    Anchored at a word START only, deliberately. A full boundary on both ends
+    breaks stems: "dermat" would stop matching "dermatologist". A start-only
+    anchor keeps stems working while still killing the bug that mattered, where
+    the ENT keyword matched inside "segment for" and "event properties" because
+    the "ent" there is preceded by a letter.
+    """
+    return re.search(r"(?<![a-z])" + re.escape(kw.strip()), low) is not None
+
+
 def _detect(msg: str) -> list[str]:
     low = msg.lower()
-    hits = [n for n, keys in INTENTS if any(k in low for k in keys)]
+    hits = [n for n, keys in INTENTS if any(_kw_hit(low, k) for k in keys)]
     return hits or ["help"]
 
 
@@ -297,6 +314,12 @@ def h_biomarker(model, keys, org, msg, facts, seed):
 
 
 def h_segment(model, keys, org, msg, facts, seed):
+    """
+    Emit a real, buildable CleverTap segment, grouped the way the segment
+    builder is actually organised: base user properties, then product
+    eligibility, then event conditions, then suppression. Age is called out
+    separately because it is not a property and has to be derived.
+    """
     obj = _objective_from(msg, "th_activation")
     lab = _label(keys)
     cs = _sum(model, keys, org)
@@ -304,64 +327,119 @@ def h_segment(model, keys, org, msg, facts, seed):
     no_app = sum(c["no_app"] for c in cs)
     dnd = sum(c["dnd"] for c in cs)
     total = sum(c["total"] for c in cs) or 1
+    ready = sum(c["reach"]["whatsapp"]["campaign_ready"] for c in cs)
 
-    rules = [
-        ("property", "warehouse_production_organisationStatus", "equals", "ACTIVE",
-         "base eligibility, active orgs only"),
-        ("property", "warehouse_production_isTestOrganisation", "not equals", "true",
-         "base eligibility, excludes test orgs"),
-        ("property", "is_in_DND_CT", "not equals", "true",
-         f"DND suppression, {_n(dnd)} people in this selection carry the flag"),
-    ]
-    if obj in ("th_activation", "hc_activation", "reengagement", "hc_crosssell"):
-        rules.append(("event", "App Launched", "Did", "in last 180 days",
-                      f"app ownership, {_n(app)} in this selection"))
-    if obj == "app_install":
-        rules.append(("event", "App Installed", "Have Not Done", "in last 365 days",
-                      f"the no-app pool, {_n(no_app)} people"))
-    if obj == "th_activation":
-        rules += [
-            ("property", "warehouse_production_telehealthMembershipCreatedAtTimestamp",
-             "exists", "in last 365 days", "telehealth product eligibility"),
-            ("event", "EmployeeMobileApp_Telehealth_AppointmentSuccessful_Viewed",
-             "Have Not Done", "ever", "never booked, the canonical booked event"),
-        ]
-    if obj == "hc_activation":
-        rules += [
-            ("property", "warehouse_production_plumHealthCheckupMembershipCreatedAtTimestamp",
-             "exists", "in last 365 days", "checkup product eligibility"),
-            ("event", "healthCheckupbooking_confirmed", "Have Not Done", "ever",
-             "never booked, the canonical confirmed event"),
-        ]
-    if obj == "hc_crosssell":
-        rules += [
-            ("event", "healthCheckupreport_viewed", "Did", "in last 120 days",
-             "the cross-sell trigger moment"),
-            ("event", "healthCheckuptelehealthBooking_done", "Have Not Done", "ever",
-             "has not yet crossed over"),
-        ]
-    if obj == "reengagement":
-        rules.append(("event", "App Launched", "Have Not Done", "in last 30 days",
-                      "installed but quiet"))
+    # group -> list of (kind, name, operator, value, why)
+    groups: dict[str, list[tuple]] = {
+        "Base user properties": [
+            ("USER PROPERTY", "warehouse_production_organisationStatus", "equals",
+             "ACTIVE", "only live organisations"),
+            ("USER PROPERTY", "warehouse_production_isTestOrganisation", "not equals",
+             "true", "drops internal test orgs"),
+        ],
+        "Product eligibility": [],
+        "Event conditions": [],
+        "Suppression": [
+            ("USER PROPERTY", "is_in_DND_CT", "not equals", "true",
+             f"{_n(dnd)} people here carry the flag, and nothing enforces it centrally"),
+        ],
+    }
 
+    if obj in ("th_activation",):
+        groups["Product eligibility"].append(
+            ("USER PROPERTY", "warehouse_production_telehealthMembershipCreatedAtTimestamp",
+             "exists", "in last 365 days", "telehealth entitlement is live"))
+        groups["Event conditions"] += [
+            ("EVENT", "App Launched", "Did", "in last 180 days",
+             f"has the app, {_n(app)} of {_n(total)} here"),
+            ("EVENT", "EmployeeMobileApp_Telehealth_AppointmentSuccessful_Viewed",
+             "Have Not Done", "ever",
+             "never booked. This is the canonical booked event, not AppointmentCreated"),
+        ]
+    elif obj == "hc_activation":
+        groups["Product eligibility"].append(
+            ("USER PROPERTY", "warehouse_production_plumHealthCheckupMembershipCreatedAtTimestamp",
+             "exists", "in last 365 days", "checkup entitlement is live"))
+        groups["Event conditions"] += [
+            ("EVENT", "App Launched", "Did", "in last 180 days",
+             f"has the app, {_n(app)} of {_n(total)} here"),
+            ("EVENT", "healthCheckupbooking_confirmed", "Have Not Done", "ever",
+             "never booked. This is the canonical confirmed event"),
+        ]
+    elif obj == "app_install":
+        groups["Event conditions"].append(
+            ("EVENT", "App Installed", "Have Not Done", "in last 365 days",
+             f"the no-app pool, {_n(no_app)} people. Note push cannot reach these"))
+    elif obj == "reengagement":
+        groups["Event conditions"] += [
+            ("EVENT", "App Launched", "Did", "in last 180 days", "has the app"),
+            ("EVENT", "App Launched", "Have Not Done", "in last 30 days",
+             "installed but quiet, the cheapest group to reactivate"),
+        ]
+    else:  # hc_crosssell
+        groups["Event conditions"] += [
+            ("EVENT", "healthCheckupreport_viewed", "Did", "in last 120 days",
+             "the trigger moment, they have just seen their own numbers"),
+            ("EVENT", "healthCheckuptelehealthBooking_done", "Have Not Done", "ever",
+             "has not crossed over yet"),
+        ]
+
+    n_rules = sum(len(v) for v in groups.values())
     facts += [
         {"label": "Selection", "value": f"{_n(total)} in {lab}", "provenance": "OBSERVED"},
-        {"label": "Rules emitted", "value": str(len(rules)), "provenance": "RECOMMENDED"},
+        {"label": "Rules emitted", "value": f"{n_rules} across 4 groups",
+         "provenance": "RECOMMENDED"},
         {"label": "DND to exclude", "value": _n(dnd), "provenance": "OBSERVED"},
+        {"label": "Campaign-ready after suppression", "value": _n(ready),
+         "provenance": "DERIVED"},
     ]
+
     lines = [
-        f"{_pick('plain', seed)} For {obj.replace('_', ' ')} across {lab}, assemble it "
-        f"in this order. The first three are non-negotiable base filters."
+        f"{_pick('plain', seed)} Here is a buildable segment for "
+        f"{obj.replace('_', ' ')} across {lab}, grouped the way the builder is "
+        f"organised. {n_rules} conditions."
     ]
-    for i, (kind, name, op, val, why) in enumerate(rules, 1):
-        lines.append(f"{i}. {kind.upper()} {name} {op} {val}  ({why})")
+    for group, rules in groups.items():
+        if not rules:
+            continue
+        lines.append(f"{group}")
+        for kind, name, op, val, why in rules:
+            lines.append(f"  {kind} · {name} · {op} · {val}\n    {why}")
+
     lines.append(
-        f"Age itself is not a CleverTap property. Derive it from "
-        f"warehouse_production_dateOfBirth, which is active, and never from the "
-        f"age event property, which has single-digit fill against millions of rows."
+        "Age band: not a CleverTap property. Derive it from "
+        "warehouse_production_dateOfBirth, which is Active, never from the `age` "
+        "event property, which has single-digit fill against millions of rows. "
+        "Org type has no partner_type property either and has to be joined via "
+        "warehouse_production_organisationId."
     )
-    act = ("Paste these into the segment builder top to bottom, then check the "
-           "reachability panel before treating it as campaign-ready.")
+
+    # A clinical hook, so the segment arrives with an angle attached.
+    if obj in ("hc_activation", "hc_crosssell"):
+        m = CI.worst_marker(keys[0])
+        if m:
+            facts.append({"label": f"Angle for {lab}",
+                          "value": f"{m['marker']} abnormal in {m['abnormal_pct']}%",
+                          "provenance": "OBSERVED"})
+            lines.append(
+                f"Angle to pair with it: {m['marker']} is abnormal in "
+                f"{m['abnormal_pct']}% of {lab} checkup bookings, median "
+                f"{m['median']} against a {m['threshold']} threshold."
+            )
+    else:
+        mix = CI.specialty_mix(keys[0])[:1]
+        if mix:
+            facts.append({"label": f"Angle for {lab}",
+                          "value": f"{mix[0]['specialty']} at {_pct(mix[0]['share'])}",
+                          "provenance": "OBSERVED"})
+            lines.append(
+                f"Angle to pair with it: {mix[0]['specialty']} is already "
+                f"{_pct(mix[0]['share'])} of {lab} consults, the strongest existing "
+                f"demand in this cohort."
+            )
+
+    act = ("Build it top to bottom in that order, then check the reachability panel "
+           "on the real filtered segment before treating it as campaign-ready.")
     return lines, act, facts
 
 

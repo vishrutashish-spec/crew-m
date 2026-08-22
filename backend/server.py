@@ -153,13 +153,6 @@ def overview(org: Optional[str] = Query(None)):
     cells = [c for c in model["cells"].values()
              if org_f is None or c["org"] == org_f]
 
-    # Real vs apparent push, computed here so the UI never has to derive it.
-    real_push = sum(c["reach_push_app"] for c in cells)
-    totals["reach"]["push"]["with_app"] = real_push
-    totals["reach"]["push"]["stale_tokens"] = (
-        totals["reach"]["push"]["count"] - real_push
-    )
-
     return {
         "label": "OBSERVED",
         "org_filter": org_f,
@@ -218,15 +211,6 @@ def cohort_detail(cohort_key: str, org: Optional[str] = Query(None)):
     if not summary:
         raise HTTPException(404, f"Unknown cohort '{cohort_key}'")
     logger.info(f"DATA_ACCESS: cohort {cohort_key} detail (org={org_f or 'all'})")
-
-    cells = [c for c in model["cells"].values()
-             if c["cohort"] == cohort_key
-             and (org_f is None or c["org"] == org_f)]
-    real_push = sum(c["reach_push_app"] for c in cells)
-    summary["reach"]["push"]["with_app"] = real_push
-    summary["reach"]["push"]["stale_tokens"] = (
-        summary["reach"]["push"]["count"] - real_push
-    )
 
     return {
         "label": "OBSERVED",
