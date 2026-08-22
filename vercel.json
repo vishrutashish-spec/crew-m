@@ -1,0 +1,20 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "builds": [
+    {
+      "src": "frontend/package.json",
+      "use": "@vercel/next"
+    },
+    {
+      "src": "api/engine.py",
+      "use": "@vercel/python",
+      "config": {
+        "includeFiles": "backend/**"
+      }
+    }
+  ],
+  "routes": [
+    { "src": "/api/engine/(.*)", "dest": "/api/engine.py" },
+    { "src": "/api/engine", "dest": "/api/engine.py" }
+  ]
+}

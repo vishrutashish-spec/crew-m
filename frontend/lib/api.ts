@@ -6,7 +6,33 @@
  * the UI can never disagree with the number beside it.
  */
 
-const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+/**
+ * Where the engine lives.
+ *
+ * Resolved rather than configured, because .env files are gitignored in this
+ * repo and a missing variable in production would point every request at
+ * localhost. An explicit NEXT_PUBLIC_API_URL still wins if one is set.
+ *
+ *   deployed  -> /api/engine  (the Vercel Python function, same origin)
+ *   local dev -> http://localhost:8000 (the uvicorn server)
+ */
+function resolveBase(): string {
+  const explicit = process.env.NEXT_PUBLIC_API_URL;
+  if (explicit) return explicit;
+  if (typeof window !== "undefined") {
+    const h = window.location.hostname;
+    const local = h === "localhost" || h === "127.0.0.1" || h.endsWith(".local");
+    return local ? "http://localhost:8000" : "/api/engine";
+  }
+  // Server-side render: relative path is correct on the platform, and no
+  // client component fetches during SSR here.
+  return process.env.VERCEL ? "/api/engine" : "http://localhost:8000";
+}
+
+const BASE = resolveBase();
+
+/** Exported so pages needing a raw fetch use the same resolution. */
+export const API_BASE = BASE;
 
 export type Provenance = "OBSERVED" | "DERIVED" | "PREDICTED" | "RECOMMENDED" | "MODELED";
 
