@@ -1456,8 +1456,13 @@ select.field:focus, input.field:focus, textarea.field:focus {
   display: block;
   width: 100%;
   height: auto;
-  aspect-ratio: 4 / 3;
+  /* Supplied creative comes in different ratios: 1.92 landscape through 0.96
+     near-square. WhatsApp preserves the image's own ratio, so no aspect-ratio
+     is forced here. The cap stops a portrait asset from pushing the caption
+     off the visible bubble. */
+  max-height: 320px;
   object-fit: cover;
+  object-position: center;
 }
 
 .wa-body { padding: 6px 7px 4px 6px; }
@@ -1553,3 +1558,52 @@ select.field:focus, input.field:focus, textarea.field:focus {
   min-width: 0;
   overflow-wrap: anywhere;
 }
+
+/* SIGNAL sheet: two panes, scoring and tuning. */
+.sheet-tab {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 4px 9px;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  color: var(--muted-foreground);
+}
+.sheet-tab.is-on {
+  border-color: var(--cyan);
+  color: var(--cyan-deep);
+  background: var(--cyan-wash);
+}
+.tune-opt {
+  font-size: 9.5px;
+  padding: 3px 7px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  color: var(--muted-foreground);
+}
+.tune-opt.is-on {
+  border-color: var(--cyan);
+  color: var(--cyan-deep);
+  background: var(--cyan-wash);
+  font-weight: 600;
+}
+.tune-switch {
+  width: 30px;
+  height: 17px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--muted);
+  padding: 1px;
+  display: flex;
+  flex-shrink: 0;
+  transition: background .16s ease, border-color .16s ease;
+}
+.tune-switch span {
+  width: 13px;
+  height: 13px;
+  border-radius: 999px;
+  background: var(--muted-foreground);
+  transition: transform .16s ease, background .16s ease;
+}
+.tune-switch.is-on { background: var(--cyan-wash); border-color: var(--cyan); }
+.tune-switch.is-on span { transform: translateX(13px); background: var(--cyan-deep); }

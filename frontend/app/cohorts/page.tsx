@@ -407,7 +407,9 @@ function Detail({ detail, org }: { detail: CohortDetail; org: string }) {
                     cursor={{ fill: "var(--cursor-fill)" }} />
                   <Bar dataKey="count" name="Users" fill={GRAD.ink} radius={[4, 4, 0, 0]} barSize={38}>
                     <LabelList dataKey="step" position="top"
-                      formatter={(v: unknown) => (typeof v === "number" && v < 1 ? pct(v, 0) : "")}
+                      formatter={(v: unknown) =>
+                  // A decimal below 20%, or 12.76% and 13.3% both read "13%".
+                  typeof v === "number" && v < 1 ? pct(v, v < 0.2 ? 1 : 0) : ""}
                       style={{ fontSize: 9.5, fill: "var(--tick)", fontFamily: "Vollkorn, Georgia, serif" }} />
                   </Bar>
                 </BarChart>

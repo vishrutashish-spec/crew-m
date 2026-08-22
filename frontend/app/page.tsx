@@ -411,7 +411,9 @@ function FunnelPanel({
                 <Cell key={d.stage} fill={d.isWorst ? GRAD.red : GRAD.ink} />
               ))}
               <LabelList dataKey="step" position="top"
-                formatter={(v: unknown) => (typeof v === "number" && v < 1 ? pct(v, 0) : "")}
+                formatter={(v: unknown) =>
+                  // A decimal below 20%, or 12.76% and 13.3% both read "13%".
+                  typeof v === "number" && v < 1 ? pct(v, v < 0.2 ? 1 : 0) : ""}
                 style={{ fontSize: 10, fill: "var(--tick)", fontFamily: "Vollkorn, Georgia, serif" }} />
             </Bar>
           </BarChart>

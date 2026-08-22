@@ -104,6 +104,11 @@ INTENTS = [
                  "versus", " vs "]),
     ("accuracy", ["accurate", "accuracy", "trust", "provenance", "source",
                   "how do you know", "reliable", "where does"]),
+    ("views", ["screen", "page", "panel", "chart", "graph", "tab", "view",
+               "dashboard", "what does this show", "explain this",
+               "walk me through", "what am i looking at", "how do i read",
+               "overview", "simulator", "methodology", "settings",
+               "push gap", "booking clock", "copy studio", "projected funnel"]),
 ]
 
 COHORT_ALIASES = {
@@ -924,6 +929,239 @@ HANDLERS = {
 # The 10-parameter rubric
 # ---------------------------------------------------------------------------
 
+# ===========================================================================
+# Dashboard views
+# ===========================================================================
+#
+# SIGNAL is asked to explain the product itself, not only the data: "what is
+# the push gap panel telling me", "why does the funnel label change". Each
+# entry says what the view shows, where its numbers come from, how to read it,
+# and the trap in it. Written here rather than in the UI so the explanation and
+# the chart cannot drift apart.
+
+VIEWS = {
+    "overview": {
+        "screen": "Overview",
+        "what": "The whole eligible base at a glance: how much of it has the app, how much is reachable per channel, and where the two product funnels leak.",
+        "panels": [
+            ("Channel reachability",
+             "Two bars per channel: reported reachable, and actually deliverable. WhatsApp and email key off the member record so the two match. Push needs a live app token, so its second bar is far shorter.",
+             "The gap on push is the whole point of the panel. Do not read the first push bar as an audience."),
+            ("The push gap",
+             "The count of people who look push-reachable but cannot receive a push, because they sit in the no-app segment on tokens that were never invalidated.",
+             "App Uninstalled never fires in this account, so stale tokens are never cleaned up. Any push plan built on reported reach is overstated."),
+            ("Cohorts",
+             "The six age cohorts, split into app-installed and no-app.",
+             "Age composition is MODELED, not a CleverTap property. The totals are exact, the age split is a distribution."),
+            ("Telehealth and health checkup funnels",
+             "Stage counts over a 120-day window, each bar labelled with its share of the FIRST stage so the last bar is the true end-to-end rate.",
+             "The red bar marks the steepest single-step drop, which is a different question from the labelled share. Bottleneck and cumulative rate are not the same number."),
+            ("Live usage",
+             "Annual actives, 30-day actives, DAU, installs and sessions, straight from the CleverTap counts API.",
+             "Account-wide, including test and inactive organisations, because the counts endpoints accept no organisation filter. Never express these as a share of the eligible base."),
+            ("Activation gap",
+             "Org-level activation against employee-level activation.",
+             "The gap is the real finding: getting the company to say yes is largely solved, reaching individual employees is not."),
+        ],
+    },
+    "cohorts": {
+        "screen": "Cohorts",
+        "what": "One age cohort at a time, in depth: size, app ownership, deliverable reach per channel, both product funnels, when they book, what they consult about, and which biomarkers come back abnormal.",
+        "panels": [
+            ("Cohort tiles",
+             "Six tiles, each with the cohort's size, its share of the base, and the proportion holding the app.",
+             "Selecting a tile drives every panel below it. The org-type control filters all of them together."),
+            ("Deliverable reach by cohort",
+             "WhatsApp, email and push side by side, where push counts only tokens that can actually receive.",
+             "Push is plotted as real capacity, so it will look small next to the other two. That is correct, not a rendering fault."),
+            ("Bookings by cohort",
+             "Absolute telehealth and checkup bookings in the 120-day funnel window.",
+             "Absolute counts, not rates. The biggest cohort books most in absolute terms while converting less well."),
+            ("Booking clock",
+             "Share of bookings by hour, converted to IST.",
+             "The raw timestamps are UTC. Read without converting, the curve peaks at 05:00, which is an artefact."),
+            ("Consult mix and biomarkers",
+             "Which specialties this cohort actually consults, and which markers come back most abnormal.",
+             "Aggregated from consultation and checkup files in place. Ages outside 15 to 80 are dropped as unusable, and the drop is always reported."),
+        ],
+    },
+    "simulator": {
+        "screen": "Simulator",
+        "what": "Plan one campaign end to end: pick cohorts, narrow the audience, size it against real reachability, get a channel and a send time, then write the message and see predicted performance.",
+        "panels": [
+            ("Choose cohorts and narrow the audience",
+             "Cohort selection plus objective, org type, send hour, and the two suppression toggles.",
+             "The objective pool and the channel are disjoint questions. App-install campaigns target people without the app, so push reach does not apply to them."),
+            ("Audience sizing",
+             "Objective pool, addressable, control group and sent, as exact integers.",
+             "Sizing is exact and reconciles to the cohort model. A flat 5% control group comes out before the send count."),
+            ("Recommended channel",
+             "A weighted score across reach, engagement, click, delivery, frequency headroom and suppression, not simply the widest reach.",
+             "Argmax on reach alone picks email over WhatsApp on a three-point edge, which is why the rubric exists. Weights are published."),
+            ("Best time to send",
+             "A primary and a secondary slot, built from real booking intent by hour plus per-channel lead time and inbox sweeps.",
+             "Intent peak and send time are different instants: email is offset ahead of the peak because it waits in an inbox."),
+            ("Projected funnel",
+             "Sent, delivered, opened, clicked, converted, each labelled as a share of sent.",
+             "Everything between send and click is an external prior. Click to convert is the one downstream rate with a real product anchor."),
+            ("Copy studio",
+             "Variants assembled from Plum's shipped copy library, scored against the ten discipline rules, with predicted performance per variant.",
+             "WhatsApp Utility and Marketing are different products: Utility escapes the marketing frequency cap and carries no promotional device. Recommended copy states what it was modelled from; pasted copy is reported at low confidence because it has never shipped."),
+        ],
+    },
+    "methodology": {
+        "screen": "Methodology",
+        "what": "Every anchor the product stands on, what kind of claim it is, and where it came from.",
+        "panels": [
+            ("Provenance",
+             "Each figure tagged OBSERVED, DERIVED, MODELED or PREDICTED, with its source and pull date.",
+             "The four labels are not decoration. A MODELED distribution and an OBSERVED count are different kinds of claim and are never averaged together."),
+            ("Recorded conflicts",
+             "Where two sources disagree, both are kept with the reason one was chosen.",
+             "Conflicts are recorded, never averaged. Averaging two disagreeing sources produces a number neither supports."),
+        ],
+    },
+    "settings": {
+        "screen": "Settings",
+        "what": "What the instance is connected to, the guardrails in force, the published rubrics, the startup invariants, and the CleverTap resync.",
+        "panels": [
+            ("Verified at startup",
+             "The invariants asserted every boot. If any fails the API refuses to serve.",
+             "It is a refusal, not a warning. A wrong number cannot be served quietly."),
+            ("Resync with CleverTap",
+             "Re-pulls the live usage block and reports drift against the anchored figures.",
+             "It deliberately cannot refresh the eligible base. The counts endpoints ignore profile property filters, so no org-active figure can be sourced there."),
+        ],
+    },
+}
+
+VIEW_ALIASES = {
+    "overview": ["overview", "home", "landing", "first page", "dashboard home",
+                 "reachability", "push gap", "activation gap", "live usage",
+                 "channel reach"],
+    "cohorts": ["cohort", "cohorts", "age cohort", "tiles", "booking clock",
+                "consult mix", "biomarker panel", "bookings by"],
+    "simulator": ["simulator", "simulate", "campaign planner", "copy studio",
+                  "projected funnel", "audience sizing", "best time",
+                  "recommended channel", "variant"],
+    "methodology": ["methodology", "provenance page", "conflicts", "anchors page"],
+    "settings": ["settings", "guardrail", "invariant", "resync", "rubrics page",
+                 "connections"],
+}
+
+
+def _view_facts(key, model, keys, facts):
+    """Real figures for the screen being explained, with mixed provenance."""
+    if key == "overview":
+        facts.append({"label": "Eligible base", "value": f"{A.TOTAL_ELIGIBLE:,}",
+                      "provenance": "OBSERVED"})
+        facts.append({"label": "App ownership",
+                      "value": f"{A.APP_INSTALLED:,} of the base, {A.APP_INSTALLED_SHARE:.1%}",
+                      "provenance": "OBSERVED"})
+        facts.append({"label": "Push tokens that cannot deliver",
+                      "value": f"{A.REACH_DECOMPOSED['push']['no_app']:,}",
+                      "provenance": "DERIVED"})
+    elif key == "cohorts":
+        facts.append({"label": "Cohorts", "value": f"{len(A.AGE_COHORTS)} age bands",
+                      "provenance": "MODELED"})
+        if keys:
+            cs = P.cohort_summary(model, keys[0])
+            if cs:
+                facts.append({"label": f"{cs['label']} size",
+                              "value": f"{cs['total']:,}", "provenance": "DERIVED"})
+                facts.append({"label": f"{cs['label']} app ownership",
+                              "value": f"{cs['app_share']:.1%}",
+                              "provenance": "OBSERVED"})
+    elif key == "simulator":
+        facts.append({"label": "Control group",
+                      "value": f"{A.CONTROL_GROUP_SHARE:.0%} flat, every campaign",
+                      "provenance": "OBSERVED"})
+        facts.append({"label": "Copy library",
+                      "value": f"{A.PREDICTION_BASIS['copy'].split(':')[1].strip().split('.')[0]}",
+                      "provenance": "OBSERVED"})
+        facts.append({"label": "Campaign history to learn from",
+                      "value": f"none, though {A.CT_CAMPAIGNS_IN_ACCOUNT} campaigns exist",
+                      "provenance": "MODELED"})
+    elif key == "methodology":
+        facts.append({"label": "Anchors published",
+                      "value": f"{len(A.ANCHOR_NOTES)} notes",
+                      "provenance": "OBSERVED"})
+        facts.append({"label": "Conflicts", "value": "recorded, never averaged",
+                      "provenance": "DERIVED"})
+        facts.append({"label": "Provenance kinds",
+                      "value": "OBSERVED, DERIVED, MODELED, PREDICTED",
+                      "provenance": "MODELED"})
+    elif key == "settings":
+        facts.append({"label": "Invariants asserted at boot",
+                      "value": "26, or the API refuses to serve",
+                      "provenance": "DERIVED"})
+        facts.append({"label": "CleverTap campaigns in the account",
+                      "value": f"{A.CT_CAMPAIGNS_IN_ACCOUNT:,}",
+                      "provenance": "OBSERVED"})
+        facts.append({"label": "What resync cannot refresh",
+                      "value": "the eligible base, counts ignores profile filters",
+                      "provenance": "MODELED"})
+    return facts
+
+
+def h_views(model, keys, org, msg, facts, seed):
+    """Explain a dashboard view: what it shows, how to read it, what to watch."""
+    low = _normalise(msg)
+
+    hit = None
+    for key, words in VIEW_ALIASES.items():
+        if any(_kw_hit(low, w) for w in words):
+            hit = key
+            break
+
+    if hit is None:
+        lines = [
+            "I can walk you through any of the five screens. Ask about a screen "
+            "or a specific panel on it.",
+            "\n".join(f"  {v['screen']} · {v['what']}" for v in VIEWS.values()),
+        ]
+        facts.append({"label": "Screens I can explain", "value": f"{len(VIEWS)}",
+                      "provenance": "DERIVED"})
+        return lines, "Name a screen or a panel and I will take that one apart.", facts
+
+    v = VIEWS[hit]
+    lines = [f"{_pick('lead', seed)} {v['screen']}: {v['what']}"]
+    facts = _view_facts(hit, model, keys, facts)
+
+    # If a specific panel was named, lead with that one.
+    named = [p for p in v["panels"]
+             if _kw_hit(low, p[0].split(" and ")[0].lower()[:12])]
+    panels = named or v["panels"][:3]
+
+    for title, what, watch in panels:
+        lines.append(
+            f"  {title}\n    {what}\n    Watch: {watch}")
+
+    # Close on the figures for the cohort in context, so an explanation of a
+    # screen still hands back numbers rather than only prose about the UI.
+    lab = _label(keys[:1])
+    if lab:
+        cs = P.cohort_summary(model, keys[0]) if keys else None
+        if cs:
+            lines.append(
+                f"With {lab} selected, that screen is reading "
+                f"{cs['total']:,} people, {cs['app_share']:.1%} of them holding "
+                f"the app, {cs['reach']['whatsapp']['count']:,} reachable on "
+                f"WhatsApp and {cs['reach']['push'].get('with_app') or 0:,} on "
+                f"push once stale tokens come out."
+            )
+
+    facts.append({"label": "Panels explained", "value": str(len(panels)),
+                  "provenance": "DERIVED"})
+    action = (f"Open {v['screen']} and read the panel labels: every figure there "
+              "carries the kind of claim it is.")
+    return lines, action, facts
+
+
+# h_views is defined below HANDLERS, so it registers itself here.
+HANDLERS["views"] = h_views
+
+
 RUBRIC = {
     "id": "signal_quality",
     "label": "SIGNAL answer quality",
@@ -954,7 +1192,7 @@ RUBRIC = {
 
 _DEPTH_INTENTS = {"specialty", "biomarker", "segment", "timing", "accuracy",
                   "compare", "channel", "reach", "copy", "push_gap", "dnd",
-                  "conversion", "help"}
+                  "conversion", "help" "views",}
 
 
 def _score(answer: str, facts: list[dict], action: str, intents: list[str],
@@ -993,8 +1231,68 @@ def _score(answer: str, facts: list[dict], action: str, intents: list[str],
 # Entry point
 # ---------------------------------------------------------------------------
 
+# ===========================================================================
+# Fine tuning
+# ===========================================================================
+#
+# Parameters that change how SIGNAL answers, published so the UI can render
+# controls for them rather than hiding them in code. Each one does real work:
+# nothing here is a decorative slider.
+#
+# What is deliberately NOT tunable: provenance labelling. Every figure carries
+# the kind of claim it is, and no setting can switch that off, because the
+# four-way distinction is what makes the numbers usable at all.
+
+TUNING = {
+    "version": "1.0",
+    "parameters": [
+        {"key": "detail", "label": "Detail", "type": "choice",
+         "options": ["brief", "standard", "deep"], "default": "standard",
+         "desc": "brief answers the single strongest reading of the question. "
+                 "standard answers two. deep answers up to three and keeps "
+                 "every supporting paragraph."},
+        {"key": "max_facts", "label": "Facts listed", "type": "choice",
+         "options": ["3", "5", "8"], "default": "5",
+         "desc": "How many labelled figures are listed under the answer."},
+        {"key": "action_first", "label": "Lead with the action", "type": "toggle",
+         "default": False,
+         "desc": "Put the recommended next step at the top instead of the end, "
+                 "for when you already know the context."},
+        {"key": "show_basis", "label": "Append the basis", "type": "toggle",
+         "default": False,
+         "desc": "Close every answer with the mix of claim types it rests on, "
+                 "so you can see how much is observed against modeled."},
+    ],
+    "locked": [
+        "Provenance labels are always on. No setting removes them.",
+        "Figures are never rounded away: a count is shown as a count.",
+    ],
+}
+
+_DETAIL_INTENTS = {"brief": 1, "standard": 2, "deep": 3}
+
+
+def _tune(t):
+    """Normalise a tuning payload to the published defaults."""
+    out = {p["key"]: p["default"] for p in TUNING["parameters"]}
+    if isinstance(t, dict):
+        for p in TUNING["parameters"]:
+            k = p["key"]
+            if k not in t or t[k] is None:
+                continue
+            v = t[k]
+            if p["type"] == "toggle":
+                out[k] = bool(v)
+            elif str(v) in p["options"]:
+                out[k] = str(v)
+    return out
+
+
 def answer(model: dict, message: str, cohort_keys: list[str],
-           org: str | None, objective: str | None, channel: str | None) -> dict:
+           org: str | None, objective: str | None, channel: str | None,
+           tuning: dict | None = None) -> dict:
+    tune = _tune(tuning)
+    depth = _DETAIL_INTENTS[tune["detail"]]
     intents = _detect(message)
     keys = _cohorts_from(message, cohort_keys or [])
     seed = message.strip().lower()
@@ -1002,7 +1300,7 @@ def answer(model: dict, message: str, cohort_keys: list[str],
     paras: list[str] = []
     action = ""
 
-    for intent in intents[:2]:
+    for intent in intents[:depth]:
         if intent == "copy":
             lines, act, facts = h_copy(model, keys, org, message, facts, seed,
                                        channel or "whatsapp")
@@ -1012,17 +1310,36 @@ def answer(model: dict, message: str, cohort_keys: list[str],
         paras += lines
         action = action or act
 
+    if tune["detail"] == "brief":
+        paras = paras[:2]
+
+    if tune["action_first"] and action:
+        paras = [f"Do this first: {action}"] + paras
+
+    facts = facts[:int(tune["max_facts"])]
+
+    if tune["show_basis"]:
+        mix = {}
+        for f in facts:
+            mix[f["provenance"]] = mix.get(f["provenance"], 0) + 1
+        if mix:
+            paras.append(
+                "Resting on " + ", ".join(f"{v} {k.lower()}" for k, v in
+                                          sorted(mix.items())) + "."
+            )
+
     text = _clean("\n\n".join(paras))
     return {
         "label": "DERIVED",
         "agent": "SIGNAL",
-        "intents": intents[:2],
+        "tuning": tune,
+        "intents": intents[:depth],
         "cohorts": [c["label"] for c in A.AGE_COHORTS if c["key"] in keys],
         "objective": _objective_from(message, objective or "th_activation"),
         "answer": text,
         "action": _clean(action),
         "facts": facts,
-        "score": _score(text, facts, action, intents[:2], keys, seed),
+        "score": _score(text, facts, action, intents[:depth], keys, seed),
     }
 
 

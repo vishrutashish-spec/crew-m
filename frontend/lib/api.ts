@@ -518,7 +518,17 @@ export interface AssistantReply {
 export const askAssistant = (req: {
   message: string; cohort_keys?: string[]; org?: string | null;
   objective?: string | null; channel?: string | null;
+  tuning?: Record<string, string | boolean> | null;
 }) => post<AssistantReply>("/api/assistant", req);
+
+export interface TuningParam {
+  key: string; label: string; type: "choice" | "toggle";
+  options?: string[]; default: string | boolean; desc: string;
+}
+
+export const getSignalTuning = () => get<{
+  version: string; parameters: TuningParam[]; locked: string[];
+}>("/api/signal/tuning");
 
 /** Spectrum palette for rubric visuals: deliberately outside the plum chart
     palette so decision explanations can never be confused with data series. */

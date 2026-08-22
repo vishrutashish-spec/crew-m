@@ -540,12 +540,14 @@ class AssistantRequest(BaseModel):
     org: Optional[str] = None
     objective: Optional[str] = None
     channel: Optional[str] = None
+    tuning: Optional[dict] = None
 
 
 @app.post("/api/assistant")
 def assistant_answer(req: AssistantRequest):
     """Grounded campaign Q&A. Deterministic retrieval over the verified model,
-    every reply scored against the published 9-parameter rubric."""
+    every reply scored against the published 10-parameter rubric. Tuning
+    parameters change depth and framing, never whether a figure is labelled."""
     model = get_model()
     msg = (req.message or "").strip()
     if not msg:
@@ -554,7 +556,8 @@ def assistant_answer(req: AssistantRequest):
         raise HTTPException(400, "Keep questions under 600 characters")
     org_f = _org(req.org)
     logger.info(f"DATA_ACCESS: assistant query intents on cohorts={req.cohort_keys}")
-    return SIG.answer(model, msg, req.cohort_keys, org_f, req.objective, req.channel)
+    return SIG.answer(model, msg, req.cohort_keys, org_f, req.objective,
+                      req.channel, tuning=req.tuning)
 
 
 @app.get("/api/rules")
@@ -650,6 +653,12 @@ def copy_analyze(req: CopyAnalyzeRequest):
 
 class ResyncRequest(BaseModel):
     requested_by: Optional[str] = None
+
+
+@app.get("/api/signal/tuning")
+def signal_tuning():
+    """The tuning parameters SIGNAL exposes, and what is deliberately locked."""
+    return SIG.TUNING
 
 
 @app.post("/api/ct/resync")
