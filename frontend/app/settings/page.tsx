@@ -8,7 +8,7 @@
 
 import { useEffect, useState } from "react";
 import {
-  getMethodology, getVerification, getRules, n,
+  getMethodology, getVerification, getRules, API_BASE,
   type Methodology, type DecisionParam,
 } from "@/lib/api";
 import {
@@ -21,7 +21,6 @@ interface Health {
   status: string; version: string; invariants_verified: number; built_at: string;
 }
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 export default function SettingsPage() {
   const [health, setHealth] = useState<Health | null>(null);
@@ -31,9 +30,9 @@ export default function SettingsPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch(`${API}/api/health`).then((r) => r.json()).then(setHealth)
+    fetch(`${API_BASE}/api/health`).then((r) => r.json()).then(setHealth)
       .catch((e) => setError(e.message));
-    getVerification().then((v) => setChecks(v as unknown as { checks: string[]; sim_checks: string[] })).catch(() => {});
+    getVerification().then(setChecks).catch(() => {});
     getMethodology().then(setMeth).catch(() => {});
     getRules().then((r) => setRules(r.rules)).catch(() => {});
   }, []);
