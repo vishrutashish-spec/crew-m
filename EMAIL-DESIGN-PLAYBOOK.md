@@ -151,6 +151,20 @@ Welcome.
 **The AM chooses single vs co-branded.** Every email needs both a desktop and
 a mobile export.
 
+### 3.1b HRA adoption headers
+
+| Variant | Node | Size |
+|---|---|---|
+| Desktop | `160:620` "HRA Desktop" | 1023 × 507 |
+| Mobile | `160:638` "HRA Mobile" | 514 × 721 |
+
+**Single brand, no partner logo slot** — HRA is a Plum product campaign, not
+a client co-branded one, so §7's "every header carries the client logo" rule
+does not apply here. Template copy is already correct: heading "Meet your
+Health Risk Assessment" (42px), subtext "Answer a few questions / and
+personalise your health journey." (20.55px, break already set). Only the font
+substitution is needed. See `CREW-M-CAMPAIGN-PLAYBOOK.md` §5.
+
 ### 3.2 Footers — pick one pair
 
 | Node | Size |
@@ -371,6 +385,12 @@ Consequences:
 
 Mobile ships correct — don't touch it. **Only the desktop co-branded
 subheading needs fixing (30 → 18px).**
+
+> **Use these numbers, do not invent your own.** The current family templates
+> are mobile heading 49.59 / subtext 20.55, desktop heading 40 / subtext 18.
+> When a headline looks oversized next to its subtext, the cause is usually
+> that the subtext was never set at all and kept a stale default — not that
+> the heading needs shrinking. Shrinking both throws the whole scale off.
 
 ### ⚠️ Heading length is limited by geometry, not taste
 
