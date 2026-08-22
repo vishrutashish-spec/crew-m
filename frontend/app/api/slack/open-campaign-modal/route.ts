@@ -16,6 +16,7 @@ interface OpenModalRequest {
  *   am_name_block.am_name_input.value
  *   account_block.account_input.value
  *   campaign_type_block.campaign_type_select.selected_option.value
+ *   benefits_block.benefits_input.value
  *   logo_block.logo_upload.files[0].id / .url_private
  * Renaming any of them silently breaks the submission handler.
  *
@@ -75,6 +76,26 @@ export async function POST(request: Request) {
             { text: { type: "plain_text", text: "Welcome" }, value: "welcome" },
             { text: { type: "plain_text", text: "Renewal" }, value: "renewal" },
           ],
+        },
+      },
+      {
+        // One free-text block rather than nine separate fields: the AM is
+        // usually copying these straight off the policy schedule, and the set
+        // of benefits varies per account. Anything pasted here is treated as
+        // verified and quoted as-is; anything absent is omitted from the email
+        // rather than guessed.
+        type: "input",
+        block_id: "benefits_block",
+        optional: true,
+        label: { type: "plain_text", text: "Policy benefits (optional)" },
+        hint: {
+          type: "plain_text",
+          text: "One per line, e.g. Maternity Limit: ₹1,00,000 for normal and C-section. Ambulance Charges: up to ₹5,000 per hospitalisation. LASIK: above +/-7.5D. Ayush: 100% of sum insured for IPD. Family definition: ESC. TPA: In-house. Leave blank and these sections are left out.",
+        },
+        element: {
+          type: "plain_text_input",
+          action_id: "benefits_input",
+          multiline: true,
         },
       },
       {
