@@ -1,0 +1,104 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" width="1200" height="900">
+  <!--
+    Campaign creative: telehealth, evening consult slot.
+    Vector interpretation of the supplied reference (desk phone, window, dusk
+    skyline) held to the locked palette: cream #f8dbc9, plum red #FF3F52,
+    plum violet #2B0B21.
+  -->
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f8dbc9"/>
+      <stop offset="38%" stop-color="#FF8A7A"/>
+      <stop offset="72%" stop-color="#FF3F52"/>
+      <stop offset="100%" stop-color="#7B2B5E"/>
+    </linearGradient>
+    <linearGradient id="room" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#4A2043"/>
+      <stop offset="100%" stop-color="#2B0B21"/>
+    </linearGradient>
+    <linearGradient id="deskg" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#8A4A6E"/>
+      <stop offset="55%" stop-color="#C97596"/>
+      <stop offset="100%" stop-color="#6B3157"/>
+    </linearGradient>
+    <linearGradient id="phoneg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#F3DCE8"/>
+      <stop offset="100%" stop-color="#B98FAE"/>
+    </linearGradient>
+    <radialGradient id="sunglow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#FFF3C4" stop-opacity="1"/>
+      <stop offset="60%" stop-color="#FFD98A" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="#FFD98A" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="1200" height="900" fill="url(#room)"/>
+
+  <!-- window aperture -->
+  <rect x="60" y="60" width="700" height="560" fill="url(#sky)"/>
+  <circle cx="360" cy="330" r="150" fill="url(#sunglow)"/>
+  <circle cx="360" cy="330" r="58" fill="#FFF0B8"/>
+
+  <!-- skyline behind glass -->
+  <g fill="#5E2A54" opacity="0.92">
+    <rect x="70" y="330" width="86" height="290"/>
+    <rect x="168" y="255" width="70" height="365"/>
+    <rect x="250" y="380" width="78" height="240"/>
+    <rect x="440" y="300" width="92" height="320"/>
+    <rect x="544" y="360" width="66" height="260"/>
+    <rect x="622" y="270" width="80" height="350"/>
+    <rect x="712" y="400" width="48" height="220"/>
+  </g>
+  <g fill="#FF8A7A" opacity="0.75">
+    <rect x="86" y="356" width="12" height="16"/><rect x="116" y="392" width="12" height="16"/>
+    <rect x="184" y="290" width="12" height="16"/><rect x="212" y="330" width="12" height="16"/>
+    <rect x="184" y="372" width="12" height="16"/><rect x="266" y="416" width="12" height="16"/>
+    <rect x="456" y="336" width="12" height="16"/><rect x="486" y="386" width="12" height="16"/>
+    <rect x="560" y="398" width="12" height="16"/><rect x="638" y="308" width="12" height="16"/>
+    <rect x="666" y="352" width="12" height="16"/><rect x="638" y="430" width="12" height="16"/>
+  </g>
+
+  <!-- mullion -->
+  <rect x="380" y="60" width="16" height="560" fill="#2B0B21" opacity="0.85"/>
+  <rect x="60" y="60" width="700" height="560" fill="none" stroke="#2B0B21" stroke-width="18"/>
+
+  <!-- desk -->
+  <path d="M0 640 L1200 596 L1200 900 L0 900 Z" fill="url(#deskg)"/>
+  <path d="M0 640 L1200 596 L1200 632 L0 678 Z" fill="#F0C9DC" opacity="0.5"/>
+
+  <!-- light pooling on the desk -->
+  <ellipse cx="330" cy="742" rx="290" ry="66" fill="#FFD98A" opacity="0.26"/>
+
+  <!-- desk phone -->
+  <g>
+    <path d="M628 716 L1010 690 L1042 800 L660 830 Z" fill="url(#phoneg)"/>
+    <path d="M700 736 L980 716 L1000 786 L716 808 Z" fill="#8E6branch" opacity="0"/>
+    <rect x="828" y="726" width="118" height="52" rx="7" fill="#E4CBDD" transform="rotate(-3.6 887 752)"/>
+    <g fill="#6B3157">
+      <rect x="712" y="748" width="26" height="18" rx="5" transform="rotate(-3.6 725 757)"/>
+      <rect x="750" y="745" width="26" height="18" rx="5" transform="rotate(-3.6 763 754)"/>
+      <rect x="788" y="742" width="26" height="18" rx="5" transform="rotate(-3.6 801 751)"/>
+      <rect x="716" y="774" width="26" height="18" rx="5" transform="rotate(-3.6 729 783)"/>
+      <rect x="754" y="771" width="26" height="18" rx="5" transform="rotate(-3.6 767 780)"/>
+      <rect x="792" y="768" width="26" height="18" rx="5" transform="rotate(-3.6 805 777)"/>
+    </g>
+    <!-- handset -->
+    <path d="M604 660 Q660 630 742 640 Q800 648 812 686 L792 700 Q770 668 726 662 Q664 654 620 682 Z" fill="#F3DCE8"/>
+    <path d="M604 660 Q660 630 742 640 Q800 648 812 686" fill="none" stroke="#B98FAE" stroke-width="7"/>
+    <!-- coiled cord -->
+    <g fill="none" stroke="#8A4A6E" stroke-width="9" stroke-linecap="round">
+      <path d="M600 700 q18 22 36 0"/><path d="M636 700 q18 22 36 0"/>
+      <path d="M672 700 q18 22 36 0"/><path d="M708 700 q18 22 36 0"/>
+    </g>
+  </g>
+
+  <!-- plant -->
+  <g>
+    <path d="M1082 800 L1170 800 L1156 900 L1096 900 Z" fill="#C97596"/>
+    <g fill="#2F6B47">
+      <path d="M1126 800 q-70 -60 -58 -142 q56 22 74 138 Z"/>
+      <path d="M1126 800 q74 -52 70 -136 q-58 26 -82 132 Z"/>
+      <path d="M1126 800 q-16 -84 26 -150 q28 62 4 148 Z"/>
+    </g>
+  </g>
+</svg>
