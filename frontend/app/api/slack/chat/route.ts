@@ -19,6 +19,9 @@ interface AgentReply {
    *  plain welcome/renewal request — carried through to copy generation. */
   campaignBrief?: string;
   logoUrl?: string;
+  /** Only set for campaignType "hra", and only if the AM named a specific
+   *  angle by name. Omitted -> rotates deterministically. */
+  narrative?: string;
   /** Only set if the AM explicitly named a recipient. Omitted -> safe default. */
   sendTo?: { mode: "single" | "all_plum_staff"; email?: string };
 }
