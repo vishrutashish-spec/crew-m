@@ -162,13 +162,22 @@ function buildHtml(opts: {
   subject: string; body: string;
   desktopHeader?: string; mobileHeader?: string;
   deeplink: string;
+  headerAlt?: string;
 }) {
-  const { body, desktopHeader, mobileHeader, deeplink } = opts;
+  const { body, desktopHeader, mobileHeader, deeplink, headerAlt } = opts;
   const { above, below } = splitAtClosingSection(body);
+  // Headline, subtext and the co-branding lockup are all baked into this PNG
+  // (deliberate - GT Alpina cannot load as a webfont in email). So when a
+  // client blocks remote images the entire top of the email is empty unless
+  // the alt text carries the message. Styling the img makes that alt render
+  // as intentional type, and the background stops it being a white void.
   const header = (src: string, cls: string, extra: string) => `
   <div class="${cls}"${extra}>
     <a href="${deeplink}" style="display:block;">
-      <img src="${src}" alt="" style="display:block; width:100%; height:auto; border:0;">
+      <img src="${src}" alt="${esc(headerAlt ?? "")}"
+           style="display:block; width:100%; height:auto; border:0; background-color:#F7F1EC;
+                  font-family:Georgia, 'Times New Roman', serif; font-size:20px; line-height:1.5;
+                  color:#3A0E2B; text-align:center;">
     </a>
   </div>`;
 
@@ -217,21 +226,23 @@ ${bodyToHtml(below)}
 <tr><td style="padding:0; font-size:0; line-height:0;">
   <div class="desktop-only">
     <a href="${PLAY_STORE}" style="display:block;">
-      <img src="${FOOTER_DESKTOP}" alt="Download the Plum app" style="display:block; width:100%; height:auto; border:0;">
+      <img src="${FOOTER_DESKTOP}" alt="Download the Plum app" style="display:block; width:100%; height:auto; border:0; background-color:#F7EEF3; font-family:Inter, Helvetica, Arial, sans-serif; font-size:14px; color:#3A0E2B; text-align:center;">
     </a>
   </div>
   <div class="mobile-only" style="display:none; max-height:0; overflow:hidden;">
     <a href="${PLAY_STORE}" style="display:block;">
-      <img src="${FOOTER_MOBILE}" alt="Download the Plum app" style="display:block; width:100%; height:auto; border:0;">
+      <img src="${FOOTER_MOBILE}" alt="Download the Plum app" style="display:block; width:100%; height:auto; border:0; background-color:#F7EEF3; font-family:Inter, Helvetica, Arial, sans-serif; font-size:14px; color:#3A0E2B; text-align:center;">
     </a>
   </div>
 </td></tr>
 
-<tr><td align="center" style="padding:14px 40px 20px 40px; font-family:Inter, Helvetica, Arial, sans-serif; font-size:13px; line-height:1.5; color:#3A0E2B;">
-Download the Plum app:
-<a href="${APP_STORE}" style="color:#571541; font-weight:600;">App Store</a>
+<tr><td align="center" bgcolor="#3A0E2B" style="padding:22px 40px; background-color:#3A0E2B; font-family:Inter, Helvetica, Arial, sans-serif; font-size:13px; line-height:1.6; color:#FFFFFF;">
+<div style="font-size:20px; font-weight:700; letter-spacing:-0.4px; color:#FF5A5F; padding-bottom:10px;">plum</div>
+<div style="color:#F0E4EC;">Download the Plum app:
+<a href="${APP_STORE}" style="color:#FFFFFF; font-weight:600;">App Store</a>
 &nbsp;·&nbsp;
-<a href="${PLAY_STORE}" style="color:#571541; font-weight:600;">Google Play</a>
+<a href="${PLAY_STORE}" style="color:#FFFFFF; font-weight:600;">Google Play</a>
+</div>
 </td></tr>
 
 </table>
@@ -295,11 +306,18 @@ export async function POST(request: Request) {
 
   const deeplink = deeplinkFor(typeKey);
 
+  // Carries the baked-in header message for clients that block images.
+  const greeting = typeKey === "renewal" ? "Welcome back!" : "Welcome to Plum!";
+  const headerAlt =
+    `${greeting} ${accountName ?? ""} and Plum. `.replace(/\s+/g, " ") +
+    "Your health and wellness benefits are on their way.";
+
   const html = buildHtml({
     subject, body,
     desktopHeader: chosen?.desktop,
     mobileHeader: chosen?.mobile,
     deeplink,
+    headerAlt,
   });
 
   if (preview) {
