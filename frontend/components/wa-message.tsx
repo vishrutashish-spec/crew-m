@@ -31,33 +31,67 @@
 
 import { useEffect, useState } from "react";
 
-const CREATIVE: Record<string, { src: string; alt: string }> = {
-  th_activation: {
-    src: "/creative/evening-call.png",
-    alt: "A desk phone by a window at dusk, for an evening telehealth consult slot",
-  },
-  hc_activation: {
+const ART = {
+  consult: {
     src: "/creative/consult-handover.png",
-    alt: "Two colleagues handing over health checkup paperwork",
+    alt: "Two colleagues at a desk, one handing over health checkup paperwork",
   },
-  hc_crosssell: {
+  evening: {
+    src: "/creative/evening-call.png",
+    alt: "A desk phone by a window with the city at sunset",
+  },
+  rest: {
     src: "/creative/rest-bench.png",
-    alt: "Two people resting on a bench in evening light",
+    alt: "Two people sitting back on a bench in evening light",
   },
-  app_install: {
-    src: "/creative/rest-bench.png",
-    alt: "Two people resting on a bench in evening light",
-  },
-  reengagement: {
-    src: "/creative/rest-bench.png",
-    alt: "Two people resting on a bench in evening light",
-  },
+} as const;
+
+type ArtKey = keyof typeof ART;
+
+/** The creative when no angle is chosen: the objective's own default. */
+const BY_OBJECTIVE: Record<string, ArtKey> = {
+  th_activation: "evening",
+  hc_activation: "consult",
+  hc_crosssell: "rest",
+  app_install: "rest",
+  reengagement: "rest",
 };
 
-const FALLBACK = CREATIVE.th_activation;
+/**
+ * The creative per messaging angle, so switching angle tabs switches the
+ * image as well as the words. Two rules held here:
+ *
+ *   - no two adjacent tabs within an objective share an image, so the change
+ *     is visible when you click across them
+ *   - the pairing is semantic, not a rotation. Speed gets the phone on the
+ *     desk, mental health gets the two people at rest, ownership gets the
+ *     paperwork being handed over.
+ */
+const BY_ANGLE: Record<string, ArtKey> = {
+  // Telehealth
+  friction: "evening",
+  normalised_symptoms: "consult",
+  mental_health: "rest",
+  nutrition: "consult",
+  // Health checkup
+  ownership: "consult",
+  baseline: "rest",
+  silent_shift: "evening",
+  reassurance: "rest",
+  // Single-angle objectives
+  access: "rest",
+  unused: "evening",
+  checkpoint: "consult",
+};
 
-export function creativeFor(objective: string | null | undefined) {
-  return (objective && CREATIVE[objective]) || FALLBACK;
+export function creativeFor(
+  objective: string | null | undefined,
+  angle?: string | null,
+) {
+  const key = (angle && BY_ANGLE[angle])
+    || (objective && BY_OBJECTIVE[objective])
+    || "evening";
+  return ART[key];
 }
 
 /** The CTA a marketing template would carry, per objective. */
@@ -72,18 +106,21 @@ const CTA: Record<string, string> = {
 export function WaMessage({
   body,
   objective,
+  angle,
   category,
   time = "10:04",
   showMedia = true,
 }: {
   body: string;
   objective?: string | null;
+  /** Messaging angle, which selects the creative alongside the objective. */
+  angle?: string | null;
   /** WhatsApp template category. Only marketing templates carry a CTA row. */
   category?: string;
   time?: string;
   showMedia?: boolean;
 }) {
-  const art = creativeFor(objective);
+  const art = creativeFor(objective, angle);
   const cta = (objective && CTA[objective]) || "Book a consult";
   const marketing = category === "marketing";
   // Reset when the objective changes, so a newly-placed file is picked up.
