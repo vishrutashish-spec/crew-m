@@ -53,6 +53,14 @@ const ACCOUNT_CREATIVES: Record<string, { desktop: string; mobile: string }> = {
     desktop: `${ASSETS}/groww-welcome-desktop.png`,
     mobile: `${ASSETS}/groww-welcome-mobile.png`,
   },
+  "open financial|welcome": {
+    desktop: `${ASSETS}/openfinancial-welcome-desktop.png`,
+    mobile: `${ASSETS}/openfinancial-welcome-mobile.png`,
+  },
+  "open financial|renewal": {
+    desktop: `${ASSETS}/openfinancial-renewal-desktop.png`,
+    mobile: `${ASSETS}/openfinancial-renewal-mobile.png`,
+  },
   "groww|renewal": {
     desktop: `${ASSETS}/groww-renewal-desktop.png`,
     mobile: `${ASSETS}/groww-renewal-mobile.png`,
