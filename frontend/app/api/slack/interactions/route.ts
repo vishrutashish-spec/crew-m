@@ -60,7 +60,10 @@ export async function POST(request: Request) {
 
   // Approval is the gate for the real send — this is the only code path that
   // triggers it, and only once, right after the PMM clicks Approve.
-  let sendResult: { ok: boolean; error?: string; messageId?: string; sentTo?: string } | null = null;
+  let sendResult: {
+    ok: boolean; error?: string; messageId?: string; sentTo?: string;
+    sentCount?: number; failedCount?: number;
+  } | null = null;
   if (approved && row) {
     try {
       const res = await fetch(`${BASE_URL}/api/campaign/send`, {
@@ -83,9 +86,18 @@ export async function POST(request: Request) {
     }
   }
 
+  // A multi-recipient send can partially fail (e.g. hitting the provider's
+  // rate limit) while still reporting ok:true, since success only requires
+  // one recipient to land — never let that read as an unqualified "sent".
+  const hasFailures = Boolean(sendResult?.failedCount);
+  const countsNote =
+    sendResult?.sentCount !== undefined
+      ? ` (${sendResult.sentCount} sent${hasFailures ? `, :warning: ${sendResult.failedCount} FAILED` : ""})`
+      : "";
+
   const decisionText = approved
     ? sendResult?.ok
-      ? `<@${approverUserId}> approved *${row?.campaign_name ?? campaignId}* — email sent to ${sendResult.sentTo}.`
+      ? `<@${approverUserId}> approved *${row?.campaign_name ?? campaignId}* — email sent to ${sendResult.sentTo}${countsNote}.`
       : `<@${approverUserId}> approved *${row?.campaign_name ?? campaignId}*, but the send failed (${sendResult?.error ?? "unknown error"}). Subject: ${row?.subject ?? ""}`
     : `<@${approverUserId}> rejected *${row?.campaign_name ?? campaignId}*.`;
 
@@ -102,7 +114,7 @@ export async function POST(request: Request) {
       thread_ts: row.slack_thread_ts || undefined,
       text: approved
         ? sendResult?.ok
-          ? `Your ${row.campaign_type} campaign for ${row.account_name} was approved and the email has gone out.`
+          ? `Your ${row.campaign_type} campaign for ${row.account_name} was approved and the email has gone out${countsNote}.`
           : `Your ${row.campaign_type} campaign for ${row.account_name} was approved, but sending it failed — PMM has been notified.`
         : `Your ${row.campaign_type} campaign for ${row.account_name} was not approved this time. Ping the PMM channel if you want details.`,
     });
