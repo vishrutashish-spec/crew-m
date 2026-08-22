@@ -538,10 +538,25 @@ The lockup structure is:
 
 # PART 7 — THE CLIENT LOGO
 
-## RULE: the AM supplies the logo asset
+## RULE: every header carries the client logo — no exceptions
 
-**If the AM chooses co-branded, they must attach the client's logo file.**
-Do not scrape it. Ask for it.
+**Updated 2026-08-22, and this supersedes the earlier "ask the AM, never
+scrape" rule below.** A header showing only the Plum wordmark must never
+ship. Resolve the logo in this order:
+
+1. The file the AM uploaded in the `/crew-m` Slack modal.
+2. If none was uploaded, **search the internet for it using the account name,
+   download it, and use it.**
+3. Only if both fail, stop and ask — do not send without it.
+
+Treat a missing client logo as a blocking defect, the same as a leftover
+placeholder string. The failure modes in the table below are real and still
+worth knowing (they are why step 1 is preferred), but they are no longer a
+reason to ship without a logo — they are a reason to check the one you found
+before using it: right company, dark-on-light, wordmark over icon, not a
+favicon-sized crop.
+
+### Historical note — why scraping was originally rejected
 
 This replaces an earlier approach of fetching the logo from the client's
 website. That was tried properly and is not reliable enough for client-facing

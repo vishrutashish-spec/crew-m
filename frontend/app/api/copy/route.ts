@@ -28,62 +28,89 @@ export async function POST(request: Request) {
   const copySkill = fs.readFileSync(COPY_SKILL_PATH, "utf-8");
 
   const facts = lookupAccountFacts(accountName);
+  const isRenewal = String(campaignType).toLowerCase() === "renewal";
+
+  // Policy year label for the subject, e.g. "2026-27", derived from the
+  // cover start rather than today, so a future-dated policy reads correctly.
+  const startYear = facts?.coverStart
+    ? Number((facts.coverStart.match(/\b(20\d{2})\b/) ?? [])[1])
+    : new Date().getFullYear();
+  const yearLabel = `${startYear}-${String((startYear + 1) % 100).padStart(2, "0")}`;
 
   const knownFacts = facts
-    ? `Verified policy facts for this account, read from Plum's warehouse. Use these
-verbatim where relevant. Do NOT alter, round or embellish any figure or date:
+    ? `Verified policy facts, read from Plum's warehouse. Quote these exactly.
+Do not alter, round, reformat or embellish any figure or date:
 
 ${factsForPrompt(facts)}`
-    : `No verified policy data is on file for this account. Write the full structure
-below, but DO NOT state an insurer, sum insured, renewal date, maternity limit,
-copay or any other specific figure — you do not know them, and a wrong number in
-a member email is far worse than an absent one. Where a specific belongs, write
-a short line telling the member the detail is coming, e.g. "Your cover details
-will follow shortly." Never invent a placeholder like "X" or "[insurer]".`;
+    : `No verified policy data is on file for this account. Write every section
+below, but state NO insurer name, date, sum insured, maternity limit, copay or
+any other specific. Where a specific belongs, write that the detail will follow
+shortly. Never invent a figure and never write a placeholder like "[insurer]".`;
 
-  const userPrompt = `Write the body copy for a "${campaignType}" benefits email to employees of "${accountName}".
+  const userPrompt = `Write the body copy for a ${isRenewal ? "RENEWAL" : "WELCOME"} benefits email to employees of "${accountName}".
 Requested by account manager ${amName}.
-${logoUrl ? "A client logo was supplied and sits in the header creative — do not describe it." : ""}
 
 ${knownFacts}
 
-This is a real member-facing benefits email, not a marketing blurb. Real Plum
-welcome and renewal emails are long and specific: an employee should be able to
-act on it without asking anyone a question. Aim for 250-400 words.
+This is a real member-facing benefits email and must match Plum's production
+format. Those emails are long and specific: an employee should be able to act
+on it without asking anyone a question. Aim for 400-550 words. A short email is
+a failure.
 
-Follow this section order (it mirrors Plum's production emails). Use the exact
-bold section headings shown, each on its own line ending in a colon:
+Use EXACTLY these sections, in this order, each heading on its own line:
 
-1. A two or three sentence opening. Name the company. For a welcome, say Plum is
-   now looking after their health benefits. For a renewal, say the cover carries
-   on without a break.
-2. One sentence naming the insurer and who handles claims (only if known).
-3. "Here's when it starts:" — the coverage start date on its own line (only if known).
-4. "Here's what you need to know:" — 4 to 6 bullets starting with "- ". Cover: who
-   is included, health cards arriving in the Plum app, the 24x7 helpline
-   1800 30 911 911 with missed calls returned within 15 minutes, using a network
-   hospital for cashless treatment, and filing a reimbursement claim in the app
-   otherwise.
-5. "What you're covered for:" — bullets for sum insured, maternity and copay.
-   Include ONLY the ones given in the verified facts above; omit the heading
-   entirely if none are known.
-6. "Reaching us:" — in-app support any time, care@plumhq.com 9am to 9pm daily,
-   and the emergency helpline.
-7. Close with "With care," then "Team Plum" on the next line.
+1. Opening, two sentences. ${isRenewal
+    ? `Say ${accountName} has RENEWED its partnership with Plum to continue bringing a best-in-class healthcare experience.`
+    : `Say ${accountName} has partnered with Plum to bring a best-in-class healthcare experience.`}
+   Describe it as comprehensive, simple, inclusive and easy to access for them
+   and their loved ones.
+2. One or two sentences naming the insurer as the trusted insurance partner and
+   what that means for service and support. Only if the insurer is known.
+3. "Here's when it starts:" then the ${isRenewal ? "renewed " : ""}coverage start date on the next line.
+4. "Here's what you need to know:" with bullets starting "- ":
+   - Coverage for the employee and their family begins on the start date, and
+     health cards will be available in the Plum app shortly
+   - Emergency assistance or a cashless claim without a health ID yet: call
+     Plum's 24/7 helpline at 1800 30 911 911. Missed calls returned within 15 minutes
+   - For cashless treatments, visit a network hospital. The network hospital
+     list is in the Plum app
+   - For non-network treatments, file a reimbursement claim in the Plum app once
+     health IDs arrive
+5. "Note:" then a line about reimbursement claims incurred BEFORE the coverage
+   start date: submit documents through the Plum app under the previous policy,
+   and the Claims Support team will review and guide them. ${isRenewal ? "" : "Include this only if a start date is known."}
+6. "Next steps:" a Plum enrollment invite is coming, to sign up, review details
+   and dependents, and enroll in the group insurance program.
+7. "More updates to follow, stay tuned!" on its own line.
+8. "Here's what you're covered for:" then these as separate lines, only the ones
+   known: plan name, "Sum Insured: Graded", "Family definition: ...",
+   "Insurer: ... | TPA: ...", "Start Date of Coverage: ...".
+9. "Health Insurance Benefits for ${yearLabel}:" with bullets for maternity limit,
+   pre and post natal expenses, baby day-one coverage, ambulance charges, LASIK
+   and Ayush. Include ONLY limits given in the verified facts. If none are
+   given, omit this whole section rather than inventing any.
+10. A line saying complete coverage details are on the Plum app, where they can
+    view detailed benefits, coverage limits and applicable policy terms.
+11. "Reaching out to Plum:" with bullets for in-app support (Plum app or web
+    dashboard, 24x7), email support (care@plumhq.com, 9am to 9pm, seven days a
+    week), and emergencies without health cards (1800 30 911 911, 24x7, cashless
+    only at network hospitals).
 
-Style rules that override anything else:
+Hard rules:
+- SUM INSURED IS WRITTEN AS "Graded" AND NOTHING ELSE. Never list the per-grade
+  amounts. A whole organisation reads this email and the grades differ per person.
 - No em dashes anywhere.
 - No "not X, but Y" negation contrasts.
 - No ", so you know X" tails.
 - Never invent a statistic, limit, date or hospital count.
-- Spell out any acronym on first use. Do not write GMC, GTL, GPA or HRA bare.
-- No jokes, no personification, no wit. This is coverage information.
+- Spell out acronyms on first use. Never write GMC, GTL, GPA or HRA bare.
+- No jokes, no personification, no wit.
 
-Respond with ONLY a raw JSON object (no markdown fences, no commentary) shaped exactly like:
+Respond with ONLY a raw JSON object (no markdown fences, no commentary):
 {"subject": "...", "body": "..."}
 
-The subject should be plain and specific, under 60 characters, and must not
-contain any figure you were not given above.`;
+The subject must be EXACTLY this, with nothing added or removed:
+Welcome to Your ${yearLabel} Health Benefits 🎉${accountName}<> Plum`;
 
   const apiBase =
     process.env.ANTHROPIC_BASE_URL ??

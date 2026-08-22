@@ -41,6 +41,10 @@ const ACCOUNT_CREATIVES: Record<string, { desktop: string; mobile: string }> = {
     desktop: `${ASSETS}/groww-welcome-desktop.png`,
     mobile: `${ASSETS}/groww-welcome-mobile.png`,
   },
+  "groww|renewal": {
+    desktop: `${ASSETS}/groww-renewal-desktop.png`,
+    mobile: `${ASSETS}/groww-renewal-mobile.png`,
+  },
 };
 
 const GENERIC_HEADERS: Record<string, { desktop: string; mobile: string }> = {
@@ -53,7 +57,11 @@ const GENERIC_HEADERS: Record<string, { desktop: string; mobile: string }> = {
     mobile: `${ASSETS}/generic-renewal-mobile.png`,
   },
 };
-const APP_DOWNLOAD = "https://plumhq.app.link";
+// plumhq.app.link and deeplink.plumhq.com are JS interstitials that render
+// blank in several mail clients (confirmed 2026-08-22). Link the stores
+// directly, exactly as the production Open Financial email does.
+const APP_STORE = "https://apps.apple.com/app/id1616851078";
+const PLAY_STORE = "https://play.google.com/store/apps/details?id=com.plumhq.employee.production";
 
 interface SendRequest {
   requestId?: string;
@@ -150,15 +158,22 @@ ${bodyToHtml(body)}
 
 <tr><td style="padding:0; font-size:0; line-height:0;">
   <div class="desktop-only">
-    <a href="${APP_DOWNLOAD}" style="display:block;">
+    <a href="${PLAY_STORE}" style="display:block;">
       <img src="${FOOTER_DESKTOP}" alt="Download the Plum app" style="display:block; width:100%; height:auto; border:0;">
     </a>
   </div>
   <div class="mobile-only" style="display:none; max-height:0; overflow:hidden;">
-    <a href="${APP_DOWNLOAD}" style="display:block;">
+    <a href="${PLAY_STORE}" style="display:block;">
       <img src="${FOOTER_MOBILE}" alt="Download the Plum app" style="display:block; width:100%; height:auto; border:0;">
     </a>
   </div>
+</td></tr>
+
+<tr><td align="center" style="padding:14px 40px 20px 40px; font-family:Inter, Helvetica, Arial, sans-serif; font-size:13px; line-height:1.5; color:#3A0E2B;">
+Download the Plum app:
+<a href="${APP_STORE}" style="color:#571541; font-weight:600;">App Store</a>
+&nbsp;·&nbsp;
+<a href="${PLAY_STORE}" style="color:#571541; font-weight:600;">Google Play</a>
 </td></tr>
 
 </table>
