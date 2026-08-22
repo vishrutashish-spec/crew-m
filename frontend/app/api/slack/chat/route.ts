@@ -15,17 +15,48 @@ interface AgentReply {
   amName?: string;
   accountName?: string;
   campaignType?: string;
+  /** One-sentence free-text description of intent, for anything beyond a
+   *  plain welcome/renewal request — carried through to copy generation. */
+  campaignBrief?: string;
   logoUrl?: string;
 }
 
-const SYSTEM_PROMPT = `You are Crew M's campaign assistant, chatting with an Account Manager (AM) over Slack.
+const SYSTEM_PROMPT = `You are Crew M's campaign assistant. Someone just tagged you in a Slack channel — your job is to gather what's needed to draft a client email campaign, then hand it off for drafting.
 
-Your job: figure out (1) the AM's own name, (2) which client account they want a campaign for, and (3) whether it's a "welcome" or "renewal" campaign. A client logo URL is optional.
+Gather these, ONE question at a time, in this order:
 
-Ask short, direct questions — one at a time, not a list. Don't explain your reasoning. Don't use markdown headers.
+1. The AM's name. You are usually told this already (see the identity note
+   appended below this prompt) — if so, do NOT ask for it, just use it.
+   Only ask if you genuinely don't know it.
+2. Which client account/company the campaign is for.
+3. What campaign they want to run, in their own words.
 
-Once you have the AM's name, the account name, and the campaign type, respond with ONLY this JSON (no other text):
-{"action":"draft","amName":"...","accountName":"...","campaignType":"welcome|renewal","logoUrl":"..."}
+For step 3, figure out what this actually is:
+- "Welcome" (a brand-new client's first benefits email) and "Renewal" (an
+  existing client renewing their plan) are the two standard types —
+  use campaignType "welcome" or "renewal" for these, campaignBrief "".
+- Plum also runs targeted activation nudges, e.g. Health Checkup (getting
+  employees to use the free annual checkup already in their plan — the
+  right angle is always first-time activation of the one they already have,
+  never "book it again") or Telehealth (reminding employees that doctor
+  consultations are already covered). If the AM describes something like
+  this, recognise it, use a short kebab-case campaignType (e.g.
+  "health-checkup", "telehealth"), and write a one-sentence campaignBrief
+  summarising exactly what they asked for — who it's for and what action
+  it's driving. This gets used downstream to write the actual copy, so make
+  it specific, not generic.
+- For anything else, don't block them: use a short kebab-case slug for
+  campaignType and write the clearest one-sentence campaignBrief you can
+  from what they told you. Ask ONE clarifying question first only if their
+  description is genuinely too vague to act on (just "a campaign", nothing
+  else) — otherwise proceed with your best understanding of what they said.
+
+Ask short, direct questions — one at a time, not a list. Don't explain your
+reasoning. Don't use markdown headers.
+
+Once you have the AM's name, the account name, and the campaign type/intent,
+respond with ONLY this JSON (no other text):
+{"action":"draft","amName":"...","accountName":"...","campaignType":"welcome|renewal|<slug>","campaignBrief":"...","logoUrl":"..."}
 
 Until then, respond with ONLY this JSON (no other text):
 {"action":"reply","text":"your next message to the AM"}
@@ -47,6 +78,15 @@ async function slackApi(token: string, method: string, body: Record<string, unkn
 // Our own fallback text from a previous bad turn — if this got posted to
 // Slack, exclude it from history so it doesn't compound confusion.
 const FALLBACK_MARKER = "lost my train of thought";
+
+/** Who tagged the bot, read straight from their Slack profile — so the AM is
+ *  never asked for their own name when Slack already knows it. */
+async function resolveSlackName(token: string, userId: string): Promise<string | null> {
+  const data = await slackApi(token, "users.info", { user: userId });
+  if (!data.ok) return null;
+  const profile = data.user?.profile ?? {};
+  return profile.real_name || data.user?.real_name || profile.display_name || null;
+}
 
 async function getRecentHistory(
   token: string,
@@ -77,7 +117,10 @@ async function getRecentHistory(
   return ordered.map((m) => ({ role: m.role, content: m.text }));
 }
 
-async function askClaude(history: Array<{ role: string; content: string }>): Promise<string> {
+async function askClaude(
+  history: Array<{ role: string; content: string }>,
+  system: string
+): Promise<string> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   const apiBase = process.env.ANTHROPIC_API_BASE ?? "https://api.anthropic.com";
   if (!apiKey) throw new Error("anthropic_not_configured");
@@ -92,7 +135,7 @@ async function askClaude(history: Array<{ role: string; content: string }>): Pro
     body: JSON.stringify({
       model: "claude-sonnet-5",
       max_tokens: 8192,
-      system: SYSTEM_PROMPT,
+      system,
       messages: history.map((m) => ({ role: m.role, content: m.content })),
     }),
   });
@@ -104,7 +147,8 @@ async function askClaude(history: Array<{ role: string; content: string }>): Pro
 }
 
 async function callClaude(
-  history: Array<{ role: string; content: string }>
+  history: Array<{ role: string; content: string }>,
+  system: string
 ): Promise<AgentReply | null> {
   for (let attempt = 0; attempt < 2; attempt++) {
     const prompt =
@@ -117,7 +161,7 @@ async function callClaude(
               content: "(Reminder: reply with ONLY the JSON object, nothing else.)",
             },
           ];
-    const text = await askClaude(prompt);
+    const text = await askClaude(prompt, system);
     try {
       return JSON.parse(text) as AgentReply;
     } catch {
@@ -140,10 +184,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "slack_not_configured" }, { status: 500 });
   }
 
-  const history = await getRecentHistory(token, slackChannel, threadTs);
+  const [history, knownName] = await Promise.all([
+    getRecentHistory(token, slackChannel, threadTs),
+    resolveSlackName(token, slackUser),
+  ]);
   history.push({ role: "user", content: text });
 
-  const reply = await callClaude(history);
+  const identityNote = knownName
+    ? `\n\nIdentity note: the person you're talking to (Slack ID <@${slackUser}>) is named "${knownName}" per their Slack profile — use this as their name, do not ask them what their name is.`
+    : `\n\nIdentity note: this person's Slack profile name could not be resolved. If this is the start of the conversation, your first message must ask for their name before anything else.`;
+
+  const reply = await callClaude(history, SYSTEM_PROMPT + identityNote);
 
   if (!reply) {
     return NextResponse.json({ ok: false, error: "no_valid_reply" });
@@ -160,12 +211,12 @@ export async function POST(request: Request) {
 
   // action === "draft": run the existing pipeline against our own API.
   const requestId = `chat-${Date.now()}`;
-  const { amName, accountName, campaignType, logoUrl } = reply;
+  const { amName, accountName, campaignType, campaignBrief, logoUrl } = reply;
 
   const copy = await fetch(`${BASE_URL}/api/copy`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ requestId, amName, accountName, campaignType, logoUrl }),
+    body: JSON.stringify({ requestId, amName, accountName, campaignType, campaignBrief, logoUrl }),
   }).then((r) => r.json());
 
   const creative = await fetch(`${BASE_URL}/api/creative`, {
@@ -177,7 +228,7 @@ export async function POST(request: Request) {
   const draft = await fetch(`${BASE_URL}/api/campaign/draft`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ requestId, amName, accountName, campaignType, copy, creative }),
+    body: JSON.stringify({ requestId, amName, accountName, campaignType, campaignBrief, copy, creative }),
   }).then((r) => r.json());
 
   // Tag the saved record with where it came from, so the PMM's approve/reject
