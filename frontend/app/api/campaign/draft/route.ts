@@ -126,6 +126,7 @@ export async function POST(request: Request) {
   const slackToken = process.env.SLACK_BOT_TOKEN;
   const pmmChannel = process.env.SLACK_PMM_CHANNEL_ID;
   if (slackToken && pmmChannel && id) {
+    const previewUrl = `https://iw-crew-m-c4b9.insurwreck.com/api/campaign/${id}/preview`;
     await fetch("https://slack.com/api/chat.postMessage", {
       method: "POST",
       headers: {
@@ -142,7 +143,7 @@ export async function POST(request: Request) {
               type: "mrkdwn",
               text: `*${campaignName}*\nRequested by ${amName}${
                 campaignBrief ? `\n*Brief:* ${campaignBrief}` : ""
-              }\n\n*Subject:* ${copy?.subject ?? ""}\n\n*Suggested audience:* ${segmentSuggestion}\n\n*Recipients:* ${describeSendTo(sendTo)}`,
+              }\n\n*Subject:* ${copy?.subject ?? ""}\n\n*Suggested audience:* ${segmentSuggestion}\n\n*Recipients:* ${describeSendTo(sendTo)}\n\n*Preview:* <${previewUrl}|Open the actual email>`,
             },
           },
           {
