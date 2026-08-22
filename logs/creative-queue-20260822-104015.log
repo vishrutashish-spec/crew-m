@@ -1,0 +1,18 @@
+---
+
+**Run summary — 2026-08-22**
+
+Queue: 1 row pending. 1 finished. 0 skipped.
+
+**requestId 591** — Groww / welcome / single-brand
+- Font check: GT Alpina and Passenger Sans not available; Vollkorn substituted for GT Alpina (GT Alpina Medium → Vollkorn Medium), Inter for Passenger Sans — frames named with `[Vollkorn]` suffix accordingly.
+- Deleted pre-existing `GEN — welcome — Groww — desktop [Vollkorn]` and `GEN — welcome — Groww — mobile [Vollkorn]` frames before cloning.
+- Cloned `1:197` (desktop) and `23:678` (mobile), fonts substituted, positioned at x ≥ 19000.
+- Copy set: heading "Welcome!", subtitle "Your health and wellness benefits are on their way", button "Explore your benefits". No placeholder strings remain.
+- Heading height assertions: desktop 56px ✓, mobile 69px ✓ (both ≤ 100).
+- Accent #FFBFC5 applied to: desktop `Rectangle 3` VECTOR last gradient stop + largest ellipse (697px wide); mobile `02_doc` last gradient stop + largest ellipse (1159px wide). Heading/subtitle/button fills untouched.
+- Exported 944×422 desktop and 514×828 mobile at 1x — dimensions verified.
+- Frontend build: clean.
+- Deploy: succeeded (`iw-crew-m-c4b9.insurwreck.com`).
+- URL reachability: both assets returned HTTP 200.
+- Queue marked done.

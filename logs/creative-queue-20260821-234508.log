@@ -1,0 +1,3 @@
+The queue endpoint returned HTTP 200 with an empty body (0 bytes). This means there are no pending rows in the queue — a normal outcome per the instructions.
+
+**Summary:** 0 rows in the queue this run. The webhook returned HTTP 200 with an empty response body, indicating no pending creative requests. Nothing was processed, no frames were created in Figma, no deploy was triggered. This is a normal (not an error) outcome.

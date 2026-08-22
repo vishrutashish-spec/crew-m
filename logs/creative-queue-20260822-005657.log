@@ -1,0 +1,13 @@
+The server returned HTTP 200 with an empty body (content-length: 0), which means the queue has no pending rows.
+
+---
+
+**Run summary — 2026-08-22**
+
+- Queue rows fetched: 0 (HTTP 200, empty body — queue is empty)
+- Rows processed: 0
+- Rows skipped: 0
+- Figma cloning: not performed
+- Build/deploy: not performed (nothing to ship)
+
+Normal outcome. No action required this run.

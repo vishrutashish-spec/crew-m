@@ -1,0 +1,12 @@
+The queue endpoint returned HTTP 200 with a 0-byte body — an empty response indicating no pending rows.
+
+---
+
+**Run summary:**
+
+- Queue rows: **0** (empty response from `get_pending`)
+- Rows finished: **0**
+- Rows skipped: **0**
+- Deploy: **not needed** (nothing to generate)
+
+Normal outcome — no pending creative requests in the queue this run.

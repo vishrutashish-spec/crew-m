@@ -1,0 +1,8 @@
+**Run summary — 2026-08-21**
+
+- Queue size: 0 (HTTP 200, `content-length: 0` — empty response, no pending rows)
+- Rows finished: 0
+- Rows skipped: 0
+- Deploy: not needed (nothing to ship)
+
+Queue was empty this run. Normal outcome — nothing to do.

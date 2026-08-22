@@ -1,0 +1,11 @@
+The queue endpoint returned HTTP 200 with an empty body (0 bytes, `content-length: 0`). This signals the queue has no pending rows.
+
+---
+
+**Run summary — 2026-08-22**
+
+- Queue size: 0 (endpoint returned HTTP 200, empty body)
+- Rows finished: 0
+- Rows skipped: 0
+- Deploy: not needed (nothing to deploy)
+- Outcome: normal — no work to do this run.

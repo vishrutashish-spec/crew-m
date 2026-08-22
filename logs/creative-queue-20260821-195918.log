@@ -1,0 +1,18 @@
+---
+
+**Run summary**
+
+Queue: 1 row (`verify-1`, Acme Corp, welcome, single-brand).
+
+**Finished: 1. Skipped: 0.**
+
+- Fonts: GT Alpina and Passenger Sans not available → fell back to Vollkorn per §1.3. All output labeled `[VOLLKORN sub for GT Alpina]`.
+- Desktop frame `86:265` was already correctly built from a prior session (heading "Welcome!", subtitle correct, #FFBFC5 accent, 944×422 at x:26500).
+- Mobile frame `87:275` was missing — cloned from template `23:678`, fonts swapped, copy set, accent applied, positioned at x:26500 y:560, named correctly. Heading height: 69px (under 100 limit).
+- Both frames exported at 1x: 944×422 desktop, 514×828 mobile — dimensions verified.
+- Frontend build: clean (13/13 pages, no errors).
+- Creative files already committed (`5cae6f9`). Deployed to Vercel production.
+- URLs verified reachable (HTTP 200):
+  - `https://iw-crew-m-c4b9.insurwreck.com/creatives/verify-1-desktop.png`
+  - `https://iw-crew-m-c4b9.insurwreck.com/creatives/verify-1-mobile.png`
+- Queue row marked done: `{"ok":true}`.

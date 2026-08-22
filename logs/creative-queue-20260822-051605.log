@@ -1,0 +1,10 @@
+**Run summary — 2026-08-22**
+
+Queue response: HTTP 200, empty body (content-length: 0).
+
+- Rows in queue: **0**
+- Rows finished: **0**
+- Rows skipped: **0**
+- Deploy: not performed (nothing to process)
+
+Normal outcome — the queue was empty this run. No Figma changes, no exports, no deploy.

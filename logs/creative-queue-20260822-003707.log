@@ -1,0 +1,10 @@
+The queue returned HTTP 200 with an empty body (0 bytes, `content-length: 0`). This indicates the pending array is empty — there are no rows to process this run.
+
+**Run summary:**
+
+- Queue rows found: **0**
+- Rows finished: **0**
+- Rows skipped: **0**
+- Deploy: **not needed (nothing to process)**
+
+The endpoint responded 200 with an empty body, which is the normal "nothing pending" signal. No Figma work was performed, no files were modified, no deploy was triggered. This is an expected outcome.

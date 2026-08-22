@@ -1,0 +1,10 @@
+**SUMMARY — 2026-08-21 run**
+
+Queue response: HTTP 200, body empty (0 bytes). The webhook returned no rows, which means the pending queue is empty.
+
+- Rows in queue: 0  
+- Rows finished: 0  
+- Rows skipped: 0  
+- Deploy: not attempted (nothing to ship)
+
+Nothing to do this run — normal outcome.

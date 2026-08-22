@@ -1,0 +1,12 @@
+The server returned HTTP 200 with an empty body (0 bytes). The queue is empty — no pending rows this run.
+
+---
+
+**Run summary — 2026-08-21**
+
+- Queue size: 0 (server returned HTTP 200, empty body)
+- Rows finished: 0
+- Rows skipped: 0
+- Deploy: not required (nothing to ship)
+
+Normal outcome. No pending creatives in the queue at time of execution.

@@ -1,0 +1,12 @@
+The server returned HTTP 200 with an empty body — the queue is empty. No pending rows this run.
+
+---
+
+**Run summary:**
+
+- Queue: 0 rows returned (HTTP 200, empty body)
+- Finished: 0
+- Skipped: 0
+- Deploy: not triggered (no work to do)
+
+Nothing to process this run. Normal outcome.

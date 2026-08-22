@@ -1,0 +1,5 @@
+**Run summary — 2026-08-21**
+
+- Queue returned HTTP 200 with an empty body (0 bytes, no JSON array).
+- **0 rows pending** — nothing to process this run. This is a normal outcome.
+- No Figma changes made, no exports generated, no deploy triggered.

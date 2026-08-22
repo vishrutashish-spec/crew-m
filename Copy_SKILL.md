@@ -20,6 +20,7 @@ This skill makes Claude write copy the way Plum's Crew M brand actually sounds: 
 - [ ] No tacked-on "— not generic advice" / "not X" negation contrasts. State the positive claim and stop.
 - [ ] No "so you know X" formulaic explainer tail. Land the benefit in the main clause, not an appended justification after a comma.
 - [ ] **No em dashes, anywhere, ever.** Rewrite as two plain sentences. A colon is also suspect, prefer a plain sentence break.
+- [ ] No generic AI-voice personification gags ("X called, it's feeling Y", "We noticed. So did Z."). If the joke would still work with the nouns swapped, cut it.
 - [ ] If defining something via a colon/intro clause, the clause after it defines what the thing IS, not where it lives, how long it takes, or a privacy note (those go in separate sentences).
 - [ ] No invented stats, percentages, or outcome figures. Never cite a number that isn't real and sourced. If no real number exists, phrase qualitatively.
 - [ ] No acronyms (HRA, GMC, GTL) in first-touch consumer copy unless defined once, plainly.
@@ -357,6 +358,10 @@ Rule: land the benefit in the main clause itself, not as an appended justificati
 Rewrite as two plain sentences, or restructure the clause to flow without one. A colon is also suspect, prefer a plain sentence break.
 
 **4. If defining something via a colon/intro clause, the clause after it must define what the thing IS**, not where it lives, how long it takes, or a privacy note. Those go in separate sentences.
+
+**5. No generic AI-voice personification gags ("X called, it's feeling Y", "We noticed. So did Z.").**
+Bad: "Your gym membership called. It's feeling replaced." / "We noticed. So did your gym."
+Rule: this reads as ChatGPT wit, not Plum wit, because no human talks like this and it isn't anchored to anything specific or real. Plum's actual humor (see reference posts) is built from a specific, true detail (a real pun on a real word, a real stat, a real coworker's name), not a generic anthropomorphism template applied to whatever the product is. If a joke would work identically with the nouns swapped out ("your Netflix subscription called" / "your landlord called"), it's this pattern and it's banned. Cut it rather than fix it, there usually isn't a version of this joke worth saving.
 
 ## Editing a Human Draft
 

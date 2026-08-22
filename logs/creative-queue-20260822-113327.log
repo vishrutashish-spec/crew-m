@@ -1,0 +1,13 @@
+The queue endpoint returned HTTP 200 with an empty body, which is equivalent to an empty array.
+
+---
+
+**Run summary — 2026-08-22**
+
+- Queue: 0 pending rows (endpoint returned HTTP 200, empty response body).
+- Rows finished: 0
+- Rows skipped: 0
+- Figma work: none (nothing to process)
+- Build/deploy: not run (no new creatives)
+
+Nothing to do this run — normal outcome.

@@ -1,0 +1,12 @@
+HTTP 200 with an empty body — the endpoint is healthy and the queue is empty.
+
+---
+
+**Run summary — 2026-08-22**
+
+- Queue: 0 pending rows returned (HTTP 200, empty body)
+- Finished: 0
+- Skipped: 0
+- Deploy: not needed (nothing to ship)
+
+Normal outcome — nothing to process this run.

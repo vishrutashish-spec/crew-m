@@ -1,0 +1,22 @@
+@import "tailwindcss";
+@import "./plum.css";
+
+@theme {
+  --color-ink: var(--ink);
+  --color-stone: var(--stone);
+  --color-faint: var(--faint);
+  --color-paper: var(--paper);
+  --color-mist: var(--mist);
+  --color-line: var(--line);
+  --color-plum: var(--plum);
+  --color-plum-ink: var(--plum-ink);
+  --color-plum-wash: var(--plum-wash);
+  --color-signal: var(--signal);
+  --color-signal-wash: var(--signal-wash);
+
+  --font-display: var(--display);
+  --font-body: var(--body);
+  --font-mono: var(--mono);
+
+  --radius-card: var(--radius);
+}

@@ -1,0 +1,5 @@
+**Summary**
+
+Queue: 0 pending rows (HTTP 200, empty response body from the queue endpoint).
+
+Nothing to process this run — normal outcome. No creatives generated, no deploy attempted, no rows marked done.

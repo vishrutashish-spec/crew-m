@@ -1,0 +1,12 @@
+The queue endpoint returned HTTP 200 with an empty body. This indicates there are no pending rows in the queue — the empty/null response body means no work to process.
+
+---
+
+**Run summary:**
+
+- Queue rows found: **0**
+- Rows finished: 0
+- Rows skipped: 0
+- Deploy: not triggered (no work to do)
+
+The queue is empty this run. Normal outcome — nothing to process.

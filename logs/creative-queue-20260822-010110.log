@@ -1,0 +1,12 @@
+The queue endpoint returned HTTP 200 with an empty body, which indicates no pending rows.
+
+---
+
+**Run summary — 2026-08-22**
+
+- Queue fetched: HTTP 200, empty response body (no pending rows).
+- Rows processed: 0
+- Rows skipped: 0
+- Deploy: not triggered (nothing to process)
+
+Queue is empty. Normal outcome — nothing to do this run.

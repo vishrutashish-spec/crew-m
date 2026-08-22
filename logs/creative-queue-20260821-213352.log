@@ -1,0 +1,13 @@
+The queue endpoint returned HTTP 200 with an empty body (content-length: 0), indicating no pending rows.
+
+---
+
+**Run summary — 2026-08-21 16:04 UTC**
+
+- Queue rows: 0 (empty response body from `get_pending`)
+- Rows processed: 0
+- Rows skipped: 0
+- Figma changes: none
+- Deploy: not needed (nothing to commit)
+
+Nothing to do this run — normal outcome.

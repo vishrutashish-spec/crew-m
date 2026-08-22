@@ -1,0 +1,10 @@
+**Run summary — 2026-08-21 16:15 UTC**
+
+Queue response: HTTP 200, empty body (content-length: 0) — no pending rows returned.
+
+- Rows in queue: 0
+- Rows finished: 0
+- Rows skipped: 0
+- Deploy: not triggered (nothing to ship)
+
+Normal outcome. No action taken this run.

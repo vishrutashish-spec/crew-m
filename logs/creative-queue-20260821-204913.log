@@ -1,0 +1,11 @@
+The server returned HTTP 200 with an empty body (content-length: 0), which means the queue is empty.
+
+---
+
+**Run summary — 2026-08-21**
+
+- Queue rows returned: 0 (server responded HTTP 200 with empty body)
+- Rows finished: 0
+- Rows skipped: 0
+- Deploy: not attempted (no work to do)
+- Outcome: normal — nothing pending this run.

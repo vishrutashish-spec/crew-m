@@ -1,0 +1,13 @@
+The queue endpoint returned HTTP 200 with an empty body — no pending rows.
+
+---
+
+**Run summary — 2026-08-21**
+
+- Queue polled: `POST https://workflow-stg.plumhq.com/webhook/iw-crew-m-c4b9-creative-queue-manage {"action": "get_pending"}`
+- Result: HTTP 200, empty response body — 0 pending rows in the queue
+- Rows finished: 0
+- Rows skipped: 0
+- Deploy: not required (nothing to process)
+
+Nothing to do this run. Normal outcome.

@@ -1,0 +1,12 @@
+The webhook returned HTTP 200 with `content-length: 0` — an empty body. This means the queue is empty: no pending rows this run.
+
+---
+
+**Run summary — 2026-08-22**
+
+- Queue size: 0 (webhook returned HTTP 200 with an empty body)
+- Rows finished: 0
+- Rows skipped: 0
+- Deploy: not attempted (nothing to deploy)
+
+Normal outcome. No creative work was needed this run.

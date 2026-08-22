@@ -1,0 +1,12 @@
+The queue returned HTTP 200 with an empty body (`content-length: 0`). This is the normal "nothing to do" response.
+
+---
+
+**Run summary — 2026-08-22**
+
+- Queue rows returned: **0** (HTTP 200, empty body — no pending requests)
+- Rows finished: 0
+- Rows skipped: 0
+- Deploy: not triggered (no work to do)
+
+Nothing to process this run. The creative queue is empty.

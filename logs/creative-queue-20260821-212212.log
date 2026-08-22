@@ -1,0 +1,12 @@
+Queue is empty (HTTP 200, 0-byte body).
+
+---
+
+**Run summary — 2026-08-21**
+
+- Queue size: 0 (empty response from `get_pending`)
+- Rows finished: 0
+- Rows skipped: 0
+- Deploy: not needed (no work to do)
+
+Normal outcome — no pending creative requests this run.

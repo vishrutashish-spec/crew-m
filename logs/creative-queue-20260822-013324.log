@@ -1,0 +1,12 @@
+**Run complete. Nothing to do.**
+
+---
+
+**Summary:**
+
+- Queue rows fetched: 0 (HTTP 200, empty response body)
+- Rows processed: 0
+- Rows skipped: 0
+- Deploy: not triggered (no creatives generated)
+
+The queue is empty this run. That is a normal outcome — no action required.

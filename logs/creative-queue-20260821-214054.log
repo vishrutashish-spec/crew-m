@@ -1,0 +1,9 @@
+The queue returned HTTP 200 with an empty body, indicating no pending rows this run.
+
+**Run summary:**
+- Queue rows: 0 (empty response body from `get_pending`)
+- Rows finished: 0
+- Rows skipped: 0
+- Deploy: not needed (no work to do)
+
+Nothing to process this run — normal outcome.

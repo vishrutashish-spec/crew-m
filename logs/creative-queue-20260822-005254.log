@@ -1,0 +1,9 @@
+The queue endpoint returned HTTP 200 with an empty body — no pending rows this run.
+
+**Run summary:**
+- Queue items: 0 (empty response from `get_pending`)
+- Items finished: 0
+- Items skipped: 0
+- Deploy: not needed (nothing to process)
+
+This is a normal outcome. The job ran cleanly; the queue is empty.

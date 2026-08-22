@@ -1,0 +1,12 @@
+The queue endpoint returned HTTP 200 with an empty body — the pending array is empty. Nothing to process this run.
+
+---
+
+**Run summary — 2026-08-22**
+
+- Queue size: 0 (empty response from `get_pending`)
+- Rows finished: 0
+- Rows skipped: 0
+- Deploy: not attempted (no work to do)
+
+Normal outcome. No creatives were pending at the time of this run.
