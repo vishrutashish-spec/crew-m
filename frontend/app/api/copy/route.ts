@@ -217,7 +217,10 @@ action being promoted, and end with "${accountName}<> Plum".`;
       model: "claude-sonnet-5",
       // This model thinks before answering — a low budget can burn the
       // whole response on the (discarded) thinking block and return no text.
-      max_tokens: 4096,
+      // Confirmed live: a health-checkup request silently produced an empty
+      // body at 4096 (the parse succeeded on "{}", so nothing errored) —
+      // matches chat/route.ts's budget, which never hits this.
+      max_tokens: 8192,
       system: copySkill,
       messages: [{ role: "user", content: userPrompt }],
     }),
