@@ -64,13 +64,26 @@ Until then, respond with ONLY this JSON (no other text):
 Never output anything other than one of those two JSON shapes.`;
 
 async function slackApi(token: string, method: string, body: Record<string, unknown>) {
+  // Slack's "read" methods (conversations.replies, conversations.history,
+  // users.info) reject a JSON body outright on this workspace/token —
+  // confirmed live: identical params sent as JSON get "invalid_arguments:
+  // missing required field: channel/ts", while form-encoding the exact same
+  // params succeeds. chat.postMessage tolerates JSON fine, but form-encoding
+  // works for every method (Slack requires nested values like `blocks` to be
+  // JSON-stringified into a single form field), so use it everywhere rather
+  // than special-case by method.
+  const form = new URLSearchParams();
+  for (const [key, value] of Object.entries(body)) {
+    if (value === undefined || value === null) continue;
+    form.set(key, typeof value === "string" ? value : JSON.stringify(value));
+  }
   const res = await fetch(`https://slack.com/api/${method}`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json; charset=utf-8",
+      "Content-Type": "application/x-www-form-urlencoded; charset=utf-8",
     },
-    body: JSON.stringify(body),
+    body: form,
   });
   return res.json();
 }
