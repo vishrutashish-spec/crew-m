@@ -236,13 +236,10 @@ ${bodyToHtml(below)}
   </div>
 </td></tr>
 
-<tr><td align="center" bgcolor="#3A0E2B" style="padding:22px 40px; background-color:#3A0E2B; font-family:Inter, Helvetica, Arial, sans-serif; font-size:13px; line-height:1.6; color:#FFFFFF;">
-<div style="font-size:20px; font-weight:700; letter-spacing:-0.4px; color:#FF5A5F; padding-bottom:10px;">plum</div>
-<div style="color:#F0E4EC;">Download the Plum app:
-<a href="${APP_STORE}" style="color:#FFFFFF; font-weight:600;">App Store</a>
+<tr><td align="center" style="padding:14px 40px 4px 40px; font-family:Inter, Helvetica, Arial, sans-serif; font-size:12px; line-height:1.5; color:#6B5A64;">
+<a href="${APP_STORE}" style="color:#571541; font-weight:600; text-decoration:none;">App Store</a>
 &nbsp;·&nbsp;
-<a href="${PLAY_STORE}" style="color:#FFFFFF; font-weight:600;">Google Play</a>
-</div>
+<a href="${PLAY_STORE}" style="color:#571541; font-weight:600; text-decoration:none;">Google Play</a>
 </td></tr>
 
 </table>
