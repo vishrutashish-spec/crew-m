@@ -1,25 +1,38 @@
 """
 Crew M API server.
 
-Serves persona data, audience recommendations, and campaign simulation
-results to the frontend. All data access is logged for audit compliance.
+Cohort-first: age cohorts are the primary organising dimension, with org type
+as a drill-down. Every figure served here is an exact sum over the deterministic
+cohort model, and the model is verified against its anchors before the server
+accepts a single request.
+
+--- Data access note (governance) ---
+What: aggregate cohort counts and documented segment totals. Why: the product
+answers who to target, on which channel, at what time. Protection: no
+user-level records are read or served, every response is counts-only, all
+CleverTap queries are read-only and bounded to <= 1 year, and every data-access
+route logs what was requested.
 """
 
-import time
 import logging
 from datetime import datetime, timezone
-from fastapi import FastAPI, Query
+from typing import Optional
+
+from fastapi import FastAPI, Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import Optional
-from synthetic import generate_users, generate_campaigns
-from pipeline import cluster_users, assign_persona_names, score_audience_fit
+
+import anchors as A
+import population as P
+import insights as I
+import copy_engine as CE
+import decisions as D
+import assistant as AS
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("crewm")
 
-app = FastAPI(title="Crew M API", version="0.1.0")
-
+app = FastAPI(title="Crew M API", version="2.0.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000", "http://localhost:3001"],
@@ -27,278 +40,559 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- Startup: generate data and run pipeline ---
-
-_state = {}
+_state: dict = {}
 
 
-def _compute_key_metrics(users) -> dict:
-    """Derive key metrics from actual data, not hardcoded numbers."""
-    n = len(users)
-    no_app = (~users["has_app"]).mean()
-    has_any_booking = (users["has_th_booking"] | users["has_hc_booking"])
-    employee_activation = has_any_booking.mean()
-
-    # Org-level: what share of unique segments have at least one active user
-    org_groups = users.groupby("partner_segment")["has_th_booking"].apply(lambda x: x.any())
-    org_activation = org_groups.mean()
-
-    gap = round((org_activation - employee_activation) * 100)
-
-    return {
-        "total_eligible_users": n,
-        "no_app_share": round(no_app, 3),
-        "org_activation_rate": round(org_activation, 3),
-        "employee_activation_rate": round(employee_activation, 3),
-        "structural_gap": f"{gap} points between org and employee activation",
-    }
+def get_model() -> dict:
+    """Build and verify the cohort model once. Refuses to serve if it fails."""
+    if "model" not in _state:
+        logger.info("Building deterministic cohort model...")
+        model = P.build()
+        checks = P.verify(model)   # raises if any anchor disagrees
+        _state["model"] = model
+        _state["checks"] = checks
+        _state["built_at"] = datetime.now(timezone.utc).isoformat()
+        _state["sim_checks"] = _simulation_sweep(model)
+        logger.info(
+            f"Cohort model verified, {len(checks)} invariants and "
+            f"{len(_state['sim_checks'])} simulation checks hold"
+        )
+    return _state["model"]
 
 
-def get_state():
-    if not _state:
-        logger.info("Generating synthetic data...")
-        t0 = time.time()
-        users = generate_users(10_000)
-        campaigns = generate_campaigns(50)
+def _simulation_sweep(model: dict) -> list[str]:
+    """
+    Run every objective x channel combination through the simulator core at
+    startup and assert its sanity. If any assertion fails, the server refuses
+    to boot, exactly like the cohort invariants: a wrong simulation is a wrong
+    number wearing a chart.
+    """
+    checks: list[str] = []
+    combos = 0
+    for objective in A.OBJECTIVE_CONVERSION:
+        for forced in [None] + A.CHANNELS:
+            r = _simulate_core(model, objective, ["26_35", "36_40"], None,
+                               forced, None, True, True)
+            f = r["funnel"]
+            combos += 1
+            assert f["sent"] >= f["delivered"] >= f["opened"] >= f["clicked"] >= f["converted"],                 f"{objective}/{forced}: funnel not monotonic"
+            assert r["audience"]["addressable"] <= r["audience"]["objective_pool"],                 f"{objective}/{forced}: addressable exceeds pool"
+            assert r["audience"]["control_group"] == round(
+                r["audience"]["addressable"] * A.CONTROL_GROUP_SHARE),                 f"{objective}/{forced}: control group is not 5% flat"
+            if objective == "app_install" and forced == "push":
+                assert r["audience"]["addressable"] == 0,                     "app_install over push must address nobody (disjoint groups)"
+            if forced is None:
+                sel = r["decision"]["selected"]
+                best = max(r["decision"]["channels"].values(), key=lambda c: c["total"])
+                assert r["decision"]["channels"][sel]["total"] == best["total"],                     f"{objective}: recommended channel is not the rubric winner"
+    checks.append(f"all {combos} objective x channel simulations are monotonic")
+    checks.append("addressable never exceeds the objective pool")
+    checks.append("control group is 5% flat in every simulation")
+    checks.append("app-install over push addresses exactly nobody")
+    checks.append("the recommended channel always wins the published rubric")
+    conv = A.OBJECTIVE_CONVERSION
+    assert conv["th_activation"] == round(A.TH_FUNNEL[-1][2] / A.TH_FUNNEL[0][2], 4)
+    assert conv["hc_activation"] == round(A.HC_FUNNEL[-1][2] / A.HC_FUNNEL[0][2], 4)
+    assert conv["hc_crosssell"] == A.HC_TO_TH_CROSSSELL_RATE
+    checks.append("3 of 5 conversion rates reconcile to observed funnel anchors")
+    return checks
 
-        logger.info("Running clustering pipeline...")
-        result = cluster_users(users)
-        personas = assign_persona_names(result["personas"])
 
-        _state["users"] = users
-        _state["campaigns"] = campaigns
-        _state["cluster_result"] = result
-        _state["personas"] = personas
-
-        _state["generated_at"] = datetime.now(timezone.utc).isoformat()
-        logger.info(f"Pipeline complete in {time.time() - t0:.1f}s — {len(personas)} personas discovered")
-    return _state
-
-
-# --- Models ---
-
-class SimulationRequest(BaseModel):
-    objective: str
-    channel: Optional[str] = None
-    persona_ids: Optional[list[int]] = None
-    copy_text: Optional[str] = None
-    send_hour: Optional[int] = None
+SEGMENT_LABELS = {
+    "base": "Full eligible base",
+    "no_app": "No app (365d)",
+    "hc_never_booked": "HC eligible, never booked",
+    "th_never_booked": "TH eligible, never booked",
+    "p0_dark_both": "P0 dark on both",
+    "p0_dark_either": "P0 dark on either",
+    "p1_dark_both": "P1 dark on both (DND)",
+    "p1_dark_either": "P1 dark on either (DND)",
+}
 
 
-# --- Endpoints ---
+def _org(org: Optional[str]) -> Optional[str]:
+    if org in (None, "", "all"):
+        return None
+    if org not in A.ORG_TYPE_SHARES:
+        raise HTTPException(400, f"Unknown org type '{org}'")
+    return org
+
+
+# ---------------------------------------------------------------------------
 
 @app.get("/api/health")
 def health():
-    return {"status": "ok", "version": "0.1.0"}
+    get_model()
+    return {
+        "status": "ok",
+        "version": "2.0.0",
+        "invariants_verified": len(_state["checks"]),
+        "built_at": _state["built_at"],
+    }
 
 
-@app.get("/api/dashboard")
-def dashboard():
-    """Dashboard summary: model confidence, top personas, key metrics."""
-    state = get_state()
-    personas = state["personas"]
-    result = state["cluster_result"]
-    campaigns = state["campaigns"]
+@app.get("/api/verification")
+def verification():
+    """Every invariant the model asserts. Shown in the UI methodology panel so
+    the accuracy claim is checkable rather than asserted."""
+    get_model()
+    return {"label": "OBSERVED", "checks": _state["checks"],
+            "sim_checks": _state["sim_checks"]}
 
-    # Audit log: data access
-    logger.info("DATA_ACCESS: dashboard summary requested")
 
-    top_personas = sorted(personas, key=lambda p: p["size"], reverse=True)[:5]
+@app.get("/api/overview")
+def overview(org: Optional[str] = Query(None)):
+    """Dashboard: base totals, cohort table, funnels, insights."""
+    model = get_model()
+    org_f = _org(org)
+    logger.info(f"DATA_ACCESS: overview requested (org={org_f or 'all'})")
+
+    totals = P.totals(model, org_f)
+    cells = [c for c in model["cells"].values()
+             if org_f is None or c["org"] == org_f]
+
+    # Real vs apparent push, computed here so the UI never has to derive it.
+    real_push = sum(c["reach_push_app"] for c in cells)
+    totals["reach"]["push"]["with_app"] = real_push
+    totals["reach"]["push"]["stale_tokens"] = (
+        totals["reach"]["push"]["count"] - real_push
+    )
 
     return {
         "label": "OBSERVED",
-        "model_confidence": {
-            "silhouette_score": result["silhouette_score"],
-            "n_users_analyzed": result["n_users"],
-            "n_personas": result["n_clusters"],
-            "data_source": "synthetic_calibrated",
+        "org_filter": org_f,
+        "totals": totals,
+        "cohorts": P.all_cohorts(model, org_f),
+        "comparison": I.cohort_comparison(model, org_f),
+        "insights": I.base_insights(model) if org_f is None else [],
+        "activation": {
+            "employee_rate": A.EMPLOYEE_ACTIVATION_RATE,
+            "org_rate": A.ORG_ACTIVATION_RATE,
+            "gap_points": A.ACTIVATION_GAP_POINTS,
+            "targets": A.ADOPTION_TARGETS,
+            "label": "OBSERVED",
         },
-        "top_personas": [
-            {
-                "id": p["id"],
-                "name": p["name"],
-                "size": p["size"],
-                "share": p["share"],
-                "th_adoption": p["th_adoption_rate"],
-                "hc_adoption": p["hc_adoption_rate"],
-                "app_installed": p["app_installed_share"],
-            }
-            for p in top_personas
+        "ct_live": {
+            "metrics": A.CT_LIVE,
+            "scope": A.CT_LIVE_SCOPE,
+            "pulled_at": A.CT_PULL_DATE.isoformat(),
+            "window_days": A.CT_WINDOW_DAYS,
+            "dau_method": A.DAU_METHOD,
+            "label": "OBSERVED",
+        },
+        # The documented reachability panel, straight from the source table.
+        "segment_reachability": [
+            {"key": k, "label": SEGMENT_LABELS[k], "users": v[0],
+             "push": v[1], "email": v[2], "whatsapp": v[3]}
+            for k, v in A.SEGMENT_REACHABILITY.items()
         ],
-        "campaign_summary": {
-            "total_campaigns": len(campaigns),
-            "avg_delivery_rate": round(campaigns["delivery_rate"].mean(), 3),
-            "avg_open_rate": round(campaigns["open_rate"].mean(), 3),
-            "avg_click_rate": round(campaigns["click_rate"].mean(), 3),
-            "channels_used": campaigns["channel"].value_counts().to_dict(),
-        },
-        "key_metrics": _compute_key_metrics(state["users"]),
-        "generated_at": state.get("generated_at"),
+        "built_at": _state["built_at"],
     }
 
 
-@app.get("/api/personas")
-def list_personas():
-    """All discovered personas with full behavioral detail."""
-    state = get_state()
-    logger.info("DATA_ACCESS: full persona list requested")
+@app.get("/api/cohorts")
+def cohorts(org: Optional[str] = Query(None)):
+    model = get_model()
+    org_f = _org(org)
+    logger.info(f"DATA_ACCESS: cohort list requested (org={org_f or 'all'})")
     return {
         "label": "OBSERVED",
-        "personas": state["personas"],
-        "silhouette_score": state["cluster_result"]["silhouette_score"],
-        "features_used": state["cluster_result"]["features_used"],
+        "org_filter": org_f,
+        "cohorts": P.all_cohorts(model, org_f),
+        "org_types": [
+            {"key": k, "label": A.ORG_TYPE_LABELS[k], "share": v,
+             "note": A.SEGMENT_ADOPTION_NOTES.get(k)}
+            for k, v in A.ORG_TYPE_SHARES.items()
+        ],
+        "org_share_is_modeled": A.ORG_SHARE_IS_MODELED,
     }
 
 
-@app.get("/api/personas/{persona_id}")
-def get_persona(persona_id: int):
-    """Single persona with all detail."""
-    state = get_state()
-    for p in state["personas"]:
-        if p["id"] == persona_id:
-            logger.info(f"DATA_ACCESS: persona {persona_id} detail requested")
-            return {"label": "OBSERVED", "persona": p}
-    return {"error": "Persona not found"}
+@app.get("/api/cohorts/{cohort_key}")
+def cohort_detail(cohort_key: str, org: Optional[str] = Query(None)):
+    model = get_model()
+    org_f = _org(org)
+    summary = P.cohort_summary(model, cohort_key, org_f)
+    if not summary:
+        raise HTTPException(404, f"Unknown cohort '{cohort_key}'")
+    logger.info(f"DATA_ACCESS: cohort {cohort_key} detail (org={org_f or 'all'})")
 
-
-@app.get("/api/audience/recommend")
-def recommend_audience(
-    objective: str = Query(..., description="Campaign objective: th_activation, hc_activation, app_install, reengagement, hc_crosssell"),
-):
-    """Rank personas by fit for a campaign objective."""
-    state = get_state()
-    logger.info(f"DATA_ACCESS: audience recommendation for objective={objective}")
-
-    scores = []
-    for p in state["personas"]:
-        fit = score_audience_fit(p, objective)
-        scores.append(fit)
-
-    scores.sort(key=lambda s: s["score"], reverse=True)
+    cells = [c for c in model["cells"].values()
+             if c["cohort"] == cohort_key
+             and (org_f is None or c["org"] == org_f)]
+    real_push = sum(c["reach_push_app"] for c in cells)
+    summary["reach"]["push"]["with_app"] = real_push
+    summary["reach"]["push"]["stale_tokens"] = (
+        summary["reach"]["push"]["count"] - real_push
+    )
 
     return {
-        "label": "RECOMMENDED",
-        "objective": objective,
-        "rankings": scores,
+        "label": "OBSERVED",
+        "cohort": summary,
+        "insights": I.cohort_insights(model, cohort_key, org_f),
+        "base_totals": P.totals(model),
     }
 
 
-@app.post("/api/simulate")
-def simulate_campaign(req: SimulationRequest):
-    """
-    Simulate campaign performance for given parameters.
-    Returns PREDICTED funnel metrics with confidence.
-    """
-    state = get_state()
-    campaigns = state["campaigns"]
-    personas = state["personas"]
+@app.get("/api/methodology")
+def methodology():
+    """Provenance for every number. The four-way distinction made explicit."""
+    get_model()
+    return {
+        "provenance": A.provenance(),
+        "checks": _state["checks"],
+        "mau_scoped": {
+            "value": P.MAU_SCOPED,
+            "provenance": P.MAU_SCOPED_PROVENANCE,
+        },
+        "reach_decomposed": A.REACH_DECOMPOSED,
+        "segment_reachability": {
+            k: {"users": v[0], "push": v[1], "email": v[2], "whatsapp": v[3]}
+            for k, v in A.SEGMENT_REACHABILITY.items()
+        },
+        "funnels": {
+            "th": [{"stage": s, "event": e, "count": n} for s, e, n in A.TH_FUNNEL],
+            "hc": [{"stage": s, "event": e, "count": n} for s, e, n in A.HC_FUNNEL],
+            "window": "120 days, active + non-test organisations",
+        },
+    }
 
-    logger.info(f"DATA_ACCESS: simulation requested — objective={req.objective}, channel={req.channel}")
 
-    # Filter historical campaigns — cascade: objective+channel → objective → all
-    relevant = campaigns[campaigns["objective"] == req.objective]
-    evidence_note = f"objective '{req.objective}'"
+# ---------------------------------------------------------------------------
+# Simulator
+# ---------------------------------------------------------------------------
 
-    if req.channel:
-        channel_relevant = relevant[relevant["channel"] == req.channel]
-        if len(channel_relevant) >= 3:
-            relevant = channel_relevant
-            evidence_note = f"objective '{req.objective}' + channel '{req.channel}'"
+class SimRequest(BaseModel):
+    objective: str
+    cohort_keys: list[str]
+    org: Optional[str] = None
+    channel: Optional[str] = None
+    send_hour: Optional[int] = None
+    exclude_dnd: bool = True
+    exclude_no_app_for_push: bool = True
 
-    if len(relevant) < 3:
-        relevant = campaigns[campaigns["objective"] == req.objective]
-        evidence_note = f"objective '{req.objective}' (all channels)"
 
-    if len(relevant) < 3:
-        relevant = campaigns
-        evidence_note = "all campaigns (limited objective-specific data)"
+@app.get("/api/simulate/options")
+def simulate_options():
+    get_model()
+    return {
+        "objectives": [
+            {"key": "th_activation", "label": "Telehealth activation",
+             "desc": "First consultation for people who have never booked"},
+            {"key": "hc_activation", "label": "Health checkup activation",
+             "desc": "First checkup booking"},
+            {"key": "app_install", "label": "App install",
+             "desc": "Move the no-app segment onto the app"},
+            {"key": "reengagement", "label": "Re-engagement",
+             "desc": "Installed but quiet for 30 days or more"},
+            {"key": "hc_crosssell", "label": "HC to TH cross-sell",
+             "desc": "Telehealth prompt after a checkup report view"},
+        ],
+        "cohorts": [{"key": c["key"], "label": c["label"]} for c in A.AGE_COHORTS],
+        "org_types": [{"key": k, "label": A.ORG_TYPE_LABELS[k]}
+                      for k in A.ORG_TYPE_SHARES],
+        "channels": [{"key": k, "label": A.CHANNEL_LABELS[k]} for k in A.CHANNELS],
+        "control_group_share": A.CONTROL_GROUP_SHARE,
+    }
 
-    # Get target personas
-    target_personas = personas
-    if req.persona_ids:
-        target_personas = [p for p in personas if p["id"] in req.persona_ids]
 
-    total_audience = sum(p["size"] for p in target_personas)
+def _simulate_core(model: dict, objective: str, cohort_keys: list[str],
+                   org_f, forced_channel, send_hour_in,
+                   exclude_dnd: bool, exclude_no_app_for_push: bool) -> dict:
+    """The whole simulation, callable by the endpoint AND the startup sweep."""
+    cells = [c for c in model["cells"].values()
+             if c["cohort"] in cohort_keys
+             and (org_f is None or c["org"] == org_f)]
+    if not cells:
+        raise HTTPException(400, "That combination selects nobody")
 
-    # Predict funnel using historical averages (OBSERVED basis for PREDICTED output)
-    avg_delivery = relevant["delivery_rate"].mean()
-    avg_open = relevant["open_rate"].mean()
-    avg_click = relevant["click_rate"].mean()
-    avg_conv = relevant["conversion_rate"].mean()
+    s = lambda k: sum(c[k] for c in cells)  # noqa: E731
+    cohort_total, app_total = s("total"), s("app")
 
-    # Adjust for audience characteristics
-    avg_response = sum(p["avg_notif_response_rate"] * p["size"] for p in target_personas) / max(total_audience, 1)
-    response_modifier = avg_response / 0.25  # normalize against baseline
+    # -- Objective determines the eligible pool inside the selection -------
+    # pool_is_app records WHICH population the pool is drawn from, because
+    # reachability has to be measured against that same population. An
+    # app-install campaign targets people without the app, so intersecting it
+    # with app-installed push reach would be intersecting two disjoint groups.
+    if objective == "app_install":
+        pool, pool_desc, pool_is_app = s("no_app"), "no app install signal", False
+    elif objective == "reengagement":
+        pool, pool_desc, pool_is_app = (
+            s("app_dormant"), "app installed, quiet 30 days or more", True)
+    elif objective == "th_activation":
+        pool = app_total - s("th_booked")
+        pool_desc, pool_is_app = "app installed, never booked telehealth", True
+    elif objective == "hc_activation":
+        pool = app_total - s("hc_booked")
+        pool_desc, pool_is_app = "app installed, never booked a checkup", True
+    else:  # hc_crosssell
+        pool = s("hc_booked")
+        pool_desc, pool_is_app = "booked a checkup, cross-sell on report view", True
 
-    predicted_delivery = min(avg_delivery * 1.0, 1.0)
-    predicted_open = min(avg_open * response_modifier, 1.0)
-    predicted_click = min(avg_click * response_modifier, 1.0)
-    predicted_conv = min(avg_conv * response_modifier, 1.0)
+    # -- Channel: pick the one that actually reaches the most of that pool --
+    # Reach is taken from the app or no-app component to match the pool, then
+    # DND is applied proportionally, then capped by the pool itself.
+    dnd_keep = (s("not_dnd") / cohort_total) if cohort_total else 0.0
+    component = "app" if pool_is_app else "no_app"
 
-    # Confidence based on sample size
-    n_historical = len(relevant)
-    confidence = "high" if n_historical >= 10 else "medium" if n_historical >= 5 else "low"
+    channel_options = {}
+    for ch in A.CHANNELS:
+        reach = s(f"reach_{ch}_{component}")
+        if ch == "push" and not pool_is_app:
+            # The only push-reachable people without the app are stale tokens
+            # on uninstalled apps. Excluding them is the default and correct.
+            if exclude_no_app_for_push:
+                reach = 0
+        if exclude_dnd:
+            reach = round(reach * dnd_keep)
+        channel_options[ch] = min(reach, pool)
 
-    delivered = int(total_audience * predicted_delivery)
-    opened = int(delivered * predicted_open)
-    clicked = int(opened * predicted_click)
-    converted = int(clicked * predicted_conv)
-
-    # Send time recommendation
-    if req.send_hour is not None:
-        send_time_note = f"Scheduled for {req.send_hour}:00"
+    # Weighted rubric over six published parameters (decisions.CHANNEL_RULE),
+    # not argmax(reach). The full breakdown ships with the response so the UI
+    # can show exactly how the recommendation was computed.
+    decision = D.score_channels(pool, channel_options, dnd_keep)
+    if forced_channel:
+        channel = forced_channel
+        channel_label = "OBSERVED"
     else:
-        peak_hours = [p["peak_hour_mode"] for p in target_personas]
-        recommended_hour = max(set(peak_hours), key=peak_hours.count)
-        send_time_note = f"Recommended: {recommended_hour}:00 (peak activity for target audience)"
+        channel = decision["selected"]
+        channel_label = "RECOMMENDED"
 
-    # Best channel recommendation
-    if not req.channel:
-        channel_scores = {}
-        for ch in ["whatsapp", "sms", "email", "push"]:
-            reach = sum(p["channel_reach"][ch] * p["size"] for p in target_personas) / max(total_audience, 1)
-            channel_scores[ch] = reach
-        recommended_channel = max(channel_scores, key=channel_scores.get)
-    else:
-        recommended_channel = req.channel
+    addressable = channel_options[channel]
+    control = round(addressable * A.CONTROL_GROUP_SHARE)
+    sent = addressable - control
+
+    # -- Funnel projection, PREDICTED, low confidence by construction -----
+    b = A.CHANNEL_BENCHMARKS[channel]
+    conv = A.OBJECTIVE_CONVERSION[objective]
+    delivered = round(sent * b["delivery"])
+    opened = round(delivered * b["open"])
+    clicked = round(opened * b["click"])
+    converted = round(clicked * conv)
+
+    hours = [A.PEAK_HOUR[k] for k in cohort_keys]
+    send_hour = send_hour_in if send_hour_in is not None else max(set(hours), key=hours.count)
+
+    warnings = []
+    if channel == "push":
+        stale = s("reach_push_no_app")
+        if not pool_is_app:
+            warnings.append(
+                f"This objective targets people without the app, so push has no "
+                f"legitimate audience here, the only push-reachable users in "
+                f"that pool are {stale:,} stale tokens on uninstalled apps. "
+                + ("They are excluded." if exclude_no_app_for_push
+                   else "They are currently INCLUDED and will deliver nothing.")
+            )
+        elif stale > 0:
+            warnings.append(
+                f"Push reachability across this selection reads "
+                f"{s('reach_push'):,}, but {stale:,} of those sit in the no-app "
+                f"segment as stale tokens. This estimate uses only the "
+                f"{s('reach_push_app'):,} with an app install signal."
+            )
+    if addressable == 0:
+        warnings.append(
+            f"{A.CHANNEL_LABELS[channel]} reaches nobody in this pool. Pick a "
+            f"different channel or a different objective."
+        )
+    if objective == "hc_crosssell":
+        warnings.append(
+            f"Cross-sell converts best triggered on report view, not on a "
+            f"schedule, {A.HC_TO_TH_CROSSSELL_RATE:.1%} convert unprompted "
+            f"from that moment."
+        )
+    if not exclude_dnd:
+        warnings.append(
+            f"DND is not being excluded. {s('dnd'):,} people in this selection "
+            f"carry the suppression flag and must not receive campaign sends."
+        )
 
     return {
         "label": "PREDICTED",
-        "confidence": confidence,
-        "evidence_basis": f"Based on {n_historical} historical campaigns ({evidence_note})",
-        "audience_size": total_audience,
+        "confidence": "low",
+        "confidence_reason": A.BENCHMARK_PROVENANCE,
+
+        "selection": {
+            "cohorts": [P.COHORT_BY_KEY[k]["label"] for k in cohort_keys],
+            "org": A.ORG_TYPE_LABELS[org_f] if org_f else "All org types",
+            "cohort_total": cohort_total,
+            "app_in_selection": app_total,
+            "dnd_in_selection": s("dnd"),
+            "label": "DERIVED",
+        },
+        "audience": {
+            "objective_pool": pool,
+            "pool_description": pool_desc,
+            "addressable": addressable,
+            "control_group": control,
+            "sent": sent,
+            "label": "DERIVED",
+        },
+        "decision": decision,
+        "conversion_provenance": {
+            "kind": A.CONVERSION_PROVENANCE[objective][0],
+            "basis": A.CONVERSION_PROVENANCE[objective][1],
+        },
+        "channel": {
+            "selected": channel,
+            "selected_label": A.CHANNEL_LABELS[channel],
+            "label": channel_label,
+            "options": {
+                ch: {
+                    "label": A.CHANNEL_LABELS[ch],
+                    "addressable": v,
+                    "share_of_pool": round(v / pool, 4) if pool else 0.0,
+                }
+                for ch, v in channel_options.items()
+            },
+        },
         "funnel": {
-            "sent": total_audience,
+            "sent": sent,
             "delivered": delivered,
             "opened": opened,
             "clicked": clicked,
             "converted": converted,
-            "delivery_rate": round(predicted_delivery, 4),
-            "open_rate": round(predicted_open, 4),
-            "click_rate": round(predicted_click, 4),
-            "conversion_rate": round(predicted_conv, 4),
-        },
-        "channel": {
-            "selected": recommended_channel,
-            "label": "RECOMMENDED" if not req.channel else "OBSERVED",
+            "delivery_rate": round(delivered / sent, 4) if sent else 0.0,
+            "open_rate": round(opened / delivered, 4) if delivered else 0.0,
+            "click_rate": round(clicked / opened, 4) if opened else 0.0,
+            "conversion_rate": round(converted / sent, 6) if sent else 0.0,
+            "click_to_convert": conv,
+            "label": "PREDICTED",
         },
         "timing": {
-            "note": send_time_note,
-            "label": "RECOMMENDED",
+            "send_hour": send_hour,
+            "note": f"Peak window is 20:00-23:00; this selection skews to {send_hour}:00",
+            "label": "RECOMMENDED" if send_hour_in is None else "OBSERVED",
         },
+        "warnings": warnings,
     }
 
 
-@app.get("/api/campaigns")
-def list_campaigns():
-    """Historical campaign performance data."""
-    state = get_state()
-    campaigns = state["campaigns"]
-    logger.info("DATA_ACCESS: campaign history requested")
-    return {
-        "label": "OBSERVED",
-        "campaigns": campaigns.to_dict(orient="records"),
-    }
+
+
+@app.post("/api/simulate")
+def simulate(req: SimRequest):
+    """
+    Size an audience from the real cohort model, then project a funnel.
+
+    Audience sizing is DERIVED, exact counts out of the model. The funnel is
+    PREDICTED at low confidence; click-to-convert is anchored to the OBSERVED
+    homepage-to-booked funnel rates wherever one exists (three of the five
+    objectives), and stays a labelled prior for the other two.
+    """
+    model = get_model()
+    org_f = _org(req.org)
+
+    if req.objective not in A.OBJECTIVE_CONVERSION:
+        raise HTTPException(400, f"Unknown objective '{req.objective}'")
+    if not req.cohort_keys:
+        raise HTTPException(400, "Select at least one age cohort")
+    unknown = set(req.cohort_keys) - set(P.COHORT_KEYS)
+    if unknown:
+        raise HTTPException(400, f"Unknown cohort(s): {sorted(unknown)}")
+    if req.channel and req.channel not in A.CHANNELS:
+        raise HTTPException(400, f"Unknown channel '{req.channel}'")
+
+    logger.info(
+        f"DATA_ACCESS: simulation objective={req.objective} "
+        f"cohorts={req.cohort_keys} org={org_f or 'all'} channel={req.channel}"
+    )
+    return _simulate_core(model, req.objective, req.cohort_keys, org_f,
+                          req.channel, req.send_hour,
+                          req.exclude_dnd, req.exclude_no_app_for_push)
+
+
+# ---------------------------------------------------------------------------
+# Copy studio: deterministic generation from the approved library
+# ---------------------------------------------------------------------------
+
+class CopyGenRequest(BaseModel):
+    objective: str
+    cohort_keys: list[str]
+    channel: str
+    angle: Optional[str] = None
+    # Server-produced audience size from a prior /api/simulate run. Passing it
+    # back lets each variant carry a predicted funnel in absolute counts.
+    audience_sent: Optional[int] = None
+
+
+class CopyAnalyzeRequest(BaseModel):
+    text: str
+    title: Optional[str] = None
+    channel: str
+    objective: str
+    cohort_key: str
+    audience_sent: Optional[int] = None
+
+
+class AssistantRequest(BaseModel):
+    message: str
+    cohort_keys: list[str] = []
+    org: Optional[str] = None
+    objective: Optional[str] = None
+    channel: Optional[str] = None
+
+
+@app.post("/api/assistant")
+def assistant_answer(req: AssistantRequest):
+    """Grounded campaign Q&A. Deterministic retrieval over the verified model,
+    every reply scored against the published 9-parameter rubric."""
+    model = get_model()
+    msg = (req.message or "").strip()
+    if not msg:
+        raise HTTPException(400, "Empty message")
+    if len(msg) > 600:
+        raise HTTPException(400, "Keep questions under 600 characters")
+    org_f = _org(req.org)
+    logger.info(f"DATA_ACCESS: assistant query intents on cohorts={req.cohort_keys}")
+    return AS.answer(model, msg, req.cohort_keys, org_f, req.objective, req.channel)
+
+
+@app.get("/api/rules")
+def rules():
+    """The decision rubrics: every recommendation's parameters and weights."""
+    get_model()
+    return D.registry()
+
+
+@app.get("/api/copy/options")
+def copy_options():
+    get_model()
+    return CE.options()
+
+
+@app.post("/api/copy/generate")
+def copy_generate(req: CopyGenRequest):
+    """Generate channel-disciplined variants from the approved copy library."""
+    get_model()
+    logger.info(
+        f"DATA_ACCESS: copy generation objective={req.objective} "
+        f"cohorts={req.cohort_keys} channel={req.channel} angle={req.angle}"
+    )
+    try:
+        return CE.generate(req.objective, req.cohort_keys, req.channel,
+                           angle=req.angle, audience_sent=req.audience_sent)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.post("/api/copy/analyze")
+def copy_analyze(req: CopyAnalyzeRequest):
+    """Analyze pasted copy against the same discipline rules."""
+    get_model()
+    if req.channel not in A.CHANNELS:
+        raise HTTPException(400, f"Unknown channel '{req.channel}'")
+    if req.cohort_key not in CE.BANDS:
+        raise HTTPException(400, f"Unknown cohort '{req.cohort_key}'")
+    if req.objective not in A.OBJECTIVE_CONVERSION:
+        raise HTTPException(400, f"Unknown objective '{req.objective}'")
+    logger.info(f"DATA_ACCESS: copy analysis channel={req.channel} objective={req.objective}")
+    analysis = CE.analyze(req.text, req.channel, req.cohort_key, req.objective,
+                          title=req.title)
+    prediction = CE.predict(analysis, req.channel, req.objective,
+                            audience_sent=req.audience_sent)
+    return {"label": "DERIVED", "analysis": analysis, "prediction": prediction}
 
 
 if __name__ == "__main__":

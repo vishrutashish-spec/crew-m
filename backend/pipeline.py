@@ -124,7 +124,6 @@ def cluster_users(df: pd.DataFrame, n_clusters: int = N_PERSONAS) -> dict:
             # Channel reachability
             "channel_reach": {
                 "whatsapp": round(cluster_df["whatsapp_reachable"].astype(float).mean(), 3),
-                "sms": round(cluster_df["sms_reachable"].astype(float).mean(), 3),
                 "email": round(cluster_df["email_reachable"].astype(float).mean(), 3),
                 "push": round(cluster_df["push_reachable"].astype(float).mean(), 3),
             },
@@ -137,6 +136,28 @@ def cluster_users(df: pd.DataFrame, n_clusters: int = N_PERSONAS) -> dict:
 
             # HRA status distribution
             "hra_distribution": cluster_df["hra_status"].value_counts(normalize=True).to_dict(),
+
+            # Age distribution histogram
+            "age_distribution": {
+                label: int(((cluster_df["age"] >= lo) & (cluster_df["age"] <= hi)).sum())
+                for label, lo, hi in [("18-25", 18, 25), ("26-30", 26, 30), ("31-35", 31, 35), ("36-40", 36, 40), ("41-50", 41, 50), ("51+", 51, 100)]
+            },
+
+            # Gender distribution counts
+            "male_count": int((cluster_df["gender"] == "MALE").sum()),
+            "female_count": int((cluster_df["gender"] == "FEMALE").sum()),
+
+            # App installed counts
+            "app_installed_count": int(cluster_df["has_app_enc"].sum()),
+            "app_not_installed_count": int((1 - cluster_df["has_app_enc"]).sum()),
+
+            # Org type counts (absolute)
+            "org_type_counts": {
+                "ENT": int(cluster_df["segment_ent"].sum()),
+                "SMB": int(cluster_df["segment_smb"].sum()),
+                "MM": int(cluster_df["segment_mm"].sum()),
+                "EOR": int((1 - cluster_df[["segment_ent", "segment_smb", "segment_mm"]].sum(axis=1)).clip(lower=0).sum()),
+            },
         }
         personas.append(persona)
 
@@ -271,7 +292,7 @@ def score_audience_fit(persona: dict, campaign_objective: str) -> dict:
         if persona["app_installed_share"] > 0.5:
             reasons.append(f"App installed ({persona['app_installed_share']:.0%}) — push + in-app viable")
         elif persona["app_installed_share"] < 0.05:
-            reasons.append(f"No app ({persona['app_installed_share']:.0%}) — SMS/WhatsApp only")
+            reasons.append(f"No app ({persona['app_installed_share']:.0%}) — WhatsApp/email only")
 
         # Responsiveness (0-15 pts)
         score += persona["avg_notif_response_rate"] * 15

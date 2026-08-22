@@ -1,271 +1,391 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { CheckCircle2, Circle, LoaderCircle, ExternalLink } from "lucide-react";
+import { Megaphone, Loader2, ExternalLink, Copy, Check } from "lucide-react";
 
 type CampaignType = "welcome" | "renewal";
 
-type StepKey = "copy" | "creative" | "draft";
-
-const STEPS: { key: StepKey; label: string }[] = [
-  { key: "copy", label: "Generate copy" },
-  { key: "creative", label: "Render creative" },
-  { key: "draft", label: "Build draft" },
-];
-
-interface CopyResult {
+interface DraftResult {
+  id?: string;
+  campaignName: string;
+  channel: string;
   subject: string;
   body: string;
-}
-
-interface CreativeResult {
   creativeUrl: string;
-  stub?: boolean;
-}
-
-interface DraftResult {
-  campaignName: string;
+  creativeIsStub: boolean;
+  segmentSuggestion: string;
   reviewUrl: string;
-  summary: string;
 }
 
-export default function NewCampaignPage() {
-  const [amName, setAmName] = useState("Oshin");
+function NewCampaignForm() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const [amName, setAmName] = useState("");
   const [accountName, setAccountName] = useState("");
   const [campaignType, setCampaignType] = useState<CampaignType>("welcome");
   const [logoUrl, setLogoUrl] = useState("");
 
-  const [status, setStatus] = useState<"idle" | "running" | "done" | "error">("idle");
-  const [activeStep, setActiveStep] = useState<StepKey | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [copy, setCopy] = useState<CopyResult | null>(null);
-  const [creative, setCreative] = useState<CreativeResult | null>(null);
-  const [draft, setDraft] = useState<DraftResult | null>(null);
+  const [status, setStatus] = useState<"idle" | "loading" | "error" | "done">("idle");
+  const [errorMessage, setErrorMessage] = useState("");
+  const [result, setResult] = useState<DraftResult | null>(null);
+  const [copied, setCopied] = useState(false);
 
-  const canSubmit = amName.trim() !== "" && accountName.trim() !== "" && status !== "running";
+  // Load a shared result straight from its saved record, e.g. /new-campaign?id=...
+  useEffect(() => {
+    const id = searchParams.get("id");
+    if (!id) return;
+    setStatus("loading");
+    fetch(`/api/campaign/${id}`)
+      .then((res) => {
+        if (!res.ok) throw new Error("That campaign link couldn't be found.");
+        return res.json();
+      })
+      .then((draft: DraftResult) => {
+        setResult(draft);
+        setStatus("done");
+      })
+      .catch((err) => {
+        setErrorMessage(err instanceof Error ? err.message : "Something went wrong.");
+        setStatus("error");
+      });
+  }, [searchParams]);
 
-  async function runPipeline() {
-    setStatus("running");
-    setError(null);
-    setCopy(null);
-    setCreative(null);
-    setDraft(null);
+  const canSubmit = amName.trim().length > 0 && accountName.trim().length > 0;
 
-    const requestId = `web-${crypto.randomUUID()}`;
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!canSubmit || status === "loading") return;
+
+    setStatus("loading");
+    setErrorMessage("");
+    setResult(null);
+
+    const requestId = `web-${Date.now()}`;
 
     try {
-      setActiveStep("copy");
       const copyRes = await fetch("/api/copy", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          requestId,
-          amName,
-          accountName,
-          campaignType,
-          logoUrl: logoUrl.trim() || undefined,
-        }),
+        body: JSON.stringify({ requestId, amName, accountName, campaignType, logoUrl }),
       });
-      if (!copyRes.ok) throw new Error(`Copy generation failed (HTTP ${copyRes.status}). Check ANTHROPIC_API_KEY is set.`);
-      const copyData: CopyResult = await copyRes.json();
-      setCopy(copyData);
+      if (!copyRes.ok) throw new Error("Couldn't generate copy. Try again.");
+      const copy = await copyRes.json();
 
-      setActiveStep("creative");
       const creativeRes = await fetch("/api/creative", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          requestId,
-          copy: { ...copyData, campaignType },
-          logoUrl: logoUrl.trim() || undefined,
-        }),
+        body: JSON.stringify({ requestId, copy, logoUrl: logoUrl.trim() || undefined }),
       });
-      if (!creativeRes.ok) throw new Error(`Creative rendering failed (HTTP ${creativeRes.status}).`);
-      const creativeData: CreativeResult = await creativeRes.json();
-      setCreative(creativeData);
+      if (!creativeRes.ok) throw new Error("Couldn't render the creative. Try again.");
+      const creative = await creativeRes.json();
 
-      setActiveStep("draft");
       const draftRes = await fetch("/api/campaign/draft", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          requestId,
-          amName,
-          accountName,
-          campaignType,
-          copy: copyData,
-          creative: creativeData,
-        }),
+        body: JSON.stringify({ requestId, amName, accountName, campaignType, copy, creative }),
       });
-      if (!draftRes.ok) throw new Error(`Draft assembly failed (HTTP ${draftRes.status}).`);
-      const draftData: DraftResult = await draftRes.json();
-      setDraft(draftData);
+      if (!draftRes.ok) throw new Error("Couldn't assemble the campaign brief. Try again.");
+      const draft: DraftResult = await draftRes.json();
 
-      setActiveStep(null);
+      setResult(draft);
       setStatus("done");
+      if (draft.id) {
+        router.replace(`/new-campaign?id=${draft.id}`, { scroll: false });
+      }
     } catch (err) {
-      setActiveStep(null);
+      setErrorMessage(err instanceof Error ? err.message : "Something went wrong. Try again.");
       setStatus("error");
-      setError(err instanceof Error ? err.message : "Something went wrong.");
     }
   }
 
+  function handleReset() {
+    setStatus("idle");
+    setResult(null);
+    setErrorMessage("");
+    router.replace("/new-campaign", { scroll: false });
+  }
+
+  async function handleCopyLink() {
+    await navigator.clipboard.writeText(window.location.href);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+  async function handleCopyField(field: string, value: string) {
+    await navigator.clipboard.writeText(value);
+    setCopiedField(field);
+    setTimeout(() => setCopiedField((f) => (f === field ? null : f)), 2000);
+  }
+
+  function FieldCopyButton({ field, value }: { field: string; value: string }) {
+    return (
+      <Button variant="ghost" size="xs" onClick={() => handleCopyField(field, value)}>
+        {copiedField === field ? (
+          <>
+            <Check className="w-3 h-3" />
+            Copied
+          </>
+        ) : (
+          <>
+            <Copy className="w-3 h-3" />
+            Copy
+          </>
+        )}
+      </Button>
+    );
+  }
+
+  const isLoadingSharedLink = status === "loading" && Boolean(searchParams.get("id")) && !result;
+
   return (
-    <div className="py-6 space-y-6 max-w-3xl">
+    <div className="py-6 space-y-6 max-w-2xl">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">New campaign</h1>
         <p className="text-sm text-muted-foreground mt-0.5">
-          Generate copy, creative, and a CleverTap brief directly — no Slack needed
+          Fill in the account and campaign type — copy and a creative brief get drafted for you.
         </p>
       </div>
 
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-medium">Request details</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Your name">
-              <input
-                value={amName}
-                onChange={(e) => setAmName(e.target.value)}
-                disabled={status === "running"}
-                className="w-full h-8 px-2.5 rounded-md border border-border bg-background text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50"
-              />
-            </Field>
-            <Field label="Account name">
-              <input
-                value={accountName}
-                onChange={(e) => setAccountName(e.target.value)}
-                placeholder="e.g. Prochant"
-                disabled={status === "running"}
-                className="w-full h-8 px-2.5 rounded-md border border-border bg-background text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50 placeholder:text-muted-foreground"
-              />
-            </Field>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Campaign type">
-              <select
-                value={campaignType}
-                onChange={(e) => setCampaignType(e.target.value as CampaignType)}
-                disabled={status === "running"}
-                className="w-full h-8 px-2.5 rounded-md border border-border bg-background text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50"
-              >
-                <option value="welcome">Welcome</option>
-                <option value="renewal">Renewal</option>
-              </select>
-            </Field>
-            <Field label="Client logo URL (optional)">
-              <input
-                value={logoUrl}
-                onChange={(e) => setLogoUrl(e.target.value)}
-                placeholder="https://…"
-                disabled={status === "running"}
-                className="w-full h-8 px-2.5 rounded-md border border-border bg-background text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50 placeholder:text-muted-foreground"
-              />
-            </Field>
-          </div>
-
-          <Button
-            onClick={runPipeline}
-            disabled={!canSubmit}
-            className="mt-1"
-          >
-            {status === "running" ? "Generating…" : "Generate campaign"}
-          </Button>
-        </CardContent>
-      </Card>
-
-      {status !== "idle" && (
+      {isLoadingSharedLink && (
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Progress</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <WorkflowRail activeStep={activeStep} status={status} />
+          <CardContent className="py-8 flex items-center justify-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            Loading campaign…
           </CardContent>
         </Card>
       )}
 
-      {status === "error" && error && (
-        <Card className="ring-destructive/30">
-          <CardContent className="pt-4">
-            <p className="text-sm font-medium text-destructive">Couldn&apos;t finish the request</p>
-            <p className="text-sm text-muted-foreground mt-1">{error}</p>
-          </CardContent>
-        </Card>
-      )}
-
-      {copy && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Generated copy</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider font-mono">Subject</p>
-              <p className="text-sm font-medium mt-1">{copy.subject}</p>
-            </div>
-            <Separator />
-            <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider font-mono">Body</p>
-              <div className="text-sm mt-1 whitespace-pre-wrap bg-muted/40 rounded-md p-3 border border-border">
-                {copy.body}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {creative && (
+      {status !== "done" && !isLoadingSharedLink && (
         <Card>
           <CardHeader className="pb-3">
             <div className="flex items-center gap-2">
-              <CardTitle className="text-sm font-medium">Creative</CardTitle>
-              {creative.stub && (
-                <Badge variant="secondary" className="text-xs font-normal">Placeholder — Figma rendering not wired up</Badge>
-              )}
+              <Megaphone className="w-4 h-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium">Campaign request</CardTitle>
             </div>
           </CardHeader>
           <CardContent>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={creative.creativeUrl}
-              alt="Generated campaign creative"
-              className="w-full max-w-md rounded-md border border-border"
-            />
+            <form className="space-y-4" onSubmit={handleSubmit}>
+              <div className="space-y-1.5">
+                <label htmlFor="am-name" className="text-sm font-medium">
+                  Your name
+                </label>
+                <input
+                  id="am-name"
+                  type="text"
+                  value={amName}
+                  onChange={(e) => setAmName(e.target.value)}
+                  placeholder="Jordan Lee"
+                  className="w-full h-9 rounded-lg border border-input bg-background px-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:border-ring"
+                  required
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label htmlFor="account-name" className="text-sm font-medium">
+                  Account name
+                </label>
+                <input
+                  id="account-name"
+                  type="text"
+                  value={accountName}
+                  onChange={(e) => setAccountName(e.target.value)}
+                  placeholder="Acme Corp"
+                  className="w-full h-9 rounded-lg border border-input bg-background px-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:border-ring"
+                  required
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <span className="text-sm font-medium">Campaign type</span>
+                <div className="flex gap-2" role="radiogroup" aria-label="Campaign type">
+                  {(["welcome", "renewal"] as const).map((type) => (
+                    <Button
+                      key={type}
+                      type="button"
+                      role="radio"
+                      aria-checked={campaignType === type}
+                      variant={campaignType === type ? "default" : "outline"}
+                      size="lg"
+                      className="capitalize flex-1"
+                      onClick={() => setCampaignType(type)}
+                    >
+                      {type}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label htmlFor="logo-url" className="text-sm font-medium">
+                  Client logo URL <span className="text-muted-foreground font-normal">(optional)</span>
+                </label>
+                <input
+                  id="logo-url"
+                  type="url"
+                  value={logoUrl}
+                  onChange={(e) => setLogoUrl(e.target.value)}
+                  placeholder="https://..."
+                  className="w-full h-9 rounded-lg border border-input bg-background px-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:border-ring"
+                />
+              </div>
+
+              {status === "error" && (
+                <p className="text-sm text-destructive">{errorMessage}</p>
+              )}
+
+              <Button type="submit" size="lg" className="w-full" disabled={!canSubmit || status === "loading"}>
+                {status === "loading" ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Drafting… this can take up to 30 seconds
+                  </>
+                ) : (
+                  "Draft campaign"
+                )}
+              </Button>
+            </form>
           </CardContent>
         </Card>
       )}
 
-      {draft && (
-        <Card className="ring-plum/30">
+      {status === "done" && result && (
+        <Card>
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-medium">{draft.campaignName}</CardTitle>
-              <Badge className="bg-plum text-plum-foreground text-xs font-normal">Draft — needs your review</Badge>
+              <CardTitle className="text-sm font-medium">{result.campaignName}</CardTitle>
+              <div className="flex items-center gap-1">
+                <Button variant="ghost" size="sm" onClick={handleCopyLink}>
+                  {copied ? (
+                    <>
+                      <Check className="w-3.5 h-3.5" />
+                      Copied
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3.5 h-3.5" />
+                      Copy link
+                    </>
+                  )}
+                </Button>
+                <Button variant="ghost" size="sm" onClick={handleReset}>
+                  New request
+                </Button>
+              </div>
             </div>
           </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="text-sm whitespace-pre-wrap bg-plum-wash/40 rounded-md p-3 border border-border">
-              {draft.summary}
-            </div>
+          <CardContent className="space-y-4">
             <p className="text-xs text-muted-foreground">
-              This is a brief, not a live CleverTap draft — CleverTap has no API to create campaigns.
-              Paste it into the CleverTap dashboard yourself and review before sending anything.
+              {result.channel} campaign — this is a brief, not a live CleverTap draft.
+              CleverTap doesn&apos;t expose an API to create campaigns, so someone with
+              Creator access pastes this in to build the real draft.
             </p>
-            <a
-              href={draft.reviewUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-sm text-plum hover:underline"
-            >
-              Open CleverTap <ExternalLink className="w-3.5 h-3.5" />
-            </a>
+
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Campaign name
+                </span>
+                <FieldCopyButton field="name" value={result.campaignName} />
+              </div>
+              <p className="text-sm font-mono bg-muted rounded-lg px-3 py-2">
+                {result.campaignName}
+              </p>
+            </div>
+
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Subject
+                </span>
+                <FieldCopyButton field="subject" value={result.subject} />
+              </div>
+              <p className="text-sm font-medium bg-muted rounded-lg px-3 py-2">
+                {result.subject}
+              </p>
+            </div>
+
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Body
+                </span>
+                <FieldCopyButton field="body" value={result.body} />
+              </div>
+              <p className="text-sm whitespace-pre-wrap bg-muted rounded-lg p-4">
+                {result.body}
+              </p>
+            </div>
+
+            <div className="space-y-1">
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Creative
+              </span>
+              {result.creativeUrl && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={result.creativeUrl}
+                  alt="Campaign creative"
+                  className="w-full rounded-lg border border-border"
+                />
+              )}
+              {result.creativeIsStub && (
+                <p className="text-xs text-muted-foreground">
+                  Placeholder — real creative rendering isn&apos;t wired up yet.
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Suggested audience
+                </span>
+                <FieldCopyButton field="audience" value={result.segmentSuggestion} />
+              </div>
+              <p className="text-sm bg-muted rounded-lg px-3 py-2">{result.segmentSuggestion}</p>
+            </div>
+
+            <Separator />
+
+            <div className="space-y-2">
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                To create the real draft in CleverTap
+              </span>
+              <ol className="text-sm space-y-1 list-decimal list-inside text-foreground">
+                <li>
+                  Open CleverTap and start a new campaign under{" "}
+                  <strong>Campaigns → {result.channel}</strong>.
+                </li>
+                <li>
+                  <strong>Start Here:</strong> paste the campaign name above.
+                </li>
+                <li>
+                  <strong>Who:</strong> build the segment described above.
+                </li>
+                <li>
+                  <strong>What:</strong> paste the subject and body above into the editor.
+                </li>
+                <li>
+                  <strong>When / Publish:</strong> leave it as a draft — do not schedule
+                  or publish. A PMM reviews and publishes it from here.
+                </li>
+              </ol>
+              <a
+                href={result.reviewUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+              >
+                Open CleverTap
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            </div>
           </CardContent>
         </Card>
       )}
@@ -273,65 +393,10 @@ export default function NewCampaignPage() {
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+export default function NewCampaignPage() {
   return (
-    <label className="block">
-      <span className="text-xs text-muted-foreground uppercase tracking-wider font-mono block mb-1.5">
-        {label}
-      </span>
-      {children}
-    </label>
-  );
-}
-
-function WorkflowRail({
-  activeStep,
-  status,
-}: {
-  activeStep: StepKey | null;
-  status: "idle" | "running" | "done" | "error";
-}) {
-  const activeIndex = activeStep ? STEPS.findIndex((s) => s.key === activeStep) : -1;
-
-  return (
-    <div className="flex items-center" role="list" aria-label="Campaign generation progress">
-      {STEPS.map((step, i) => {
-        const isDone = status === "done" || (status === "error" && i < activeIndex) || (activeIndex >= 0 && i < activeIndex);
-        const isActive = i === activeIndex && status === "running";
-        const isFailed = status === "error" && i === activeIndex;
-
-        return (
-          <div key={step.key} className="flex items-center flex-1 last:flex-none" role="listitem">
-            <div className="flex flex-col items-center gap-1.5">
-              <div
-                className={`w-7 h-7 rounded-full border flex items-center justify-center ${
-                  isFailed
-                    ? "border-destructive bg-destructive/10 text-destructive"
-                    : isDone
-                    ? "border-plum bg-plum text-plum-foreground"
-                    : isActive
-                    ? "border-plum text-plum"
-                    : "border-border text-muted-foreground"
-                }`}
-              >
-                {isDone ? (
-                  <CheckCircle2 className="w-4 h-4" />
-                ) : isActive ? (
-                  <LoaderCircle className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Circle className="w-3 h-3" />
-                )}
-              </div>
-              <span className={`text-xs font-mono ${isActive ? "text-plum" : "text-muted-foreground"}`}>
-                {step.label}
-              </span>
-            </div>
-            {i < STEPS.length - 1 && (
-              <div className={`flex-1 h-px mx-2 ${isDone ? "bg-plum" : "bg-border"}`} />
-            )}
-          </div>
-        );
-      })}
-    </div>
+    <Suspense>
+      <NewCampaignForm />
+    </Suspense>
   );
 }

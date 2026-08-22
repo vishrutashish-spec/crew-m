@@ -2,118 +2,82 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { LayoutDashboard, Users, FlaskConical, BookOpen, Megaphone } from "lucide-react";
+import { CrewMLogo } from "@/components/logos";
+import { ThemeToggle } from "@/components/theme-toggle";
 
-const NAV_ITEMS = [
-  { href: "/", label: "Dashboard", icon: DashboardIcon },
-  { href: "/simulate", label: "Campaign Simulator", icon: SimulatorIcon },
-  { href: "/personas", label: "Persona Explorer", icon: PersonasIcon },
-  { href: "/new-campaign", label: "New Campaign", icon: NewCampaignIcon },
+const NAV = [
+  { href: "/", label: "Overview", icon: LayoutDashboard },
+  { href: "/cohorts", label: "Age cohorts", icon: Users },
+  { href: "/simulate", label: "Simulator", icon: FlaskConical },
+  { href: "/methodology", label: "Methodology", icon: BookOpen },
+  { href: "/new-campaign", label: "New campaign", icon: Megaphone },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="fixed inset-y-0 left-0 w-60 border-r border-border bg-sidebar flex flex-col z-40">
-      <div className="h-14 flex items-center px-5 border-b border-border">
-        <Link href="/" className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-plum flex items-center justify-center">
-            <span className="text-plum-foreground text-xs font-bold">M</span>
-          </div>
-          <div>
-            <span className="text-sm font-semibold tracking-tight text-foreground">Crew M</span>
-            <span className="text-[10px] text-muted-foreground block leading-none">Campaign Intelligence</span>
-          </div>
+    <aside className="fixed inset-y-0 left-0 w-[236px] bg-sidebar border-r border-border flex flex-col z-40">
+      {/* Brand */}
+      <div className="h-[108px] flex items-center px-5 border-b border-border relative grid-ground overflow-hidden">
+        <Link href="/" className="relative">
+          <CrewMLogo />
         </Link>
       </div>
 
-      <nav className="flex-1 px-3 py-4 space-y-0.5">
-        {NAV_ITEMS.map((item) => {
-          const isActive = item.href === "/"
-            ? pathname === "/"
-            : pathname.startsWith(item.href);
-          const Icon = item.icon;
-
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
-                isActive
-                  ? "bg-sidebar-accent text-sidebar-primary font-medium"
-                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
-              }`}
-            >
-              <Icon active={isActive} />
-              {item.label}
-            </Link>
-          );
-        })}
+      {/* Nav */}
+      <nav className="flex-1 px-3.5 pt-5">
+        <p className="label-mono px-2.5 pb-2.5">Navigate</p>
+        <div className="space-y-1">
+          {NAV.map((item) => {
+            const active =
+              item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`relative flex items-center gap-3 px-2.5 py-2.5 rounded-[10px] text-[13px] transition-all duration-150 ${
+                  active
+                    ? "bg-[color:var(--cyan-wash)] text-[color:var(--cyan-deep)] font-medium border border-[color:#b3e8ee]"
+                    : "text-foreground/75 hover:text-foreground hover:bg-[color:var(--muted)] border border-transparent"
+                }`}
+              >
+                {active && (
+                  <span className="absolute left-0 top-2.5 bottom-2.5 w-[2.5px] rounded-r metal-cyan" />
+                )}
+                <Icon
+                  className="w-[17px] h-[17px] flex-shrink-0"
+                  strokeWidth={active ? 2.2 : 1.8}
+                />
+                {item.label}
+              </Link>
+            );
+          })}
+        </div>
       </nav>
 
-      <div className="px-3 py-3 border-t border-border">
-        <Link
-          href="/settings"
-          className="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors"
-        >
-          <SettingsIcon active={false} />
-          Settings
-        </Link>
-        <div className="px-3 pt-3 pb-1">
-          <p className="text-[10px] text-muted-foreground leading-tight">
-            Plum Product Marketing
-          </p>
-          <p className="text-[10px] text-muted-foreground/60 leading-tight">
-            Synthetic data mode
+      {/* Footer: the scope caveat lives here so it is always in view */}
+      <div className="px-3.5 pb-4">
+        <div className="flex items-center justify-between px-1 mb-3">
+          <span className="label-mono">Theme</span>
+          <ThemeToggle />
+        </div>
+        <div className="panel-flush p-3 bg-[color:var(--muted)]">
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-[color:var(--success)] live-dot" />
+            <span className="label-mono !text-[9px]">Eligible base</span>
+          </div>
+          <p className="figure text-[15px]">956,050</p>
+          <p className="text-[10px] text-muted-foreground mt-1 leading-snug">
+            Active, non-test organisations
           </p>
         </div>
+        <p className="text-[10px] text-muted-foreground mt-3 px-1">
+          Plum Product Marketing
+        </p>
       </div>
     </aside>
-  );
-}
-
-function DashboardIcon({ active }: { active: boolean }) {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2 : 1.5} strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
-      <rect x="3" y="3" width="7" height="9" rx="1" />
-      <rect x="14" y="3" width="7" height="5" rx="1" />
-      <rect x="14" y="12" width="7" height="9" rx="1" />
-      <rect x="3" y="16" width="7" height="5" rx="1" />
-    </svg>
-  );
-}
-
-function SimulatorIcon({ active }: { active: boolean }) {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2 : 1.5} strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
-      <path d="M10 2v7.527a2 2 0 0 1-.211.896L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.069-10.127A2 2 0 0 1 14 9.527V2" />
-      <path d="M8.5 2h7" /><path d="M7 16h10" />
-    </svg>
-  );
-}
-
-function PersonasIcon({ active }: { active: boolean }) {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2 : 1.5} strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
-      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
-      <path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
-    </svg>
-  );
-}
-
-function NewCampaignIcon({ active }: { active: boolean }) {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2 : 1.5} strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
-      <path d="M12 5v14M5 12h14" />
-    </svg>
-  );
-}
-
-function SettingsIcon({ active }: { active: boolean }) {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2 : 1.5} strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
-      <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
-      <circle cx="12" cy="12" r="3" />
-    </svg>
   );
 }

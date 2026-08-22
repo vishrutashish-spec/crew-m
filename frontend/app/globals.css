@@ -2,167 +2,939 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-@custom-variant dark (&:is(.dark *));
+/* ===========================================================================
+   Crew M design system
+
+   Palette is deliberately narrow. Three colours carry every chart:
+     ink     #2B0B21  plum violet, headers, primary series
+     red     #FF3F52  plum red   , accent, alerts, secondary series
+     sand    #F8DBC9  cream      , tertiary series, soft fills
+   Metallic cyan is the interaction colour only: focus, active, selection.
+   It never appears in a chart, so data and controls can't be confused.
+
+   Type: Vollkorn (serif) for headings, big figures and chart labels.
+         Inter for everything else.
+   =========================================================================== */
+
+@font-face {
+  font-family: "Vollkorn";
+  src: url("/fonts/Vollkorn-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Vollkorn";
+  src: url("/fonts/Vollkorn-Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
-  --color-ring: var(--ring);
-  --color-input: var(--input);
-  --color-border: var(--border);
-  --color-destructive: var(--destructive);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-accent: var(--accent);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-muted: var(--muted);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-secondary: var(--secondary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-primary: var(--primary);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-popover: var(--popover);
-  --color-card-foreground: var(--card-foreground);
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Vollkorn", Georgia, serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --font-heading: "Vollkorn", Georgia, serif;
+
   --color-card: var(--card);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
-  --color-plum: var(--plum);
-  --color-plum-foreground: var(--plum-foreground);
-  --color-coral: var(--coral);
-  --color-coral-foreground: var(--coral-foreground);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-red: var(--red);
+  --color-sand: var(--sand);
+  --color-sand-deep: var(--sand-deep);
+  --color-cyan: var(--cyan);
+  --color-cyan-bright: var(--cyan-bright);
+  --color-cyan-deep: var(--cyan-deep);
   --color-success: var(--success);
-  --color-success-foreground: var(--success-foreground);
   --color-warning: var(--warning);
-  --color-warning-foreground: var(--warning-foreground);
+
+  --color-chart-1: var(--ink);
+  --color-chart-2: var(--red);
+  --color-chart-3: var(--sand);
+  --color-chart-4: var(--ink-soft);
+  --color-chart-5: var(--sand-deep);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+  --radius-2xl: 24px;
 }
 
 :root {
-  --background: oklch(0.985 0.002 320);
-  --foreground: oklch(0.18 0.02 320);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.18 0.02 320);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.18 0.02 320);
-  --primary: oklch(0.35 0.12 320);
-  --primary-foreground: oklch(0.99 0 0);
-  --secondary: oklch(0.96 0.01 320);
-  --secondary-foreground: oklch(0.3 0.06 320);
-  --muted: oklch(0.96 0.005 320);
-  --muted-foreground: oklch(0.5 0.02 320);
-  --accent: oklch(0.95 0.015 320);
-  --accent-foreground: oklch(0.3 0.06 320);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.91 0.005 320);
-  --input: oklch(0.91 0.005 320);
-  --ring: oklch(0.35 0.12 320);
-  --chart-1: oklch(0.35 0.12 320);
-  --chart-2: oklch(0.65 0.18 15);
-  --chart-3: oklch(0.7 0.15 165);
-  --chart-4: oklch(0.72 0.14 55);
-  --chart-5: oklch(0.6 0.16 280);
-  --radius: 0.5rem;
-  --plum: oklch(0.35 0.12 320);
-  --plum-foreground: oklch(0.99 0 0);
-  --coral: oklch(0.65 0.18 15);
-  --coral-foreground: oklch(0.99 0 0);
-  --success: oklch(0.65 0.17 155);
-  --success-foreground: oklch(0.99 0 0);
-  --warning: oklch(0.75 0.15 65);
-  --warning-foreground: oklch(0.2 0 0);
-  --sidebar: oklch(0.98 0.005 320);
-  --sidebar-foreground: oklch(0.18 0.02 320);
-  --sidebar-primary: oklch(0.35 0.12 320);
-  --sidebar-primary-foreground: oklch(0.99 0 0);
-  --sidebar-accent: oklch(0.94 0.02 320);
-  --sidebar-accent-foreground: oklch(0.3 0.06 320);
-  --sidebar-border: oklch(0.91 0.005 320);
-  --sidebar-ring: oklch(0.35 0.12 320);
+  /* Surfaces, super white, with barely-there warm lift on panels */
+  --background: #ffffff;
+  --card: #ffffff;
+  --card-raised: #fdfcfd;
+  --popover: #ffffff;
+
+  /* Type, dark and solid. Nothing here is transparent. */
+  --foreground: #17141c;
+  --card-foreground: #17141c;
+  --popover-foreground: #17141c;
+  --muted-foreground: #565064;
+  --muted: #f6f5f7;
+
+  /* The three chart colours */
+  --ink: #2b0b21;
+  --ink-soft: #6b3a58;
+  --red: #ff3f52;
+  --red-deep: #d92438;
+  --sand: #f8dbc9;
+  --sand-deep: #e8b899;
+
+  /* Metallic cyan, interaction only */
+  --cyan: #0e9aa7;
+  --cyan-bright: #22c8d6;
+  --cyan-deep: #0a7580;
+  --cyan-wash: #e8fafc;
+
+  --primary: #2b0b21;
+  --primary-foreground: #ffffff;
+  --secondary: #f6f5f7;
+  --secondary-foreground: #2b0b21;
+  --accent: var(--cyan-wash);
+  --accent-foreground: var(--cyan-deep);
+  --destructive: #ff3f52;
+  --success: #0f8a6a;
+  --warning: #b8791a;
+
+  /* Outlines, visible by design. Every panel is drawn, not floated. */
+  --border: #e4e1e8;
+  --border-strong: #cfcad6;
+  --input: #d8d4de;
+  --ring: var(--cyan);
+
+  --sidebar: #ffffff;
+  --sidebar-foreground: #17141c;
+  --sidebar-border: #e4e1e8;
+
+  --radius: 14px;
+
+  /* Theme-aware derivatives. Charts, ticks and soft blocks read these, never
+     raw hexes, so the whole product reskins from one place. */
+  --ink-text: #2b0b21;          /* heading/figure text: flips light in dark */
+  --heading-gradient: linear-gradient(118deg, #2b0b21 0%, #571c3f 52%, #c22742 100%);
+  --series-1: #2b0b21;          /* primary chart series */
+  --series-2: #ff3f52;          /* secondary */
+  --series-3: #f8dbc9;          /* tertiary */
+  --series-1-hi: #5a2450;       /* gradient top stops */
+  --series-2-hi: #ff7585;
+  --series-3-hi: #fdeee2;
+  --series-4: #6b3a58;
+  --series-5: #e8b899;
+  --tick: #565064;              /* chart axis + label text */
+  --cursor-fill: rgba(43, 11, 33, 0.04);
+  --swatch-border: rgba(0, 0, 0, 0.1);
+  --amber-bg: #fdf2e3;          /* PREDICTED soft blocks */
+  --amber-border: #f2d9b4;
+  --amber-text: #8a4a06;
+  --cyanw-border: #b3e8ee;      /* cyan-wash outlines */
+  --wa-bubble: #f7fef9;         /* WhatsApp preview bubble */
+  --panel-top: #ffffff;         /* panel gradient stops */
+  --panel-bottom: #fdfcfd;
+  --bar-top: #fcfbfd;           /* mac title bar */
+  --bar-bottom: #f4f2f6;
+  --ground-line: rgba(43, 11, 33, 0.045);
+  --ground-dot: rgba(43, 11, 33, 0.075);
+  color-scheme: light;
 }
 
+/* ===========================================================================
+   Dark mode. Not a gray skin: the same brand at night. Deep plum-black
+   surfaces, cream and plum-red carrying the data, cyan still owning
+   interaction. Toggled by .dark on <html>, persisted in localStorage.
+   =========================================================================== */
+
 .dark {
-  --background: oklch(0.14 0.015 320);
-  --foreground: oklch(0.95 0.005 320);
-  --card: oklch(0.19 0.015 320);
-  --card-foreground: oklch(0.95 0.005 320);
-  --popover: oklch(0.19 0.015 320);
-  --popover-foreground: oklch(0.95 0.005 320);
-  --primary: oklch(0.75 0.1 320);
-  --primary-foreground: oklch(0.14 0.015 320);
-  --secondary: oklch(0.24 0.02 320);
-  --secondary-foreground: oklch(0.95 0.005 320);
-  --muted: oklch(0.24 0.02 320);
-  --muted-foreground: oklch(0.65 0.02 320);
-  --accent: oklch(0.24 0.02 320);
-  --accent-foreground: oklch(0.95 0.005 320);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(0.28 0.02 320);
-  --input: oklch(0.28 0.02 320);
-  --ring: oklch(0.75 0.1 320);
-  --chart-1: oklch(0.75 0.1 320);
-  --chart-2: oklch(0.7 0.16 15);
-  --chart-3: oklch(0.7 0.15 165);
-  --chart-4: oklch(0.72 0.14 55);
-  --chart-5: oklch(0.65 0.14 280);
-  --plum: oklch(0.75 0.1 320);
-  --plum-foreground: oklch(0.14 0.015 320);
-  --coral: oklch(0.7 0.16 15);
-  --coral-foreground: oklch(0.14 0.015 320);
-  --success: oklch(0.7 0.15 155);
-  --success-foreground: oklch(0.14 0.015 320);
-  --warning: oklch(0.78 0.12 65);
-  --warning-foreground: oklch(0.14 0.015 320);
-  --sidebar: oklch(0.17 0.015 320);
-  --sidebar-foreground: oklch(0.95 0.005 320);
-  --sidebar-primary: oklch(0.75 0.1 320);
-  --sidebar-primary-foreground: oklch(0.14 0.015 320);
-  --sidebar-accent: oklch(0.24 0.02 320);
-  --sidebar-accent-foreground: oklch(0.95 0.005 320);
-  --sidebar-border: oklch(0.28 0.02 320);
-  --sidebar-ring: oklch(0.75 0.1 320);
+  --background: #0f0912;
+  --card: #150d18;
+  --card-raised: #170f1a;
+  --popover: #150d18;
+
+  --foreground: #efe9f0;
+  --card-foreground: #efe9f0;
+  --popover-foreground: #efe9f0;
+  --muted-foreground: #a89dae;
+  --muted: #1d1421;
+
+  /* Brand constants stay put (metal surfaces, the logo); text flips. */
+  --ink-text: #f3e9ee;
+  --heading-gradient: linear-gradient(118deg, #fff6ef 0%, #f8dbc9 42%, #ff6273 100%);
+
+  --red: #ff4f62;
+  --red-deep: #e02339;
+  --ink-soft: #b98aa7;
+  --sand-deep: #d9a87f;
+
+  --cyan: #2ac6d4;
+  --cyan-bright: #35d9e7;
+  --cyan-deep: #7bdde8;         /* used as link/text colour: must be light */
+  --cyan-wash: #0d2a2f;
+
+  --primary: #f8dbc9;
+  --primary-foreground: #2b0b21;
+  --secondary: #1d1421;
+  --secondary-foreground: #efe9f0;
+  --accent: var(--cyan-wash);
+  --accent-foreground: var(--cyan-deep);
+  --destructive: #ff4f62;
+  --success: #3ecf9a;
+  --warning: #e0a33e;
+
+  --border: #2a1f2f;
+  --border-strong: #3d2e44;
+  --input: #342839;
+  --ring: var(--cyan);
+
+  --sidebar: #120a15;
+  --sidebar-foreground: #efe9f0;
+  --sidebar-border: #2a1f2f;
+
+  --series-1: #f8dbc9;          /* cream leads on dark ground */
+  --series-2: #ff5468;
+  --series-3: #6b3a58;
+  --series-1-hi: #fff2e6;
+  --series-2-hi: #ff8494;
+  --series-3-hi: #96587e;
+  --tick: #9c90a2;
+  --cursor-fill: rgba(248, 219, 201, 0.06);
+  --swatch-border: rgba(255, 255, 255, 0.14);
+  --amber-bg: #2a1d0d;
+  --amber-border: #4a3517;
+  --amber-text: #e8b46a;
+  --cyanw-border: #1d4d55;
+  --wa-bubble: #0f231a;
+  --panel-top: #160e19;
+  --panel-bottom: #130b16;
+  --bar-top: #1b1220;
+  --bar-bottom: #160e19;
+  --ground-line: rgba(248, 219, 201, 0.05);
+  --ground-dot: rgba(248, 219, 201, 0.08);
+  color-scheme: dark;
 }
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
-  }
-  body {
-    @apply bg-background text-foreground;
+    @apply border-border;
   }
   html {
-    @apply font-sans;
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-feature-settings: "cv02", "cv03", "cv04", "tnum";
+  }
+  h1, h2, h3, h4, .font-heading {
+    font-family: var(--font-serif);
+    color: var(--ink-text);
+    letter-spacing: -0.015em;
+    font-weight: 700;
+  }
+  /* Headings carry the brand gradient. The solid --ink-text above stays as
+     the paint-order fallback for engines without background-clip: text. */
+  h1, h2, h3, h4 {
+    background-image: var(--heading-gradient);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  ::selection {
+    background: var(--cyan-bright);
+    color: #06282c;
+  }
+  :focus-visible {
+    outline: 2px solid var(--cyan);
+    outline-offset: 2px;
   }
 }
 
-@keyframes fade-in-up {
+/* ===========================================================================
+   Panels, outlined, layered, tech-first
+   =========================================================================== */
+
+.panel {
+  position: relative;
+  background: linear-gradient(180deg, var(--panel-top) 0%, var(--panel-bottom) 100%);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.9) inset,
+    0 1px 2px rgba(43, 11, 33, 0.04),
+    0 8px 24px -12px rgba(43, 11, 33, 0.08);
+}
+
+.panel-flush {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+/* Blueprint corner ticks, reads as instrumentation, not decoration */
+.panel-ticked::before,
+.panel-ticked::after {
+  content: "";
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  border-color: var(--border-strong);
+  pointer-events: none;
+}
+.panel-ticked::before {
+  top: 7px; left: 7px;
+  border-top: 1.5px solid; border-left: 1.5px solid;
+  border-top-left-radius: 3px;
+}
+.panel-ticked::after {
+  bottom: 7px; right: 7px;
+  border-bottom: 1.5px solid; border-right: 1.5px solid;
+  border-bottom-right-radius: 3px;
+}
+
+/* Engineered grid, the tech-first ground under hero panels */
+.grid-ground {
+  position: relative;
+  overflow: hidden;
+}
+.grid-ground::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(to right, var(--ground-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--ground-line) 1px, transparent 1px);
+  background-size: 26px 26px;
+  mask-image: radial-gradient(ellipse 85% 70% at 50% 0%, #000 20%, transparent 78%);
+  -webkit-mask-image: radial-gradient(ellipse 85% 70% at 50% 0%, #000 20%, transparent 78%);
+  pointer-events: none;
+}
+
+/* Dot field, alternate ground for secondary panels */
+.dot-ground::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, var(--ground-dot) 1px, transparent 1px);
+  background-size: 15px 15px;
+  mask-image: radial-gradient(ellipse 70% 90% at 100% 0%, #000 10%, transparent 72%);
+  -webkit-mask-image: radial-gradient(ellipse 70% 90% at 100% 0%, #000 10%, transparent 72%);
+  pointer-events: none;
+}
+
+/* Warm aurora, used behind the single most important number on a screen */
+.aurora {
+  position: relative;
+  overflow: hidden;
+}
+.aurora::before {
+  content: "";
+  position: absolute;
+  inset: -40% -10% auto -10%;
+  height: 220px;
+  background:
+    radial-gradient(closest-side, rgba(248, 219, 201, 0.85), transparent 72%) 12% 40% / 55% 100% no-repeat,
+    radial-gradient(closest-side, rgba(255, 63, 82, 0.16), transparent 70%) 72% 30% / 48% 100% no-repeat,
+    radial-gradient(closest-side, rgba(34, 200, 214, 0.14), transparent 70%) 48% 70% / 44% 100% no-repeat;
+  filter: blur(26px);
+  pointer-events: none;
+}
+
+/* Metallic cyan surface, interaction accents only */
+.metal-cyan {
+  background: linear-gradient(135deg, var(--cyan-bright) 0%, var(--cyan) 46%, var(--cyan-deep) 100%);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.55) inset,
+    0 -1px 0 rgba(0, 0, 0, 0.14) inset,
+    0 2px 8px -2px rgba(14, 154, 167, 0.5);
+}
+.metal-ink {
+  background: linear-gradient(135deg, #43183a 0%, var(--ink) 55%, #1d0616 100%);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.14) inset,
+    0 2px 10px -3px rgba(43, 11, 33, 0.45);
+}
+.metal-red {
+  background: linear-gradient(135deg, #ff6273 0%, var(--red) 50%, var(--red-deep) 100%);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.3) inset,
+    0 2px 10px -3px rgba(255, 63, 82, 0.45);
+}
+
+/* ===========================================================================
+   macOS window chrome. Used on the main page banners and message previews:
+   curved top, traffic lights, hairline divider. White surfaces only.
+   =========================================================================== */
+
+.mac-panel {
+  position: relative;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.9) inset,
+    0 2px 6px rgba(43, 11, 33, 0.05),
+    0 18px 44px -22px rgba(43, 11, 33, 0.2);
+}
+
+.mac-bar {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 38px;
+  padding: 0 14px;
+  background: linear-gradient(180deg, var(--bar-top) 0%, var(--bar-bottom) 100%);
+  border-bottom: 1px solid var(--border);
+  position: relative;
+}
+.mac-dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 999px;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.08) inset, 0 0.5px 0 rgba(255, 255, 255, 0.5);
+}
+.mac-dot-r { background: #ff5f57; border: 0.5px solid #e0443e; }
+.mac-dot-y { background: #febc2e; border: 0.5px solid #d89e24; }
+.mac-dot-g { background: #28c840; border: 0.5px solid #1eaa33; }
+.mac-title {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  color: var(--muted-foreground);
+  white-space: nowrap;
+}
+
+/* Page banner: the premium main-text treatment */
+.banner-title {
+  font-family: var(--font-serif);
+  font-weight: 700;
+  color: var(--ink-text);
+  font-size: 42px;
+  line-height: 1.02;
+  letter-spacing: -0.022em;
+}
+.banner-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--red);
+}
+.banner-kicker::before {
+  content: "";
+  width: 22px;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--red), var(--sand));
+}
+
+/* Data ribbon, a thin stacked bar used as an inline visual primitive */
+.ribbon {
+  display: flex;
+  height: 8px;
+  border-radius: 999px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: var(--muted);
+}
+.ribbon > span {
+  height: 100%;
+  transition: width 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ===========================================================================
+   Type utilities
+   =========================================================================== */
+
+.label-mono {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+.figure {
+  font-family: var(--font-serif);
+  font-weight: 700;
+  color: var(--ink-text);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+.tnum { font-variant-numeric: tabular-nums; }
+
+/* Provenance chips, the four-way distinction, visually distinct */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  border: 1px solid;
+  white-space: nowrap;
+}
+.chip-observed    { color: #0a5c4a; background: #e7f7f1; border-color: #b6e3d4; }
+.chip-derived     { color: var(--cyan-deep); background: var(--cyan-wash); border-color: #b3e8ee; }
+.chip-predicted   { color: #8a4a06; background: #fdf2e3; border-color: #f2d9b4; }
+.chip-recommended { color: var(--ink); background: #f9ecf5; border-color: #e6cadd; }
+.chip-modeled     { color: #5b5470; background: #f2f1f6; border-color: #dcd8e6; }
+
+/* ===========================================================================
+   Controls
+   =========================================================================== */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-strong);
+  background: var(--card);
+  color: var(--foreground);
+  padding: 9px 14px;
+  transition: all 0.16s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.btn:hover:not(:disabled) {
+  border-color: var(--cyan);
+  color: var(--cyan-deep);
+  background: var(--cyan-wash);
+}
+.btn:active:not(:disabled) { transform: translateY(1px); }
+.btn:disabled { opacity: 0.42; cursor: not-allowed; }
+
+/* Primary button carries its own gradient. It must never rely on a utility
+   class declared earlier in the sheet: .btn's white background is declared
+   after .metal-ink, so stacking them painted white-on-white and the run
+   button disappeared. Self-contained fixes that class of bug permanently. */
+.btn-primary {
+  border-color: transparent;
+  color: #fff;
+  background: linear-gradient(135deg, #4a1c40 0%, var(--ink) 52%, #180512 100%);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.18) inset,
+    0 -1px 0 rgba(0, 0, 0, 0.25) inset,
+    0 6px 16px -6px rgba(43, 11, 33, 0.55);
+}
+.btn-primary:hover:not(:disabled) {
+  color: #fff;
+  background: linear-gradient(135deg, #5a2450 0%, #3a1030 52%, #1d0716 100%);
+  border-color: transparent;
+}
+.btn-primary:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.12) inset, 0 3px 8px -4px rgba(43, 11, 33, 0.5);
+}
+
+.seg {
+  display: inline-flex;
+  padding: 3px;
+  gap: 2px;
+  background: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+.seg button {
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 7px;
+  color: var(--muted-foreground);
+  transition: all 0.16s cubic-bezier(0.22, 1, 0.36, 1);
+  white-space: nowrap;
+}
+.seg button:hover { color: var(--foreground); }
+.seg button[data-active="true"] {
+  background: var(--card);
+  color: var(--ink-text);
+  box-shadow: 0 1px 2px rgba(43, 11, 33, 0.1);
+  border: 1px solid var(--border);
+  margin: -1px;
+}
+
+select.field, input.field, textarea.field {
+  width: 100%;
+  background: var(--card);
+  border: 1px solid var(--input);
+  border-radius: var(--radius-md);
+  padding: 9px 12px;
+  font-size: 13px;
+  color: var(--foreground);
+  transition: border-color 0.16s, box-shadow 0.16s;
+}
+select.field:focus, input.field:focus, textarea.field:focus {
+  outline: none;
+  border-color: var(--cyan);
+  box-shadow: 0 0 0 3px rgba(34, 200, 214, 0.16);
+}
+
+/* Cohort tile, the primary selection control */
+.tile {
+  position: relative;
+  text-align: left;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--card);
+  padding: 13px 15px;
+  transition: all 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.tile:hover { border-color: var(--border-strong); transform: translateY(-1px); }
+.tile[data-selected="true"] {
+  border-color: var(--cyan);
+  background: linear-gradient(180deg, var(--cyan-wash) 0%, var(--card) 78%);
+  box-shadow: 0 0 0 1px var(--cyan), 0 6px 18px -10px rgba(14, 154, 167, 0.45);
+}
+.tile[data-selected="true"]::after {
+  content: "";
+  position: absolute;
+  top: 0; left: 13px; right: 13px;
+  height: 2px;
+  border-radius: 0 0 3px 3px;
+  background: linear-gradient(90deg, var(--cyan-bright), var(--cyan-deep));
+}
+
+/* ===========================================================================
+   Motion
+   =========================================================================== */
+
+@keyframes rise {
   from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.rise { animation: rise 0.42s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.d1 { animation-delay: 0.04s } .d2 { animation-delay: 0.09s }
+.d3 { animation-delay: 0.14s } .d4 { animation-delay: 0.19s }
+.d5 { animation-delay: 0.24s } .d6 { animation-delay: 0.29s }
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.45; transform: scale(0.85); }
+}
+.live-dot { animation: pulse-dot 2s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .rise, .live-dot { animation: none; }
+  * { transition: none !important; }
 }
 
-.animate-fade-in {
-  animation: fade-in-up 0.35s ease-out both;
+/* Recharts: kill the focus rectangle, set chart type */
+.recharts-wrapper text {
+  font-family: var(--font-serif);
+  fill: var(--tick);
+}
+.recharts-surface:focus, .recharts-wrapper:focus { outline: none; }
+.recharts-cartesian-axis-line, .recharts-cartesian-axis-tick-line { stroke: var(--border); }
+
+/* Scrollbars */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 999px;
+  border: 3px solid var(--background);
+}
+::-webkit-scrollbar-thumb:hover { background: var(--input); }
+
+/* ===========================================================================
+   Dark-mode refinements. Tokens carry most of the reskin; these are the
+   pieces where dark needs different physics, not just different colours.
+   =========================================================================== */
+
+/* Panels: highlights come from light leaking in, so invert the inset. */
+.dark .panel {
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.045) inset,
+    0 1px 2px rgba(0, 0, 0, 0.4),
+    0 12px 32px -14px rgba(0, 0, 0, 0.6);
+}
+.dark .mac-panel {
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.05) inset,
+    0 2px 8px rgba(0, 0, 0, 0.45),
+    0 22px 52px -24px rgba(0, 0, 0, 0.7);
 }
 
-.stagger-1 { animation-delay: 0.05s; }
-.stagger-2 { animation-delay: 0.1s; }
-.stagger-3 { animation-delay: 0.15s; }
-.stagger-4 { animation-delay: 0.2s; }
+/* Aurora at night: the same three glows, embers instead of daylight. */
+.dark .aurora::before {
+  background:
+    radial-gradient(closest-side, rgba(248, 219, 201, 0.12), transparent 72%) 12% 40% / 55% 100% no-repeat,
+    radial-gradient(closest-side, rgba(255, 63, 82, 0.14), transparent 70%) 72% 30% / 48% 100% no-repeat,
+    radial-gradient(closest-side, rgba(42, 198, 212, 0.1), transparent 70%) 48% 70% / 44% 100% no-repeat;
+  filter: blur(30px);
+}
+
+/* Primary action flips to metallic cream: unmissable on plum-black, and the
+   plum gradient would otherwise sink into the ground it sits on. */
+.dark .btn-primary {
+  color: #2b0b21;
+  background: linear-gradient(135deg, #fff3e8 0%, #f8dbc9 55%, #eec3a4 100%);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.6) inset,
+    0 -1px 0 rgba(43, 11, 33, 0.18) inset,
+    0 8px 20px -8px rgba(248, 219, 201, 0.35);
+}
+.dark .btn-primary:hover:not(:disabled) {
+  color: #2b0b21;
+  background: linear-gradient(135deg, #fff8f1 0%, #fbe3d2 55%, #f2ccae 100%);
+}
+
+/* Metal ink needs a seam against near-black surfaces. */
+.dark .metal-ink {
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.18) inset,
+    0 0 0 1px rgba(248, 219, 201, 0.16),
+    0 2px 10px -3px rgba(0, 0, 0, 0.6);
+}
+
+/* Provenance chips, night palette. Same hue logic, inverted luminance. */
+.dark .chip-observed    { color: #6fe3bd; background: #0c2a20; border-color: #1c4a3a; }
+.dark .chip-derived     { color: #7bdde8; background: #0d272b; border-color: #1d4d55; }
+.dark .chip-predicted   { color: #ecb96b; background: #2a1d0d; border-color: #4a3517; }
+.dark .chip-recommended { color: #f0b9d5; background: #2a1522; border-color: #4a2740; }
+.dark .chip-modeled     { color: #b3a8bd; background: #221b28; border-color: #3a3044; }
+
+.dark ::selection {
+  background: var(--cyan-bright);
+  color: #06282c;
+}
+
+/* Focus ring stays cyan; give fields a subtle lift instead of a shadow. */
+.dark select.field:focus, .dark input.field:focus, .dark textarea.field:focus {
+  box-shadow: 0 0 0 3px rgba(42, 198, 212, 0.22);
+}
+
+/* Traffic lights read as glass at night. */
+.dark .mac-dot { box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5) inset, 0 0.5px 0 rgba(255, 255, 255, 0.18); }
+
+/* ===========================================================================
+   Theme toggle: a metallic pill. The knob slides between sun and moon.
+   =========================================================================== */
+
+.theme-pill {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  width: 66px;
+  height: 30px;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: var(--muted);
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+.theme-pill:hover { border-color: var(--cyan); }
+.theme-pill .knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.theme-pill[data-dark="true"] .knob { transform: translateX(36px); }
+.theme-pill .hint {
+  position: absolute;
+  top: 0; bottom: 0;
+  display: flex; align-items: center; justify-content: center;
+  width: 28px;
+  color: var(--muted-foreground);
+  opacity: 0.7;
+}
+.theme-pill .hint-l { left: 3px; }
+.theme-pill .hint-r { right: 3px; }
+
+/* ===========================================================================
+   Brand mark v2: kinetic. A slow conic halo breathes behind the badge and a
+   cyan-spectrum gradient flows through the wordmark, product-page style.
+   =========================================================================== */
+
+@keyframes halo-spin { to { transform: rotate(360deg); } }
+@keyframes spectrum-flow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+@keyframes node-pulse {
+  0%, 100% { opacity: 0.9; }
+  50% { opacity: 0.4; }
+}
+
+.brand-hero {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.brand-halo {
+  position: absolute;
+  inset: -14px auto -14px -14px;
+  width: 104px;
+  height: 104px;
+  border-radius: 999px;
+  background: conic-gradient(
+    from 0deg,
+    rgba(34, 200, 214, 0) 0deg,
+    rgba(34, 200, 214, 0.55) 70deg,
+    rgba(79, 227, 193, 0.4) 140deg,
+    rgba(59, 130, 246, 0.45) 220deg,
+    rgba(34, 200, 214, 0) 320deg
+  );
+  filter: blur(18px);
+  animation: halo-spin 9s linear infinite;
+  pointer-events: none;
+}
+.brand-word {
+  font-family: var(--font-serif);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  background-image: linear-gradient(100deg,
+    #0e9aa7 0%, #22c8d6 22%, #4fe3c1 44%, #3b82f6 68%, #22c8d6 88%, #0e9aa7 100%);
+  background-size: 220% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: spectrum-flow 7s ease-in-out infinite;
+}
+.dark .brand-word {
+  background-image: linear-gradient(100deg,
+    #35d9e7 0%, #7bdde8 22%, #4fe3c1 44%, #60a5fa 68%, #7bdde8 88%, #35d9e7 100%);
+}
+.mark-node { animation: node-pulse 2.6s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .brand-halo, .brand-word, .mark-node { animation: none; }
+  .wm-spark { display: none; }
+}
+
+/* ===========================================================================
+   Liquid glass. Translucent, blurred, saturated surfaces with a specular
+   streak and a hairline top light. Applied where content sits over colour
+   (the aurora banners, popovers, tooltips, controls), never everywhere:
+   glass reads premium only while it is scarce.
+   =========================================================================== */
+
+.glass {
+  position: relative;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.62) 0%, rgba(255, 255, 255, 0.30) 100%);
+  -webkit-backdrop-filter: blur(22px) saturate(1.7);
+  backdrop-filter: blur(22px) saturate(1.7);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.18),
+    inset 1px 0 0 rgba(255, 255, 255, 0.30),
+    0 10px 34px -14px rgba(43, 11, 33, 0.22),
+    0 1.5px 4px rgba(43, 11, 33, 0.05);
+}
+.glass::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background:
+    linear-gradient(115deg,
+      transparent 18%,
+      rgba(255, 255, 255, 0.34) 26%,
+      rgba(255, 255, 255, 0.06) 34%,
+      transparent 42%);
+  pointer-events: none;
+}
+.dark .glass {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.085) 0%, rgba(255, 255, 255, 0.028) 100%);
+  border-color: rgba(255, 255, 255, 0.14);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    inset 1px 0 0 rgba(255, 255, 255, 0.06),
+    0 14px 44px -18px rgba(0, 0, 0, 0.75),
+    0 2px 6px rgba(0, 0, 0, 0.3);
+}
+.dark .glass::before {
+  background:
+    linear-gradient(115deg,
+      transparent 18%,
+      rgba(255, 255, 255, 0.10) 26%,
+      rgba(255, 255, 255, 0.02) 34%,
+      transparent 42%);
+}
+
+/* Controls become glass where they float over colour */
+.seg {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.28));
+  -webkit-backdrop-filter: blur(16px) saturate(1.6);
+  backdrop-filter: blur(16px) saturate(1.6);
+  border-color: rgba(255, 255, 255, 0.6);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 4px 14px -8px rgba(43, 11, 33, 0.25);
+}
+.dark .seg {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.02));
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 6px 18px -10px rgba(0, 0, 0, 0.6);
+}
+.theme-pill {
+  -webkit-backdrop-filter: blur(14px) saturate(1.5);
+  backdrop-filter: blur(14px) saturate(1.5);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.22));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
+}
+.dark .theme-pill {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.02));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+/* The mac title bar becomes a fine glass strip */
+.mac-bar {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.45));
+  -webkit-backdrop-filter: blur(18px) saturate(1.6);
+  backdrop-filter: blur(18px) saturate(1.6);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+.dark .mac-bar {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.03));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
