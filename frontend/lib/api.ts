@@ -297,7 +297,7 @@ export const getMethodology = () => get<Methodology>("/api/methodology");
 export const getSimOptions = () => get<SimOptions>("/api/simulate/options");
 
 export const getVerification = () =>
-  get<{ label: string; checks: string[] }>("/api/verification");
+  get<{ label: string; checks: string[]; sim_checks: string[] }>("/api/verification");
 
 export async function simulate(req: SimRequest): Promise<SimResult> {
   const res = await fetch(`${BASE}/api/simulate`, {
