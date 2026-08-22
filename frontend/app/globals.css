@@ -1469,10 +1469,14 @@ select.field:focus, input.field:focus, textarea.field:focus {
 
 .wa-text {
   font-size: 12.5px;
-  line-height: 1.42;
+  line-height: 1.5;
   color: var(--foreground);
   white-space: pre-line;
-  /* Room on the final line so the timestamp never sits on top of the text. */
+  margin: 0 0 9px;
+}
+/* Room for the timestamp on the closing paragraph only. */
+.wa-text.is-last {
+  margin-bottom: 0;
   padding-right: 58px;
 }
 

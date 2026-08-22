@@ -45,14 +45,15 @@ Templates only. This module reads no user data of any kind.
 
 from __future__ import annotations
 
-# Bullet blocks. The emoji version is for the younger tier, whose comfort range
-# absorbs four bullet emojis plus a hook emoji. The plain version keeps the
-# older tier inside a 1 to 3 emoji range.
+# Bullet blocks. The emoji version is for the younger tier; the plain version
+# keeps the older tier inside its 1 to 3 emoji range.
+#
+# Three bullets, not four: the 26-35 comfort range is 2 to 5, and a four-bullet
+# block plus a hook emoji lands on 6, which the analyser fails.
 HC_BULLETS_EMOJI = (
     "\U0001F3E0 At-home sample pickup\n"
     "⏱️ Results in 24 to 48 hrs on the Plum app\n"
-    "\U0001F468‍⚕️ A doctor explains your results\n"
-    "\U0001F4F1 Fits around your schedule"
+    "\U0001F468‍⚕️ A doctor explains your results"
 )
 HC_BULLETS_PLAIN = (
     "At-home sample pickup, so nothing needs planning.\n"
@@ -63,7 +64,6 @@ HC_BULLETS_PLAIN = (
 TH_BULLETS_EMOJI = (
     "✅ Video or chat with a verified specialist\n"
     "\U0001F4C4 Digital prescription, valid pan India\n"
-    "\U0001F9FE Personalised follow up plan\n"
     "\U0001F4F1 Full record saved on your Plum app"
 )
 TH_BULLETS_PLAIN = (

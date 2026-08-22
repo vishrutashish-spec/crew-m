@@ -90,6 +90,8 @@ export function WaMessage({
   const [missing, setMissing] = useState(false);
   useEffect(() => setMissing(false), [art.src]);
 
+  const paragraphs = body.split(/\n{2,}/).map((t) => t.trim()).filter(Boolean);
+
   return (
     <div className="wa-stage">
       <div className="wa-row">
@@ -113,7 +115,15 @@ export function WaMessage({
           )}
 
           <div className="wa-body">
-            <p className="wa-text">{body}</p>
+            {/* A blank line in the copy is a real paragraph break, as it is in
+                WhatsApp. Single newlines inside a block stay line breaks, which
+                is what the bullet lists rely on. */}
+            {paragraphs.map((para, i) => (
+              <p key={i}
+                className={`wa-text${i === paragraphs.length - 1 ? " is-last" : ""}`}>
+                {para}
+              </p>
+            ))}
             <span className="wa-meta">
               <span className="wa-time tnum">{time}</span>
               <Ticks />

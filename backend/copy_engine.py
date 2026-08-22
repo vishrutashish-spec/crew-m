@@ -35,6 +35,7 @@ from __future__ import annotations
 
 import re
 import anchors as A
+import copy_angles as CA
 
 # ---------------------------------------------------------------------------
 # Band mapping
@@ -709,7 +710,14 @@ def _variants_for(objective: str, band: str, channel: str,
                   "body": _clean(body), "source": source})
 
     if channel == "whatsapp":
-        if objective == "hc_activation":
+        # An explicit angle writes to that mechanism. Without one, the band's
+        # own approved library message is the best-fit default. Before this the
+        # angle was ignored on WhatsApp entirely and every angle returned the
+        # same body, which made the control meaningless.
+        if CA.has(objective, angle):
+            add("marketing", CA.body(objective, angle, band),
+                source=f"library voice, {angle.replace('_', ' ')} angle")
+        elif objective == "hc_activation":
             add("marketing", WA_HC[band], source="approved WA touch 1, HC")
         elif objective == "th_activation":
             add("marketing", WA_TH[band], source="approved WA touch 1, TH")
