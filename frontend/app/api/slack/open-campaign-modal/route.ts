@@ -74,6 +74,7 @@ export async function POST(request: Request) {
           options: [
             { text: { type: "plain_text", text: "Welcome" }, value: "welcome" },
             { text: { type: "plain_text", text: "Renewal" }, value: "renewal" },
+            { text: { type: "plain_text", text: "HRA (Health Risk Assessment)" }, value: "hra" },
           ],
         },
       },

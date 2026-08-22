@@ -253,12 +253,12 @@ export async function POST(request: Request) {
 
   // action === "draft": run the existing pipeline against our own API.
   const requestId = `chat-${Date.now()}`;
-  const { amName, accountName, campaignType, campaignBrief, logoUrl, sendTo } = reply;
+  const { amName, accountName, campaignType, campaignBrief, logoUrl, narrative, sendTo } = reply;
 
   const copy = await fetch(`${BASE_URL}/api/copy`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ requestId, amName, accountName, campaignType, campaignBrief, logoUrl }),
+    body: JSON.stringify({ requestId, amName, accountName, campaignType, campaignBrief, logoUrl, narrative }),
   }).then((r) => r.json());
 
   const creative = await fetch(`${BASE_URL}/api/creative`, {
