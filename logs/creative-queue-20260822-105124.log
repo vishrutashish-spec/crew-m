@@ -1,0 +1,10 @@
+The queue returned HTTP 200 with `content-length: 0` — an empty body. This means the pending queue is empty.
+
+**Run summary:**
+
+- Rows in queue: 0
+- Rows finished: 0
+- Rows skipped: 0
+- Deploy: not needed (nothing to ship)
+
+Queue was empty this run — normal outcome, nothing to do.

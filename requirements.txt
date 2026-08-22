@@ -1,0 +1,7 @@
+# Crew M engine, deployed as a Vercel Python function.
+# Deliberately minimal: the cohort model, decision rubrics, timing engine and
+# SIGNAL are all pure Python, so nothing here beyond the web layer is needed.
+# requests is intentionally absent: no CleverTap call happens at request time,
+# the live figures are dated anchors committed in anchors.py.
+fastapi==0.115.6
+pydantic==2.10.4

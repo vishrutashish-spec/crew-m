@@ -1,0 +1,13 @@
+**Run summary — 2026-08-21**
+
+Queue size: 1 row.
+Finished: 1 (`web-1787323838232` — Groww, welcome, single-brand).
+Skipped: 0.
+
+Processing notes:
+- GT Alpina and Passenger Sans were not available in Figma; Vollkorn (Medium/Regular) substituted for GT Alpina, Inter Semi Bold for Passenger Sans. Frames named with `[Vollkorn]` suffix accordingly.
+- Desktop and mobile single-brand templates (`1:197`, `23:678`) cloned, copy set (heading "Welcome!", subtitle "Your health and wellness benefits are on their way", button "Explore your benefits"), accent `#FFBFC5` applied to Rectangle 3 gradient stop, 02_doc gradient stop (mobile), and largest ellipse in each variant.
+- Heading height 56px (desktop) — within the 100px limit, no size reduction needed.
+- No placeholder text remained in either clone.
+- Exports: 944×422 desktop, 514×828 mobile — dimensions verified.
+- Build: clean. Deploy: succeeded (Vercel, production). URLs confirmed 200 before marking done.

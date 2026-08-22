@@ -1,0 +1,12 @@
+The queue endpoint responded with HTTP 200 and an empty body (content-length: 0). This is equivalent to an empty queue.
+
+---
+
+**Run summary — 2026-08-22**
+
+- Queue items: 0 (server returned HTTP 200, body empty)
+- Rows finished: 0
+- Rows skipped: 0
+- Deploy: not triggered (nothing to ship)
+
+Queue was empty this run — no creatives to generate. Normal outcome.

@@ -1,0 +1,12 @@
+The workflow endpoint returned HTTP 200 with an empty body (0 bytes). This means the queue is empty — no pending rows.
+
+---
+
+**Run summary:**
+
+- Queue rows returned: 0 (empty response body from `get_pending`)
+- Rows processed: 0
+- Rows skipped: 0
+- Deploy: not needed (nothing to deploy)
+
+Normal outcome — nothing to do this run.

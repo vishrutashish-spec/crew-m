@@ -1,0 +1,12 @@
+HTTP 200 with an empty body — the queue returned no pending rows.
+
+---
+
+**Run summary — 2026-08-21**
+
+- Queue size: 0 (empty response body with HTTP 200)
+- Rows finished: 0
+- Rows skipped: 0
+- Deploy: not triggered (nothing to process)
+
+No pending creative requests this run. Normal outcome — nothing to do.

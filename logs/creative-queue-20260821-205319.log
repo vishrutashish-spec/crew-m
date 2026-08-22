@@ -1,0 +1,3 @@
+**Run summary — 2026-08-21**
+
+Queue returned HTTP 200 with an empty body (no JSON array, zero rows). This is a normal outcome — the creative queue is empty and there is nothing to process this run. No Figma changes made, no files exported, no deploy triggered, no rows marked done.

@@ -1,0 +1,9 @@
+Queue is empty. HTTP 200 with 0-byte body — no pending rows this run.
+
+**Run summary — 2026-08-21 15:41 UTC**
+
+- Queue size: 0 (empty response from `get_pending`)
+- Rows processed: 0
+- Rows skipped: 0
+- Deploy: not attempted (nothing to ship)
+- Outcome: normal — no work to do this run.

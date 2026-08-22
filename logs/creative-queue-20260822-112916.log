@@ -1,0 +1,8 @@
+**Run summary — 2026-08-22 05:59 UTC**
+
+- Queue: 0 pending rows (HTTP 200, empty body from `get_pending`)
+- Finished: 0
+- Skipped: 0
+- Deploy: not required (nothing to ship)
+
+Queue is empty. Normal outcome — no creatives to generate this run.

@@ -1,0 +1,12 @@
+---
+
+**Run summary — 2026-08-22**
+
+Queue fetch: HTTP 200, empty response body (no pending rows returned).
+
+Rows in queue: 0  
+Rows finished: 0  
+Rows skipped: 0  
+Deploy: not attempted (nothing to ship)
+
+Queue is empty — normal outcome, nothing to do this run.

@@ -1,0 +1,8 @@
+**Run summary — 2026-08-22**
+
+Queue endpoint returned HTTP 200 with an empty body (0 bytes). The queue contains no pending rows this run — that is a normal outcome per the playbook.
+
+- Rows in queue: 0
+- Rows finished: 0
+- Rows skipped: 0
+- Deploy: not triggered (nothing to ship)

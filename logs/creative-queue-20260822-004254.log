@@ -1,0 +1,5 @@
+**Summary**
+
+Queue returned HTTP 200 with `content-length: 0` — empty body, no pending rows.
+
+Nothing to process this run. The queue is empty, which is a normal outcome. No Figma work, no deploy, no commits needed.

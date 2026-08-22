@@ -1,0 +1,12 @@
+---
+
+**Run summary — 2026-08-21 16:28 UTC**
+
+- Queue polled: `POST /webhook/iw-crew-m-c4b9-creative-queue-manage {"action":"get_pending"}`
+- Response: HTTP 200, empty body (0 bytes)
+- Rows in queue: **0**
+- Rows finished: 0
+- Rows skipped: 0
+- Deploy: not needed (no work to do)
+
+Nothing pending this run. Normal outcome.

@@ -1,0 +1,8 @@
+**Run summary:**
+
+- Queue: 0 rows returned (HTTP 200, empty body)
+- Finished: 0
+- Skipped: 0
+- Deploy: not triggered (no work to do)
+
+The creative queue is empty this run. No frames were cloned, no exports generated, no deploy needed. Normal outcome.

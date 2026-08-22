@@ -1,0 +1,10 @@
+**Run summary — 2026-08-22**
+
+Queue response: HTTP 200, empty body (0 bytes). The endpoint returned no pending rows.
+
+- Rows in queue: 0
+- Rows processed: 0
+- Rows skipped: 0
+- Deploy: not attempted (nothing to deploy)
+
+Normal outcome — nothing to do this run.

@@ -1,0 +1,21 @@
+Queue acknowledged. Run complete.
+
+---
+
+**Summary — 2026-08-22**
+
+Queue: 1 row pending.
+
+**Processed: 1**
+- requestId 586 · Groww · welcome · single-brand
+- GT Alpina and Passenger Sans not available in Figma; Vollkorn (headings) and Inter (button) used as accepted fallbacks — frames named with `[Vollkorn]` suffix accordingly
+- Desktop heading height 56px, mobile 69px — both within the 100px limit
+- No placeholder strings remaining in shipped frames
+- Accent #FFBFC5 applied to Rectangle 3 gradient, 02_doc gradient (mobile), and largest ellipse in each clone
+- Exported 944×422 (377 KB) and 514×828 (217 KB) at 1x — dimensions verified
+- Frontend build clean (15 routes, no errors)
+- Deploy succeeded; both URLs verified HTTP 200 before mark_done
+
+**Skipped: 0**
+
+Deploy succeeded. URLs live at `iw-crew-m-c4b9.insurwreck.com/creatives/586-{desktop,mobile}.png`.

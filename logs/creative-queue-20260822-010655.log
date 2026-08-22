@@ -1,0 +1,10 @@
+The queue returned HTTP 200 with `content-length: 0` — an empty body indicating no pending rows.
+
+**Summary:**
+
+- Queue rows received: 0
+- Rows finished: 0
+- Rows skipped: 0
+- Deploy: not attempted (nothing to process)
+
+The creative queue is empty this run. Normal outcome — no action required.

@@ -1,0 +1,10 @@
+The endpoint returns HTTP 200 with an empty body — no pending rows in the queue.
+
+**Run summary:**
+
+- Queue polled: `POST /webhook/iw-crew-m-c4b9-creative-queue-manage {"action":"get_pending"}` → HTTP 200, empty body (no pending rows)
+- Rows processed: 0
+- Rows skipped: 0
+- Deploy: not needed (nothing to ship)
+
+Queue is empty. Normal outcome — nothing to do this run.

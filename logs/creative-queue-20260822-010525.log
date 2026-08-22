@@ -1,0 +1,9 @@
+The queue endpoint returned HTTP 200 with an empty body — no pending rows this run.
+
+**Run summary:**
+- Queue rows: 0 (empty response from `get_pending`)
+- Rows finished: 0
+- Rows skipped: 0
+- Deploy: not required (nothing to ship)
+
+Normal outcome — the queue is empty. No Figma frames were created, no creatives were exported, no deploy was triggered.

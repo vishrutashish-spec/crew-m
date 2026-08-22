@@ -1,0 +1,11 @@
+**Run complete — nothing to do.**
+
+The endpoint responded HTTP 200 with an empty body (content-length: 0), indicating the pending queue is empty.
+
+**Summary:**
+- Rows in queue: 0
+- Rows finished: 0
+- Rows skipped: 0
+- Deploy: not attempted (no work to do)
+
+Normal outcome — no pending creative requests this run.

@@ -7,6 +7,27 @@ interface OpenModalRequest {
   slackChannel: string;
 }
 
+/**
+ * Opens the /crew-m campaign request modal.
+ *
+ * Block and action ids here are a contract with the n8n workflow
+ * ("iw-crew-m-c4b9 · AM campaign request → CleverTap draft", node
+ * "Extract Campaign Fields"), which reads:
+ *   am_name_block.am_name_input.value
+ *   account_block.account_input.value
+ *   campaign_type_block.campaign_type_select.selected_option.value
+ *   benefits_block.benefits_input.value
+ *   logo_block.logo_upload.files[0].id / .url_private
+ * Renaming any of them silently breaks the submission handler.
+ *
+ * radio_buttons rather than static_select: static_select was rejected by
+ * views.open with invalid_arguments, and radio_buttons yields the same
+ * selected_option.value shape.
+ *
+ * file_input IS supported in modals (it needs the files:read scope, which
+ * this app has) — verified against Slack by structure-checking this exact
+ * payload, which returns invalid_trigger_id rather than invalid_arguments.
+ */
 export async function POST(request: Request) {
   const { requestId, triggerId, slackChannel } = (await request.json()) as OpenModalRequest;
 
@@ -16,83 +37,85 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "slack_not_configured" }, { status: 500 });
   }
 
-  // Diagnostic switch: SLACK_MODAL_DEBUG_MINIMAL=1 swaps in a bare
-  // single-field modal to isolate intermittent views.open invalid_arguments
-  // errors — bisecting whether they're payload-specific or Slack-side.
-  const minimalDebug = process.env.SLACK_MODAL_DEBUG_MINIMAL === "1";
-
-  const view = minimalDebug
-    ? {
-        type: "modal",
-        callback_id: "am_campaign_request_debug",
-        private_metadata: JSON.stringify({ channelId: slackChannel, requestId }),
-        title: { type: "plain_text", text: "Debug" },
-        submit: { type: "plain_text", text: "Submit" },
-        close: { type: "plain_text", text: "Cancel" },
-        blocks: [
-          {
-            type: "input",
-            block_id: "am_name_block",
-            label: { type: "plain_text", text: "Your name" },
-            element: { type: "plain_text_input", action_id: "am_name_input" },
-          },
-          {
-            type: "input",
-            block_id: "account_block",
-            label: { type: "plain_text", text: "Account name" },
-            element: { type: "plain_text_input", action_id: "account_input" },
-          },
-        ],
-      }
-    : {
-        type: "modal",
-        callback_id: "am_campaign_request",
-        private_metadata: JSON.stringify({ channelId: slackChannel, requestId }),
-        title: { type: "plain_text", text: "New campaign" },
-        submit: { type: "plain_text", text: "Submit" },
-        close: { type: "plain_text", text: "Cancel" },
-        blocks: [
-          {
-            type: "input",
-            block_id: "am_name_block",
-            label: { type: "plain_text", text: "Your name" },
-            element: { type: "plain_text_input", action_id: "am_name_input" },
-          },
-          {
-            type: "input",
-            block_id: "account_block",
-            label: { type: "plain_text", text: "Account name" },
-            element: { type: "plain_text_input", action_id: "account_input" },
-          },
-          {
-            // static_select was consistently rejected by views.open with
-            // invalid_arguments (isolated via bisection); radio_buttons
-            // produces the same selected_option.value shape on submit and
-            // works reliably.
-            type: "input",
-            block_id: "campaign_type_block",
-            label: { type: "plain_text", text: "Campaign type" },
-            element: {
-              type: "radio_buttons",
-              action_id: "campaign_type_select",
-              options: [
-                { text: { type: "plain_text", text: "Welcome" }, value: "welcome" },
-                { text: { type: "plain_text", text: "Renewal" }, value: "renewal" },
-              ],
-            },
-          },
-          {
-            // Slack's file_input block element isn't supported inside modals
-            // opened via views.open (Workflow Builder / App Home only) — a
-            // plain URL field is the reliable substitute.
-            type: "input",
-            block_id: "logo_block",
-            optional: true,
-            label: { type: "plain_text", text: "Client logo URL (optional)" },
-            element: { type: "plain_text_input", action_id: "logo_url_input" },
-          },
-        ],
-      };
+  const view = {
+    type: "modal",
+    callback_id: "am_campaign_request",
+    private_metadata: JSON.stringify({ channelId: slackChannel, requestId }),
+    title: { type: "plain_text", text: "New campaign" },
+    submit: { type: "plain_text", text: "Submit" },
+    close: { type: "plain_text", text: "Cancel" },
+    blocks: [
+      {
+        type: "input",
+        block_id: "am_name_block",
+        label: { type: "plain_text", text: "Your name" },
+        element: {
+          type: "plain_text_input",
+          action_id: "am_name_input",
+          placeholder: { type: "plain_text", text: "Jordan Lee" },
+        },
+      },
+      {
+        type: "input",
+        block_id: "account_block",
+        label: { type: "plain_text", text: "Account name" },
+        element: {
+          type: "plain_text_input",
+          action_id: "account_input",
+          placeholder: { type: "plain_text", text: "Prochant" },
+        },
+      },
+      {
+        type: "input",
+        block_id: "campaign_type_block",
+        label: { type: "plain_text", text: "Campaign type" },
+        element: {
+          type: "radio_buttons",
+          action_id: "campaign_type_select",
+          options: [
+            { text: { type: "plain_text", text: "Welcome" }, value: "welcome" },
+            { text: { type: "plain_text", text: "Renewal" }, value: "renewal" },
+          ],
+        },
+      },
+      {
+        // One free-text block rather than nine separate fields: the AM is
+        // usually copying these straight off the policy schedule, and the set
+        // of benefits varies per account. Anything pasted here is treated as
+        // verified and quoted as-is; anything absent is omitted from the email
+        // rather than guessed.
+        type: "input",
+        block_id: "benefits_block",
+        optional: true,
+        label: { type: "plain_text", text: "Policy benefits (optional)" },
+        hint: {
+          type: "plain_text",
+          text: "One per line, e.g. Maternity Limit: ₹1,00,000 for normal and C-section. Ambulance Charges: up to ₹5,000 per hospitalisation. LASIK: above +/-7.5D. Ayush: 100% of sum insured for IPD. Family definition: ESC. TPA: In-house. Leave blank and these sections are left out.",
+        },
+        element: {
+          type: "plain_text_input",
+          action_id: "benefits_input",
+          multiline: true,
+        },
+      },
+      {
+        type: "input",
+        block_id: "logo_block",
+        optional: true,
+        label: { type: "plain_text", text: "Account logo (optional)" },
+        hint: {
+          type: "plain_text",
+          text: "PNG only. A transparent, dark-on-light wordmark works best — the header is cream.",
+        },
+        element: {
+          type: "file_input",
+          action_id: "logo_upload",
+          filetypes: ["png"],
+          max_files: 1,
+        },
+      },
+    ],
+  };
 
   const res = await fetch("https://slack.com/api/views.open", {
     method: "POST",

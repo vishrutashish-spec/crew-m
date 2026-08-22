@@ -1,0 +1,12 @@
+The queue endpoint returned HTTP 200 with an empty body (content-length: 0), meaning there are no pending creative requests in the queue.
+
+---
+
+**Run summary — 2026-08-21T15:37:39Z**
+
+- Queue rows: **0** (endpoint returned HTTP 200, empty body)
+- Rows processed: 0
+- Rows skipped: 0
+- Deploy: not triggered (nothing to deploy)
+
+No work to do this run — normal outcome.

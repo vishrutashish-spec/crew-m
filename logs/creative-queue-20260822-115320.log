@@ -1,0 +1,10 @@
+---
+
+**Run summary — 2026-08-22T06:23Z**
+
+- Queue size: 0 (server returned HTTP 200, empty body)
+- Rows finished: 0
+- Rows skipped: 0
+- Deploy: not performed (nothing to ship)
+
+Normal outcome — queue was empty.

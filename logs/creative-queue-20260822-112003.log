@@ -1,0 +1,13 @@
+---
+
+**Run summary — 2026-08-22**
+
+Queue: 2 rows pending (requestId 607 and 612, both Groww welcome single-brand).
+
+Finished: 2. Skipped: 0.
+
+GT Alpina and Passenger Sans were not available in Figma; Vollkorn substituted per §1.3. Frame names carry `[Vollkorn]` suffix. No brand fonts present, font substitution noted — not a stopgap, Vollkorn is the accepted standing choice per playbook.
+
+Both clones created at x=19000 from templates `1:197` (desktop 944×422) and `23:678` (mobile 514×828). All six text nodes set to correct welcome copy; no placeholder strings remained after two-pass replacement. Desktop heading height 56px (under 100px limit). Accent `#FFBFC5` applied to Rectangle 3 VECTOR gradient stop, `02_doc` frame gradient stop, and largest ELLIPSE on both variants. Single-brand — no logo compositing required.
+
+Files exported and pixel-verified at correct dimensions: `607-desktop.png`, `607-mobile.png`, `612-desktop.png`, `612-mobile.png` (612 is identical content to 607 — same campaign type and account). Frontend build passed. Deploy succeeded. All four URLs confirmed 200 before marking done.

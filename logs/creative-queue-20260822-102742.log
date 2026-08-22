@@ -1,0 +1,10 @@
+**Run summary — 2026-08-22 04:57 UTC**
+
+Queue fetch: HTTP 200, empty body (zero bytes). The `get_pending` call succeeded and returned no rows.
+
+- Rows in queue: 0
+- Rows finished: 0
+- Rows skipped: 0
+- Deploy: not attempted (nothing to ship)
+
+Normal outcome — nothing to do this run.

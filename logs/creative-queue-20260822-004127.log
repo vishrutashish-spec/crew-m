@@ -1,0 +1,9 @@
+HTTP 200 with an empty body — the queue returned no pending rows. This is the expected "nothing to do" outcome.
+
+**Run summary:**
+
+- Queue size: 0 pending rows
+- Rows finished: 0
+- Rows skipped: 0
+- Deploy: not triggered (no work to do)
+- Queue endpoint responded HTTP 200 with empty body, which is the normal "all clear" state.

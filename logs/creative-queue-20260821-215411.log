@@ -1,0 +1,12 @@
+Queue is empty. `content-length: 0` confirms there are no pending rows.
+
+---
+
+**Run summary — 2026-08-21 16:24 UTC**
+
+- Rows in queue: **0**
+- Rows finished: 0
+- Rows skipped: 0
+- Deploy: not needed (nothing to process)
+
+Normal outcome — the queue was empty this run.

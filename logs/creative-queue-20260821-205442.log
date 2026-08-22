@@ -1,0 +1,11 @@
+The queue endpoint is returning HTTP 502 Bad Gateway — the n8n workflow service at `workflow-stg.plumhq.com` is not responding.
+
+---
+
+**Run summary — 2026-08-21**
+
+- Queue fetch: `POST /webhook/iw-crew-m-c4b9-creative-queue-manage {"action":"get_pending"}` → HTTP 502 Bad Gateway. The workflow backend is unreachable.
+- Rows processed: 0
+- Rows skipped: 0
+- Deploy: not attempted (nothing to ship)
+- Action required: the n8n instance at `workflow-stg.plumhq.com` needs to be checked; the queue webhook is not up.

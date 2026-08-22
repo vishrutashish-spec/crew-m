@@ -1,0 +1,12 @@
+The webhook returned HTTP 200 with an empty body (content-length: 0), which means the queue returned an empty array.
+
+---
+
+**Run summary — 2026-08-22**
+
+Queue: 0 rows pending.
+Finished: 0.
+Skipped: 0.
+Deploy: not attempted (no work to do).
+
+Normal outcome — the creative queue is empty this run. No Figma changes were made.

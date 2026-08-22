@@ -1,0 +1,9 @@
+**Run complete — queue is empty.**
+
+The endpoint returned HTTP 200 with an empty body (content-length: 0), which means there are no pending rows in the creative queue this run. No Figma operations were performed, no files were generated, and no deploy was needed.
+
+Summary:
+- Rows in queue: 0
+- Rows finished: 0
+- Rows skipped: 0
+- Deploy: not required (nothing to ship)

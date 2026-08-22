@@ -1,0 +1,12 @@
+The queue endpoint returned HTTP 200 with an empty body (content-length: 0), indicating no pending rows in the queue.
+
+---
+
+**Run summary:**
+
+- Queue rows: 0
+- Rows finished: 0
+- Rows skipped: 0
+- Deploy: not triggered (nothing to process)
+
+The creative queue is empty this run. No Figma work, no exports, no commit, no deploy. Normal outcome.

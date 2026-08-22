@@ -1,0 +1,10 @@
+**Run summary — 2026-08-22**
+
+The queue returned HTTP 200 with an empty body (0 bytes / no rows). This is a normal outcome.
+
+- Rows in queue: 0
+- Rows finished: 0
+- Rows skipped: 0
+- Deploy: not triggered (nothing to ship)
+
+No Figma work was done this run.

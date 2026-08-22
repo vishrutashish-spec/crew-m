@@ -520,3 +520,48 @@ misspellings before detection. Unmatched questions get an honest answer that
 says so and lists what SIGNAL can actually answer, rather than a generic
 brochure. Verified across 24 queries including typos, multi-intent and
 nonsense: mean 9.90, min 9.4, none below 9.
+
+## Deployment topology
+
+Two Vercel projects, deliberately, because the two halves want different build
+shapes and forcing one project to serve both produced a deploy that reported
+success and then 404ed every route.
+
+| Project | Contains | Config | Root |
+|---|---|---|---|
+| `iw-crew-m-c4b9` | The Next.js app | zero-config | Root Directory `frontend/` |
+| `iw-crew-m-engine` | The Python engine | `vercel.engine.json` | repo root |
+
+The engine project needs the repo root, because `api/index.py` bundles
+`backend/**` and files outside a project's Root Directory are not available to
+it. The app project needs Root Directory `frontend/`, because that is where its
+`package.json` lives and Next.js version detection reads it there.
+
+Deploy commands, from the repo root:
+
+    iw-deploy                                    # the app
+    vercel deploy --prod -A vercel.engine.json   # the engine
+
+The engine deploy needs `VERCEL_PROJECT_ID=prj_dkR8WNgRzq5acKc4xSp85PiTbvul`
+exported, since `.vercel/project.json` is linked to the app project.
+
+The browser never learns the engine origin. `frontend/next.config.ts` rewrites
+`/api/engine/:path*` to it server-side, so every request the client makes is
+same-origin: no CORS surface, and no cross-origin fetch of Plum aggregates from
+a page. `ENGINE_ORIGIN` overrides the target for a preview engine or a local
+uvicorn.
+
+Two things worth knowing before the demo.
+
+**Demo on the `.vercel.app` host, not the `.insurwreck.com` one.** Plum's Sophos
+web filter blocks `insurwreck.com` as an uncategorised site from inside the
+corporate network: it intercepts TLS with its own CA and redirects to an
+internal block page. The deployment is fine; the network is not letting that
+hostname through. `iw-crew-m-c4b9.vercel.app` passes the filter.
+
+**Both projects are public.** The app displays aggregate cohort figures and the
+engine serves them unauthenticated, so anyone with either URL can read them.
+That is the same posture the desk provisioned for the app, and the engine
+exposes nothing the app does not already show, but it is a real property of the
+deploy rather than an accident to discover later. There are no member rows in
+either path.

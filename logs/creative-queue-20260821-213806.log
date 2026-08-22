@@ -1,0 +1,12 @@
+The response is HTTP 200 with `content-length: 0` — the queue is empty.
+
+---
+
+**Run summary — 2026-08-21T16:08:29Z**
+
+- Queue size: 0 (empty — server returned HTTP 200 with an empty body)
+- Rows processed: 0
+- Rows skipped: 0
+- Deploy: not triggered (nothing to deploy)
+
+Normal outcome. No pending creative requests this run.

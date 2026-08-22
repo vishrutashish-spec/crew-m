@@ -79,7 +79,7 @@ function NewCampaignForm() {
       const creativeRes = await fetch("/api/creative", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ requestId, copy }),
+        body: JSON.stringify({ requestId, copy, logoUrl: logoUrl.trim() || undefined }),
       });
       if (!creativeRes.ok) throw new Error("Couldn't render the creative. Try again.");
       const creative = await creativeRes.json();

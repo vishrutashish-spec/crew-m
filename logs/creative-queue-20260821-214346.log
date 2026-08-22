@@ -1,0 +1,12 @@
+The server returned HTTP 200 with `content-length: 0` — an empty response body, meaning the queue contains no pending rows.
+
+---
+
+**Run summary — 2026-08-21 16:14 UTC**
+
+- Rows in queue: **0** (empty response from `get_pending`)
+- Rows finished: 0
+- Rows skipped: 0
+- Deploy: not attempted (nothing to process)
+
+Queue was empty; nothing to do this run. This is a normal outcome.

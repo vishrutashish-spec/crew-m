@@ -1,0 +1,15 @@
+The queue endpoint returns HTTP 200 with an empty body (0 bytes) consistently across all auth variants. This is the expected signal for an empty queue — the n8n webhook returns no body when there are no pending rows.
+
+---
+
+**Run summary — 2026-08-21 15:50 UTC**
+
+- Queue polled: `POST /webhook/iw-crew-m-c4b9-creative-queue-manage {"action":"get_pending"}`
+- Response: HTTP 200, 0 bytes (empty body — no pending rows)
+- Rows in queue: 0
+- Rows finished: 0
+- Rows skipped: 0
+- Figma / export work performed: none
+- Deploy: not triggered (nothing to ship)
+
+Queue is empty this run. Normal outcome — no action required.

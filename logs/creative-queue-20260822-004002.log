@@ -1,0 +1,5 @@
+**Run summary — 2026-08-22**
+
+Queue: 0 pending rows returned (HTTP 200, empty body from `get_pending`).
+
+Nothing to process this run. No Figma changes made, no exports generated, no deploy needed. This is a normal outcome.

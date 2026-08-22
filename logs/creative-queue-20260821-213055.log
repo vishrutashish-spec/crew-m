@@ -1,0 +1,10 @@
+The queue endpoint returned HTTP 200 with `content-length: 0` — an empty body. This means there are no pending rows in the queue.
+
+---
+
+**Run summary — 2026-08-21 16:01 UTC**
+
+- Queue returned: 0 pending rows (HTTP 200, empty body).
+- Nothing to process this run.
+- No Figma clones created, no exports generated, no deploy triggered.
+- This is a normal outcome.

@@ -1,0 +1,11 @@
+The queue endpoint returned HTTP 200 with an empty body (content-length: 0), indicating zero pending rows.
+
+---
+
+**Run summary — 2026-08-22**
+
+Queue rows returned: **0** (empty body, HTTP 200 — normal outcome).  
+Rows finished: 0.  
+Rows skipped: 0.  
+No Figma work performed, no files written, no deploy triggered.  
+Nothing to do this run.

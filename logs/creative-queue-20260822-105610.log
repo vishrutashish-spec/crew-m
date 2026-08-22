@@ -1,0 +1,17 @@
+---
+
+**Run summary — 2026-08-22**
+
+Queue: 1 row pending.
+
+**Processed: 1** — requestId `602`, Groww, welcome, single-brand.
+- Font fallback: GT Alpina and Passenger Sans not available; used Vollkorn (headings) and Inter Semi Bold (button). Frames named with `[Vollkorn]` suffix.
+- All 3 text placeholders replaced on both desktop and mobile. No placeholders remained at assertion time.
+- Heading heights: desktop 56px, mobile 69px — both under 100px limit.
+- Accent `#FFBFC5` applied to Rectangle 3 gradient, Ellipse 2773 (desktop); 02_doc gradient, Ellipse 2772 (mobile).
+- Exported at 1x: desktop 944×422 ✓, mobile 514×828 ✓.
+- Frontend build clean. Commit `d2359d7`. Deploy succeeded.
+- Both URLs confirmed 200: `https://iw-crew-m-c4b9.insurwreck.com/creatives/602-desktop.png` and `602-mobile.png`.
+- Row marked done via queue API.
+
+**Skipped: 0.**
