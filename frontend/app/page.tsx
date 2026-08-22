@@ -420,7 +420,8 @@ function FunnelPanel({
       <div className="mt-3 pt-3 border-t border-border flex items-center gap-4 flex-wrap">
         <Legend color={CHART.red} label={`Biggest drop: ${worst?.stage}`} />
         <span className="text-[11px] text-muted-foreground">
-          Labels show the share continuing from the previous stage
+          Labels show the share of {stages[0]?.stage ?? "the first stage"}, so the last one is the
+          end-to-end rate. The red bar is the steepest single-step drop.
         </span>
       </div>
     </ChartFrame>

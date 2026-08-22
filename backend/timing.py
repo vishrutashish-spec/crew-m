@@ -280,6 +280,14 @@ def funnel_explain(channel: str, objective: str, sent: int,
         },
     ]
 
+    # Every stage also carries its share of the FIRST stage, which is what the
+    # chart labels. "rate" stays as the step-over-step multiplier because that
+    # is genuinely how the value was computed, so the explanation shows both
+    # without either one being able to contradict the bars.
+    first = steps[0]["value"] or 0
+    for s in steps:
+        s["of_first"] = round(s["value"] / first, 4) if first else 0.0
+
     observed = sum(1 for s in steps if s["provenance"] == "OBSERVED")
     derived = sum(1 for s in steps if s["provenance"] == "DERIVED")
     return {
