@@ -129,9 +129,12 @@ const GENERIC_HEADERS: Record<string, { desktop: string; mobile: string }> = {
   },
 };
 // plumhq.app.link and deeplink.plumhq.com are JS interstitials that render
-// blank in several mail clients (confirmed 2026-08-22). Link the stores
-// directly, exactly as the production Open Financial email does.
-const APP_DOWNLOAD = "https://plumhq.app.link";
+// blank in several mail clients (confirmed 2026-08-22). Welcome/renewal link
+// the store directly, exactly as the production Open Financial email does.
+// HRA is the one deliberate exception - the AM gave plumhq.app.link by name
+// for that footer, so it keeps the Branch link instead.
+const APP_DOWNLOAD_DEFAULT = "https://play.google.com/store/apps/details?id=com.plumhq.employee.production";
+const APP_DOWNLOAD_HRA = "https://plumhq.app.link";
 
 interface SendRequest {
   requestId?: string;
@@ -202,8 +205,9 @@ function buildHtml(opts: {
   deeplink: string;
   headerAlt?: string;
   ctaLabel: string;
+  appDownload: string;
 }) {
-  const { body, desktopHeader, mobileHeader, deeplink, headerAlt, ctaLabel } = opts;
+  const { body, desktopHeader, mobileHeader, deeplink, headerAlt, ctaLabel, appDownload } = opts;
   const { above, below } = splitAtClosingSection(body);
   // Headline, subtext and the co-branding lockup are all baked into this PNG
   // (deliberate - GT Alpina cannot load as a webfont in email). So when a
@@ -264,12 +268,12 @@ ${bodyToHtml(below)}
 
 <tr><td style="padding:0; font-size:0; line-height:0;">
   <div class="desktop-only">
-    <a href="${APP_DOWNLOAD}" style="display:block;">
+    <a href="${appDownload}" style="display:block;">
       <img src="${FOOTER_DESKTOP}" alt="Download the Plum app" style="display:block; width:100%; height:auto; border:0; background-color:#F7EEF3; font-family:Inter, Helvetica, Arial, sans-serif; font-size:14px; color:#3A0E2B; text-align:center;">
     </a>
   </div>
   <div class="mobile-only" style="display:none; max-height:0; overflow:hidden;">
-    <a href="${APP_DOWNLOAD}" style="display:block;">
+    <a href="${appDownload}" style="display:block;">
       <img src="${FOOTER_MOBILE}" alt="Download the Plum app" style="display:block; width:100%; height:auto; border:0; background-color:#F7EEF3; font-family:Inter, Helvetica, Arial, sans-serif; font-size:14px; color:#3A0E2B; text-align:center;">
     </a>
   </div>
@@ -378,6 +382,7 @@ export async function POST(request: Request) {
     deeplink,
     headerAlt,
     ctaLabel,
+    appDownload: isHra ? APP_DOWNLOAD_HRA : APP_DOWNLOAD_DEFAULT,
   });
 
   if (preview) {

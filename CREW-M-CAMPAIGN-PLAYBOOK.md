@@ -34,6 +34,12 @@ wrong. To validate a view without a real trigger, POST it to `views.open`
 with a dummy `trigger_id`: `invalid_trigger_id` means the view is fine,
 `invalid_arguments` means it is not.
 
+**Slack app scopes needed**: `commands` (the slash command itself),
+`chat:write` (post replies), `chat:write.public` (post into public channels
+the bot hasn't been invited to — this scope does **not** cover DMs), and
+`files:read` (the logo upload). Missing `chat:write.public` is the usual
+cause of `not_in_channel` on the reply step; see the DM fallback below.
+
 ---
 
 ## 2. Sending
@@ -72,6 +78,42 @@ Update it by redeploying that folder, not this one.
 
 ---
 
+## 3.1 Creative queue — the unattended path
+
+`/api/creative` can't always produce a header inline: a co-branded request
+that needs a fresh Figma clone gets written to a queue instead of blocking
+the Slack response. That queue is drained by
+`scripts/run-creative-queue.sh`, run on a short interval outside the app
+(originally via launchd), which shells out to
+`claude -p "$(cat scripts/process-creative-queue.md)" --permission-mode
+bypassPermissions --max-budget-usd 1` and logs each run to
+`logs/creative-queue-<timestamp>.log` (see `logs/run-history.log` for the
+run index).
+
+`scripts/process-creative-queue.md` is the actual job spec, written for an
+unattended agent with no human watching, so it's deliberately conservative:
+fetch pending rows from
+`POST workflow-stg.plumhq.com/webhook/iw-crew-m-c4b9-creative-queue-manage`
+(`{"action": "get_pending"}`), re-read `EMAIL-DESIGN-PLAYBOOK.md` in full
+every run because node IDs shift between sessions, **only clone Figma
+frames, never edit the originals**, and skip (don't fail) any co-branded row
+that's missing a `logoUrl` rather than guessing a logo. Scope is the header
+image only — footers are fixed shared artwork and are never touched by this
+job.
+
+## 3.2 Per-account creative precedence
+
+`ACCOUNT_CREATIVES` in `send/route.ts` holds bespoke header pairs keyed
+`"<account>|<welcome|renewal>"` (e.g. `"groww|renewal"`,
+`"open financial|welcome"`). Resolution order when assembling a send:
+
+1. A creative passed in on the request itself (from the pipeline / queue)
+2. `ACCOUNT_CREATIVES[accountName|campaignType]`
+3. `GENERIC_HEADERS[campaignType]` — the unbranded fallback, and the reason
+   a missing bespoke creative never blocks a send, only degrades it.
+
+---
+
 ## 4. Email structure
 
 Source of truth: the Open Financial production email. Sections, in order:
@@ -97,6 +139,18 @@ amounts — a whole organisation reads the email and grades differ per person.
 
 **Layout:** the CTA must not be the last thing before the footer. The support
 section and closing render *below* the button.
+
+**Facts are a hardcoded snapshot, not a live query.** `frontend/lib/
+account-facts.ts` covers exactly three accounts (Open Financial, Groww,
+Prochant) read by hand from the warehouse, not fetched at request time. The
+reason it isn't live: `policy_schedule` (dataset 19251) has the richer
+fields — maternity, copay, TPA — but the data API exposes it with no org
+filter, so a single account's row can't be pulled from it; `iw_policy_si`
+(dataset 19648) is filterable but doesn't carry those fields. If an account
+is missing from the file, `/api/copy` writes the correct structure but
+omits the specifics rather than inventing them — a wrong sum insured is
+worse than a vague one. Adding a fourth account means reading the warehouse
+by hand again, the same way the first three were done.
 
 ---
 
@@ -138,6 +192,23 @@ model-written copy, 12 for HRA, whose minimalist narrative is 24 words.
 mobile. The App Store / Play Store URLs are
 `apps.apple.com/app/id1616851078` and
 `play.google.com/store/apps/details?id=com.plumhq.employee.production`.
+
+HRA is a deliberate, narrow exception to that rule for its footer link only
+(the AM specified `plumhq.app.link` by name for HRA) — welcome/renewal keeps
+the store link. Adding the HRA case once silently overwrote the single
+shared `APP_DOWNLOAD` constant for every campaign type, quietly reverting
+the blank-link fix for welcome/renewal. Fixed by splitting it into
+`APP_DOWNLOAD_HRA` and `APP_DOWNLOAD_DEFAULT` in `send/route.ts`, picked by
+`isHra`. **Any future per-campaign-type override needs its own constant —
+never repoint the shared one.**
+
+**A Slack DM reply needs the fallback path, not just the scope.** Even with
+`chat:write.public`, `chat.postMessage` to the original channel can come
+back `channel_not_found` or `not_in_channel` (that scope covers public
+channels the bot hasn't joined, not DMs). `/api/slack/reply` catches those
+two errors plus `no_channel` and retries with the requester's own user id
+as `channel` — Slack opens the IM automatically. Silently swallowing the
+first failure would mean the AM never learns their campaign sent.
 
 **Design for blocked images.** Every major client blocks remote images by
 default and Gmail strips base64, so there is no way to force them. The
