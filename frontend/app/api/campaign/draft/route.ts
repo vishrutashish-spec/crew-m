@@ -89,6 +89,54 @@ export async function POST(request: Request) {
     }
   }
 
+  // Ask a human before anything real goes out. This is the one place both
+  // the chat bot and the /crew-m modal funnel through, so the approval gate
+  // applies no matter which path produced the draft.
+  const slackToken = process.env.SLACK_BOT_TOKEN;
+  const pmmChannel = process.env.SLACK_PMM_CHANNEL_ID;
+  if (slackToken && pmmChannel && id) {
+    await fetch("https://slack.com/api/chat.postMessage", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${slackToken}`,
+        "Content-Type": "application/json; charset=utf-8",
+      },
+      body: JSON.stringify({
+        channel: pmmChannel,
+        text: `New campaign draft ready for review: ${campaignName}`,
+        blocks: [
+          {
+            type: "section",
+            text: {
+              type: "mrkdwn",
+              text: `*${campaignName}*\nRequested by ${amName}\n\n*Subject:* ${copy?.subject ?? ""}\n\n*Suggested audience:* ${segmentSuggestion}`,
+            },
+          },
+          {
+            type: "actions",
+            block_id: "campaign_approval",
+            elements: [
+              {
+                type: "button",
+                text: { type: "plain_text", text: "Approve" },
+                style: "primary",
+                action_id: "approve_campaign",
+                value: id,
+              },
+              {
+                type: "button",
+                text: { type: "plain_text", text: "Reject" },
+                style: "danger",
+                action_id: "reject_campaign",
+                value: id,
+              },
+            ],
+          },
+        ],
+      }),
+    }).catch((err) => console.error("approval post failed", err));
+  }
+
   return NextResponse.json({
     id,
     requestId,
