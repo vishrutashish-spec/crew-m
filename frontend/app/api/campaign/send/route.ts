@@ -26,6 +26,23 @@ const BENEFITS_DEEPLINK = "https://deeplink.plumhq.com/benefits";
  * per-account) creative replaces these once the Figma agent builds it.
  * Copy baked into these matches the queue prompt's generic wording.
  */
+/**
+ * Per-account co-branded creatives, keyed `account|campaignType`. These carry
+ * the client logo in the co-branding slot, so they beat the generic headers.
+ * Built through the Figma pipeline and composited locally (Figma image fills
+ * never reach a server-side export), then pixel-verified before shipping.
+ */
+const ACCOUNT_CREATIVES: Record<string, { desktop: string; mobile: string }> = {
+  "prochant|renewal": {
+    desktop: `${ASSETS}/prochant-header-desktop-family.png`,
+    mobile: `${ASSETS}/prochant-header-mobile-family.png`,
+  },
+  "groww|welcome": {
+    desktop: `${ASSETS}/groww-welcome-desktop.png`,
+    mobile: `${ASSETS}/groww-welcome-mobile.png`,
+  },
+};
+
 const GENERIC_HEADERS: Record<string, { desktop: string; mobile: string }> = {
   welcome: {
     desktop: `${ASSETS}/generic-welcome-desktop.png`,
@@ -174,21 +191,32 @@ export async function POST(request: Request) {
 
   // A bespoke creative wins; otherwise fall back to the generic header for
   // this campaign type so the email is never sent without a banner.
-  const generic = GENERIC_HEADERS[(campaignType ?? "").toLowerCase()];
-  const usingGeneric = Boolean(creative?.stub) || !creative?.creativeUrl;
+  // Header precedence: a creative passed in by the pipeline, then this
+  // account's own co-branded creative, then the generic one for this campaign
+  // type. Only "none" if the campaign type is unrecognised.
+  const typeKey = (campaignType ?? "").trim().toLowerCase();
+  const acctKey = `${(accountName ?? "").trim().toLowerCase()}|${typeKey}`;
+  const account = ACCOUNT_CREATIVES[acctKey];
+  const generic = GENERIC_HEADERS[typeKey];
 
-  const desktopHeader = usingGeneric ? generic?.desktop : creative?.creativeUrl;
-  const mobileHeader = usingGeneric
-    ? generic?.mobile
-    : (creative?.mobileCreativeUrl ?? creative?.creativeUrl);
+  const passedIn = !creative?.stub && creative?.creativeUrl ? creative : null;
+  const chosen = passedIn
+    ? { desktop: passedIn.creativeUrl!, mobile: passedIn.mobileCreativeUrl ?? passedIn.creativeUrl! }
+    : (account ?? generic);
 
-  const html = buildHtml({ subject, body, desktopHeader, mobileHeader });
+  const headerUsed = passedIn ? "pipeline" : account ? `account:${acctKey}` : generic ? `generic:${typeKey}` : "none";
+
+  const html = buildHtml({
+    subject, body,
+    desktopHeader: chosen?.desktop,
+    mobileHeader: chosen?.mobile,
+  });
 
   if (preview) {
     return NextResponse.json({
       ok: true, preview: true, wouldSendTo: ONLY_RECIPIENT,
       imageCount: (html.match(/<img /g) ?? []).length,
-      headerUsed: usingGeneric ? (generic ? `generic:${campaignType}` : "none") : "bespoke",
+      headerUsed,
       html,
     });
   }
@@ -219,6 +247,6 @@ export async function POST(request: Request) {
     sentTo: ONLY_RECIPIENT,
     requestId, accountName, campaignType,
     creativeWasStub: Boolean(creative?.stub),
-    headerUsed: usingGeneric ? (generic ? `generic:${campaignType}` : "none") : "bespoke",
+    headerUsed,
   });
 }
