@@ -19,6 +19,8 @@ interface AgentReply {
    *  plain welcome/renewal request — carried through to copy generation. */
   campaignBrief?: string;
   logoUrl?: string;
+  /** Only set if the AM explicitly named a recipient. Omitted -> safe default. */
+  sendTo?: { mode: "single" | "all_plum_staff"; email?: string };
 }
 
 const SYSTEM_PROMPT = `You are Crew M's campaign assistant. Someone just tagged you in a Slack channel — your job is to gather what's needed to draft a client email campaign, then hand it off for drafting.
@@ -54,9 +56,21 @@ For step 3, figure out what this actually is:
 Ask short, direct questions — one at a time, not a list. Don't explain your
 reasoning. Don't use markdown headers.
 
+By default, every draft goes to a safe internal test address once approved —
+you never need to ask about this. Only set "sendTo" in the final JSON if the
+AM explicitly names where it should go:
+- They give a specific email address ("send it to me at x@y.com", "test send
+  to jane@acme.com") -> {"mode":"single","email":"x@y.com"}
+- They say something like "send to everyone at Plum" / "send to all of Plum
+  staff" / "company-wide" -> {"mode":"all_plum_staff"}
+Never infer or guess a recipient — only set "sendTo" when they said so in
+plain words. If they didn't mention a recipient at all, omit "sendTo"
+entirely from the JSON.
+
 Once you have the AM's name, the account name, and the campaign type/intent,
 respond with ONLY this JSON (no other text):
-{"action":"draft","amName":"...","accountName":"...","campaignType":"welcome|renewal|<slug>","campaignBrief":"...","logoUrl":"..."}
+{"action":"draft","amName":"...","accountName":"...","campaignType":"welcome|renewal|<slug>","campaignBrief":"...","logoUrl":"...","sendTo":{"mode":"single|all_plum_staff","email":"..."}}
+("sendTo" is optional — include it only per the rule above.)
 
 Until then, respond with ONLY this JSON (no other text):
 {"action":"reply","text":"your next message to the AM"}
@@ -224,7 +238,7 @@ export async function POST(request: Request) {
 
   // action === "draft": run the existing pipeline against our own API.
   const requestId = `chat-${Date.now()}`;
-  const { amName, accountName, campaignType, campaignBrief, logoUrl } = reply;
+  const { amName, accountName, campaignType, campaignBrief, logoUrl, sendTo } = reply;
 
   const copy = await fetch(`${BASE_URL}/api/copy`, {
     method: "POST",
@@ -241,7 +255,7 @@ export async function POST(request: Request) {
   const draft = await fetch(`${BASE_URL}/api/campaign/draft`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ requestId, amName, accountName, campaignType, campaignBrief, copy, creative }),
+    body: JSON.stringify({ requestId, amName, accountName, campaignType, campaignBrief, copy, creative, sendTo }),
   }).then((r) => r.json());
 
   // Tag the saved record with where it came from, so the PMM's approve/reject
@@ -262,10 +276,17 @@ export async function POST(request: Request) {
     }).catch(() => {});
   }
 
+  const sendToNote =
+    sendTo?.mode === "single"
+      ? ` It'll go to ${sendTo.email} once approved.`
+      : sendTo?.mode === "all_plum_staff"
+      ? " It'll go to everyone at Plum once approved — the PMM approval message will show the address count."
+      : "";
+
   await slackApi(token, "chat.postMessage", {
     channel: slackChannel,
     thread_ts: threadTs,
-    text: `Got it — drafting the ${campaignType} campaign for ${accountName} now. I'll ping the PMM channel for approval and let you know what happens.`,
+    text: `Got it — drafting the ${campaignType} campaign for ${accountName} now.${sendToNote} I'll ping the PMM channel for approval and let you know what happens.`,
   });
 
   return NextResponse.json({ ok: true, action: "draft", id: draft.id });

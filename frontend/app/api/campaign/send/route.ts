@@ -124,7 +124,6 @@ const GENERIC_HEADERS: Record<string, { desktop: string; mobile: string }> = {
 // plumhq.app.link and deeplink.plumhq.com are JS interstitials that render
 // blank in several mail clients (confirmed 2026-08-22). Link the stores
 // directly, exactly as the production Open Financial email does.
-const APP_STORE = "https://apps.apple.com/app/id1616851078";
 const PLAY_STORE = "https://play.google.com/store/apps/details?id=com.plumhq.employee.production";
 
 interface SendRequest {
@@ -268,14 +267,7 @@ ${bodyToHtml(below)}
   </div>
 </td></tr>
 
-<tr><td align="center" bgcolor="#3A0E2B" style="padding:22px 40px; background-color:#3A0E2B; font-family:Inter, Helvetica, Arial, sans-serif; font-size:13px; line-height:1.6; color:#FFFFFF;">
-<div style="font-size:20px; font-weight:700; letter-spacing:-0.4px; color:#FF5A5F; padding-bottom:10px;">plum</div>
-<div style="color:#F0E4EC;">Download the Plum app:
-<a href="${APP_STORE}" style="color:#FFFFFF; font-weight:600;">App Store</a>
-&nbsp;·&nbsp;
-<a href="${PLAY_STORE}" style="color:#FFFFFF; font-weight:600;">Google Play</a>
-</div>
-</td></tr>
+
 
 </table>
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%; max-width:600px;">
@@ -312,6 +304,17 @@ export async function POST(request: Request) {
   } catch (err) {
     console.error("recipient resolution failed", err);
     return NextResponse.json({ ok: false, error: (err as Error).message }, { status: 400 });
+  }
+
+  // Second gate, in case a caller assembles copy without going through
+  // /api/copy: never send a body that is obviously a failed generation.
+  const words = body.split(/\s+/).length;
+  if (words < 150) {
+    console.error(`refusing to send ${accountName}: body is only ${words} words`);
+    return NextResponse.json(
+      { ok: false, error: "body_too_short", words, minimum: 150 },
+      { status: 400 }
+    );
   }
 
   // A bespoke creative wins; otherwise fall back to the generic header for

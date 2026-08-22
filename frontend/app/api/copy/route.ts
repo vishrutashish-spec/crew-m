@@ -253,11 +253,29 @@ action being promoted, and end with "${accountName}<> Plum".`;
     parsed = { subject: `${campaignType} — ${accountName}`, body: text };
   }
 
+  // A short or malformed generation must never reach a member's inbox. The
+  // model occasionally returns an empty or truncated text block (it thinks
+  // before answering, and a bad run can spend the budget on that), which
+  // previously shipped as a 6-word email. Fail loudly instead.
+  const finalBody = (parsed.body ?? "").trim();
+  const wordCount = finalBody ? finalBody.split(/\s+/).length : 0;
+  const MIN_WORDS = 150;
+  if (wordCount < MIN_WORDS) {
+    console.error(
+      `copy generation too short for ${accountName}: ${wordCount} words (min ${MIN_WORDS})`,
+      JSON.stringify({ rawPreview: text.slice(0, 300) })
+    );
+    return NextResponse.json(
+      { error: "copy_too_short", words: wordCount, minimum: MIN_WORDS },
+      { status: 502 }
+    );
+  }
+
   return NextResponse.json({
     requestId,
     accountName,
     campaignType,
     subject: parsed.subject ?? `${campaignType} — ${accountName}`,
-    body: parsed.body ?? "",
+    body: finalBody,
   });
 }

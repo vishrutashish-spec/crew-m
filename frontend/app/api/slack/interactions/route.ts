@@ -66,6 +66,7 @@ export async function POST(request: Request) {
           campaignType: row.campaign_type,
           copy: { subject: row.subject, body: row.body },
           creative: { creativeUrl: row.creative_url, stub: row.creative_is_stub },
+          sendTo: row.send_to ?? undefined,
         }),
       });
       sendResult = await res.json();

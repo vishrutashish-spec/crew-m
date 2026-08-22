@@ -1,4 +1,10 @@
 import { NextResponse } from "next/server";
+import { PLUM_STAFF_EMAILS } from "@/lib/plum-staff-emails";
+
+interface SendTo {
+  mode?: "default" | "single" | "all_plum_staff";
+  email?: string;
+}
 
 interface BuildDraftRequest {
   requestId: string;
@@ -9,6 +15,24 @@ interface BuildDraftRequest {
   campaignBrief?: string;
   copy: { subject?: string; body?: string };
   creative: { creativeUrl?: string; stub?: boolean };
+  /** Who this should actually go to once approved. Omit for the safe default. */
+  sendTo?: SendTo;
+}
+
+/**
+ * Human-facing label for the PMM approval message — shown so a reviewer sees
+ * exactly who a send reaches BEFORE clicking Approve, since the recipient
+ * field is now caller-specified rather than hard-locked. Mirrors
+ * campaign/send's own resolution but doesn't need to be exact (send does the
+ * real validation) — this just has to make the blast radius obvious.
+ */
+function describeSendTo(sendTo: SendTo | undefined): string {
+  const mode = sendTo?.mode ?? "default";
+  if (mode === "single") return `Test send to \`${sendTo?.email ?? "(no address given)"}\``;
+  if (mode === "all_plum_staff") {
+    return `:rotating_light: EVERYONE AT PLUM — ${PLUM_STAFF_EMAILS.length} address${PLUM_STAFF_EMAILS.length === 1 ? "" : "es"}. Check this before approving.`;
+  }
+  return "Default test address";
 }
 
 /**
@@ -19,7 +43,7 @@ interface BuildDraftRequest {
  * Creator -> Approver workflow takes it from there).
  */
 export async function POST(request: Request) {
-  const { requestId, amName, accountName, campaignType, campaignBrief, copy, creative } =
+  const { requestId, amName, accountName, campaignType, campaignBrief, copy, creative, sendTo } =
     (await request.json()) as BuildDraftRequest;
 
   const channel = "Email";
@@ -60,6 +84,7 @@ export async function POST(request: Request) {
     account_name: accountName,
     campaign_type: campaignType,
     campaign_brief: campaignBrief ?? null,
+    send_to: sendTo ?? null,
     subject: copy?.subject ?? "",
     body: copy?.body ?? "",
     creative_url: creative?.creativeUrl ?? "",
@@ -117,7 +142,7 @@ export async function POST(request: Request) {
               type: "mrkdwn",
               text: `*${campaignName}*\nRequested by ${amName}${
                 campaignBrief ? `\n*Brief:* ${campaignBrief}` : ""
-              }\n\n*Subject:* ${copy?.subject ?? ""}\n\n*Suggested audience:* ${segmentSuggestion}`,
+              }\n\n*Subject:* ${copy?.subject ?? ""}\n\n*Suggested audience:* ${segmentSuggestion}\n\n*Recipients:* ${describeSendTo(sendTo)}`,
             },
           },
           {
