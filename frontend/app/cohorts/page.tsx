@@ -10,7 +10,6 @@ import {
   InsightCard, ErrorState, Skeleton, ChartTip, AXIS, SeriesDefs, GRAD, PageBanner,
 } from "@/components/kit";
 import { ChannelGlyph } from "@/components/logos";
-import { SignalChat } from "@/components/signal-chat";
 import { getCohortIntel, type CohortIntel } from "@/lib/api";
 import {
   CartesianGrid,
@@ -48,7 +47,7 @@ export default function CohortsPage() {
   return (
     <div className="space-y-7">
       <PageBanner
-        kicker="Age cohorts"
+        kicker="Cohorts"
         title="Six ways into the base"
         sub="Age is the primary audience dimension. Pick a cohort, then narrow by org type."
         window="crewm / cohorts"
@@ -92,10 +91,6 @@ export default function CohortsPage() {
       )}
 
       {!list ? <Skeleton /> : <CohortCompare cohorts={list.cohorts} />}
-
-      <div className="rise d2">
-        <SignalChat cohortKeys={[active]} org={org === "all" ? null : org} />
-      </div>
 
       {detail ? (
         <Detail detail={detail} org={org} />

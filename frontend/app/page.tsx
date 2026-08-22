@@ -73,7 +73,7 @@ export default function OverviewPage() {
               <p className="figure text-[41px]">{n(data.totals.eligible)}</p>
               <Link href="/cohorts"
                 className="inline-flex items-center gap-1.5 text-[11.5px] text-[color:var(--cyan-deep)] hover:underline mt-2 font-medium">
-                By age cohort <ArrowRight className="w-3 h-3" />
+                By cohort <ArrowRight className="w-3 h-3" />
               </Link>
             </div>
             <Stat label="App installed" value={pct(data.totals.app_share)}
@@ -248,7 +248,7 @@ function Body({ data }: { data: OverviewX }) {
       {/* ---------------- COHORTS ---------------- */}
       <div className="grid grid-cols-12 gap-5 rise d3">
         <ChartFrame
-          title="Age cohorts"
+          title="Cohorts"
           sub="App ownership falls steadily with age. Bars are people, the line is the share."
           chip="MODELED"
           filename="age-cohorts"

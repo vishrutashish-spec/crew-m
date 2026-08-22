@@ -16,7 +16,6 @@ import {
   PageBanner, MacBar, ProvenanceNote, StepHead,
 } from "@/components/kit";
 import { ChannelGlyph, ChannelTickY, PlumGlyph, WhatsAppGlyph, GmailGlyph } from "@/components/logos";
-import { SignalChat } from "@/components/signal-chat";
 import { WaMessage } from "@/components/wa-message";
 import {
   CartesianGrid,
@@ -102,7 +101,7 @@ export default function SimulatePage() {
       <Panel className="p-5 rise d1" ground="dot">
         <StepHead
           step={1}
-          title="Choose age cohorts"
+          title="Choose cohorts"
           sub="Cohorts are the primary audience dimension. Select one or more."
           chip="MODELED"
           right={
@@ -306,7 +305,6 @@ export default function SimulatePage() {
             itself against the published rubric.
           </p>
         </div>
-        <SignalChat cohortKeys={selected} org={org === "all" ? null : org} />
       </div>
     </div>
   );
@@ -686,12 +684,16 @@ function MeterChip({ label, ok }: { label: string; ok: boolean }) {
    ========================================================================== */
 
 function Result({ result: r }: { result: SimResult }) {
+  // Every stage is expressed as a share of SENT, the first stage, not of the
+  // stage before it. Computed from the counts themselves so the label and the
+  // bar can never disagree: the last one is the true end-to-end rate.
+  const ofSent = (count: number) => (r.funnel.sent ? count / r.funnel.sent : 0);
   const funnel = [
     { stage: "Sent", count: r.funnel.sent, rate: 1 },
-    { stage: "Delivered", count: r.funnel.delivered, rate: r.funnel.delivery_rate },
-    { stage: "Opened", count: r.funnel.opened, rate: r.funnel.open_rate },
-    { stage: "Clicked", count: r.funnel.clicked, rate: r.funnel.click_rate },
-    { stage: "Converted", count: r.funnel.converted, rate: r.funnel.click_to_convert },
+    { stage: "Delivered", count: r.funnel.delivered, rate: ofSent(r.funnel.delivered) },
+    { stage: "Opened", count: r.funnel.opened, rate: ofSent(r.funnel.opened) },
+    { stage: "Clicked", count: r.funnel.clicked, rate: ofSent(r.funnel.clicked) },
+    { stage: "Converted", count: r.funnel.converted, rate: ofSent(r.funnel.converted) },
   ];
 
   const channelData = Object.entries(r.channel.options).map(([key, v]) => ({
