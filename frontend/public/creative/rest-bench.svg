@@ -1,0 +1,121 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" width="1200" height="900">
+  <!--
+    Campaign creative: wellbeing and mental health, rest and recovery.
+    Vector interpretation of the supplied reference (two people resting on a
+    bench under dappled evening light) in the locked palette.
+  -->
+  <defs>
+    <linearGradient id="dusk" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1B3A6B"/>
+      <stop offset="55%" stop-color="#24406E"/>
+      <stop offset="100%" stop-color="#14223F"/>
+    </linearGradient>
+    <linearGradient id="tee" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#C98AE8"/>
+      <stop offset="100%" stop-color="#8A54B8"/>
+    </linearGradient>
+    <linearGradient id="dungaree" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#CFE2F2"/>
+      <stop offset="100%" stop-color="#8FB2D8"/>
+    </linearGradient>
+    <radialGradient id="warm" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#FFCE8A" stop-opacity="0.85"/>
+      <stop offset="100%" stop-color="#FFCE8A" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="1200" height="900" fill="url(#dusk)"/>
+
+  <!-- canopy -->
+  <g fill="#14522F">
+    <path d="M0 0 H1200 V210 Q1010 300 830 214 Q660 300 470 216 Q280 300 0 208 Z"/>
+  </g>
+  <g fill="#1E6B3C" opacity="0.9">
+    <circle cx="150" cy="180" r="120"/><circle cx="380" cy="150" r="140"/>
+    <circle cx="640" cy="184" r="126"/><circle cx="900" cy="146" r="150"/>
+    <circle cx="1130" cy="186" r="122"/>
+  </g>
+  <g fill="#8FBF52" opacity="0.55">
+    <circle cx="250" cy="120" r="44"/><circle cx="520" cy="96" r="40"/>
+    <circle cx="800" cy="112" r="46"/><circle cx="1040" cy="86" r="38"/>
+  </g>
+
+  <!-- building behind -->
+  <g opacity="0.55">
+    <rect x="180" y="230" width="330" height="360" fill="#2C4A78"/>
+    <rect x="238" y="286" width="86" height="110" rx="6" fill="#DCE9F6"/>
+    <g stroke="#2C4A78" stroke-width="8">
+      <line x1="281" y1="286" x2="281" y2="396"/><line x1="238" y1="341" x2="324" y2="341"/>
+    </g>
+    <rect x="880" y="250" width="300" height="340" fill="#2C4A78"/>
+    <rect x="928" y="300" width="70" height="96" rx="6" fill="#FFD98A"/>
+    <rect x="1060" y="300" width="70" height="96" rx="6" fill="#FFD98A"/>
+  </g>
+
+  <!-- trunk with lit bark -->
+  <rect x="52" y="120" width="120" height="700" fill="#3A2418"/>
+  <g fill="#E8A85E" opacity="0.75">
+    <rect x="60" y="200" width="46" height="54" rx="6"/><rect x="118" y="286" width="40" height="44" rx="6"/>
+    <rect x="66" y="372" width="50" height="48" rx="6"/><rect x="112" y="470" width="42" height="52" rx="6"/>
+    <rect x="62" y="566" width="44" height="46" rx="6"/>
+  </g>
+
+  <!-- warm shafts -->
+  <ellipse cx="330" cy="520" rx="240" ry="300" fill="url(#warm)" opacity="0.5"/>
+
+  <!-- bench -->
+  <g fill="#7E2436">
+    <rect x="120" y="742" width="1000" height="30" rx="8"/>
+    <rect x="120" y="806" width="1000" height="26" rx="8"/>
+    <rect x="150" y="640" width="980" height="26" rx="8"/>
+    <rect x="180" y="676" width="950" height="22" rx="8"/>
+  </g>
+
+  <!-- left figure, head tipped back -->
+  <g>
+    <path d="M232 900 L246 700 Q262 616 384 606 L470 606 Q568 620 574 706 L590 900 Z" fill="url(#tee)"/>
+    <rect x="392" y="556" width="66" height="70" rx="24" fill="#C07A4E"/>
+    <g transform="rotate(-16 426 486)">
+      <circle cx="426" cy="486" r="86" fill="#C07A4E"/>
+      <path d="M340 470 Q330 372 424 366 Q518 360 512 462 Q486 402 420 410 Q364 418 340 470 Z" fill="#180C10"/>
+      <path d="M392 480 q16 -10 32 0" fill="none" stroke="#180C10" stroke-width="8" stroke-linecap="round"/>
+      <path d="M446 476 q16 -10 32 0" fill="none" stroke="#180C10" stroke-width="8" stroke-linecap="round"/>
+      <path d="M420 534 Q444 548 468 532" fill="none" stroke="#8C3A4A" stroke-width="9" stroke-linecap="round"/>
+    </g>
+    <!-- arm along the backrest -->
+    <path d="M250 690 Q160 664 96 690 L84 748 Q168 720 254 744 Z" fill="url(#tee)"/>
+    <ellipse cx="96" cy="756" rx="40" ry="30" fill="#C07A4E"/>
+    <!-- dappled light on the shirt -->
+    <g fill="#FFD1B0" opacity="0.55">
+      <ellipse cx="330" cy="700" rx="28" ry="18"/><ellipse cx="420" cy="756" rx="22" ry="15"/>
+      <ellipse cx="500" cy="694" rx="25" ry="16"/><ellipse cx="386" cy="826" rx="24" ry="16"/>
+      <ellipse cx="512" cy="812" rx="20" ry="14"/>
+    </g>
+    <!-- shorts -->
+    <path d="M266 862 L586 862 L600 900 L252 900 Z" fill="#EFE2CE"/>
+  </g>
+
+  <!-- right figure -->
+  <g>
+    <path d="M676 900 L688 716 Q702 640 800 632 L872 632 Q958 644 964 720 L978 900 Z" fill="url(#dungaree)"/>
+    <rect x="798" y="586" width="60" height="64" rx="22" fill="#C98A6A"/>
+    <g transform="rotate(-11 828 522)">
+      <circle cx="828" cy="522" r="78" fill="#C98A6A"/>
+      <path d="M752 506 Q748 420 828 416 Q908 412 904 500 Q880 448 824 454 Q776 462 752 506 Z" fill="#1C0F12"/>
+      <path d="M900 470 q46 62 22 132 q-34 -46 -30 -118 Z" fill="#1C0F12"/>
+      <path d="M800 516 q14 -9 28 0" fill="none" stroke="#1C0F12" stroke-width="7" stroke-linecap="round"/>
+      <path d="M846 512 q14 -9 28 0" fill="none" stroke="#1C0F12" stroke-width="7" stroke-linecap="round"/>
+      <path d="M820 562 Q842 574 864 560" fill="none" stroke="#8C3A4A" stroke-width="8" stroke-linecap="round"/>
+    </g>
+    <!-- straps -->
+    <g stroke="#8FB2D8" stroke-width="16" fill="none">
+      <path d="M792 660 L806 726"/><path d="M872 660 L860 726"/>
+    </g>
+    <circle cx="810" cy="734" r="10" fill="#6E92B8"/><circle cx="856" cy="734" r="10" fill="#6E92B8"/>
+    <g fill="#FFE0C0" opacity="0.5">
+      <ellipse cx="740" cy="730" rx="22" ry="15"/><ellipse cx="900" cy="712" rx="20" ry="14"/>
+      <ellipse cx="820" cy="800" rx="24" ry="16"/>
+    </g>
+    <path d="M690 866 L972 866 L980 900 L678 900 Z" fill="#DCE9F6"/>
+  </g>
+</svg>
