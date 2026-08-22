@@ -529,6 +529,8 @@ export const getRules = () => get<{
 
 export interface FunnelStep {
   stage: string; value: number; math: string; rate: number | null;
+  /** Share of the FIRST stage, which is what the funnel charts label. */
+  of_first: number;
   provenance: string; basis: string;
 }
 

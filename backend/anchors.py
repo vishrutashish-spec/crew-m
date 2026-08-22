@@ -401,6 +401,53 @@ BENCHMARK_PROVENANCE = (
     "low confidence and must not be presented as learned predictions."
 )
 
+# What actually backs a copy performance prediction, stated per input so the
+# UI can show it rather than a bare "low confidence" badge.
+#
+# CT_CAMPAIGNS_IN_ACCOUNT is counted from the real CleverTap schema export in
+# data/ct-schema: the distinct campaign ids referencing any exported property.
+# Declared "Campaign Count" matches the listed id list on all 32 rows that
+# carry one, so the union is not truncated. It is the number of campaigns that
+# EXIST, deliberately not described as campaigns learned from: no per-campaign
+# performance export exists in this account, which is the whole point.
+CT_CAMPAIGNS_IN_ACCOUNT = 500
+CT_JOURNEYS_IN_ACCOUNT = 18
+CT_SEGMENTS_IN_ACCOUNT = 74
+
+PREDICTION_BASIS = {
+    "copy": (
+        "Plum's shipped copy library: 87 approved messages across 6 age bands "
+        "and 3 channels. Recommended variants are assembled from it, so the "
+        "wording itself has precedent."
+    ),
+    "delivery_open_click": (
+        f"External channel benchmarks, not learned. {CT_CAMPAIGNS_IN_ACCOUNT} "
+        f"CleverTap campaigns and {CT_JOURNEYS_IN_ACCOUNT} journeys exist in "
+        "this account, but no per-campaign performance export does, so none of "
+        "them train these rates."
+    ),
+    "convert": (
+        "Observed product funnels over the 120-day window wherever one exists: "
+        "telehealth 12.76% and health checkup 6.14% of homepage viewers. This "
+        "is the one downstream rate with a real anchor."
+    ),
+}
+
+# Recommended library copy carries less copy-side risk than pasted copy: it has
+# shipped before and passes every discipline check by construction. The channel
+# priors are equally modeled either way, so this moves one notch, never to high.
+CONFIDENCE_LIBRARY = "moderate"
+CONFIDENCE_LIBRARY_REASON = (
+    "Copy is drawn from the shipped library, so the wording has precedent and "
+    "clears every discipline rule. Delivery, open and click remain external "
+    "priors, so this is not a learned prediction."
+)
+CONFIDENCE_CUSTOM = "low"
+CONFIDENCE_CUSTOM_REASON = (
+    "This wording has never shipped, so there is no precedent for it on top of "
+    "channel priors that are already external rather than learned."
+)
+
 CHANNELS = ["whatsapp", "email", "push"]          # never SMS
 CHANNEL_LABELS = {"whatsapp": "WhatsApp", "email": "Email", "push": "Push"}
 

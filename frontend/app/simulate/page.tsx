@@ -1051,11 +1051,15 @@ function FunnelExplainer({ fx }: { fx: FunnelExplain }) {
                   <div className="meta-row">
                     <span className="label-mono">{st.stage}</span>
                     <Chip kind={st.provenance} />
-                    {st.rate !== null && (
-                      <span className="text-[11px] text-muted-foreground tnum ml-auto">
-                        rate {pct(st.rate, 2)}
-                      </span>
-                    )}
+                    <span className="text-[11px] tnum ml-auto">
+                      <span className="text-muted-foreground">of {fx.steps[0].stage.toLowerCase()}</span>{" "}
+                      <span className="font-semibold">{pct(st.of_first, 2)}</span>
+                      {st.rate !== null && (
+                        <span className="text-muted-foreground">
+                          {" "}· step {pct(st.rate, 2)}
+                        </span>
+                      )}
+                    </span>
                   </div>
                   <div className="flex items-baseline justify-between gap-3">
                     <code className="text-[11.5px] text-muted-foreground">{st.math}</code>
