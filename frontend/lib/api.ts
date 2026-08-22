@@ -241,6 +241,8 @@ export interface SimResult {
   warnings: string[];
   decision?: Decision;
   conversion_provenance?: { kind: string; basis: string };
+  funnel_explain?: FunnelExplain;
+  timing_detail?: TimingDetail;
 }
 
 export interface Methodology {
@@ -494,3 +496,85 @@ export const getRules = () => get<{
   version: string;
   rules: { id: string; label: string; version: string; parameters: DecisionParam[] }[];
 }>("/api/rules");
+
+/* --------------------------------------------------------------------------
+   Funnel explainer, timing engine, cohort intelligence
+   -------------------------------------------------------------------------- */
+
+export interface FunnelStep {
+  stage: string; value: number; math: string; rate: number | null;
+  provenance: string; basis: string;
+}
+
+export interface FunnelExplain {
+  rule: { id: string; label: string; version: string; parameters: DecisionParam[] };
+  steps: FunnelStep[];
+  end_to_end: number;
+  composition: { observed: number; derived: number; modeled: number };
+  honesty: string;
+  label: string;
+}
+
+export interface TimingSlot {
+  window: string; send_at: string; intent_peak: string;
+  intent_share: number; lead_minutes: number; inbox_sweep: string | null;
+}
+
+export interface TimingDetail {
+  channel: string; channel_label: string;
+  primary: TimingSlot; secondary: TimingSlot;
+  read_latency: string; why: string;
+  clock: {
+    source: string; observations: number; morning_share: number;
+    evening_share: number; night_share: number; dead_share: number;
+    tz: string; shares: Record<string, number>;
+  };
+  journey_slots: { touch: number | null; day: number; channel: string; role: string }[];
+  quiet_hours: string;
+  corrections: { claim: string; finding: string }[];
+  rule: { id: string; label: string; version: string; parameters: DecisionParam[] };
+  label: string;
+}
+
+export interface CohortIntel {
+  label: string;
+  cohort: string;
+  provenance: {
+    th: { members_valid: number; members_raw: number; dropped_pct: number;
+          filter: string; consults: number; specialties: number; window: string };
+    hc: { bookings: number; age_matched: number; match_rate: number; join: string };
+    timezone: string;
+  };
+  specialty_mix: { specialty: string; share: number }[];
+  rising_specialties: { specialty: string; share: number; index: number }[];
+  biomarkers: {
+    bookings: number;
+    markers: { marker: string; abnormal_pct: number; median: number; n: number;
+               basis: string; threshold: number; direction: string;
+               vs_all_cohorts: number }[];
+  } | null;
+  steepest_gradients: {
+    marker: string; series: Record<string, number>; worst_cohort: string;
+    worst_pct: number; best_cohort: string; best_pct: number; spread: number;
+    overall_pct: number; basis: string;
+  }[];
+  engagement: { members: number; consults: number; consults_per_member: number;
+                share_of_consulters: number; female_share: number;
+                intensity_index: number } | null;
+  booking_clock: {
+    shares: Record<string, number>; n: number; peak_hour: number;
+    top_hours: number[]; morning_share: number; evening_share: number;
+    night_share: number; dead_share: number; tz: string;
+  };
+  consulter_vs_base: { consulter_share: number; base_share: number; index: number;
+                       reads: string; caveat: string } | null;
+  gender: Record<string, number | string>;
+}
+
+export const getCohortIntel = (key: string) => get<CohortIntel>(`/api/intel/${key}`);
+export const getTiming = (cohorts: string[]) =>
+  get<{ label: string; cohorts: string[]; channels: Record<string, TimingDetail>;
+        rule: { parameters: DecisionParam[] } }>(
+    `/api/timing?cohorts=${cohorts.join(",")}`);
+export const getSignalSuggestions = (cohorts: string[]) =>
+  get<{ suggestions: string[] }>(`/api/signal/suggestions?cohorts=${cohorts.join(",")}`);

@@ -26,23 +26,44 @@
  * move. Quiet confidence instead of choreography.
  */
 
-export function CrewMWordmark({ width = 172 }: { width?: number }) {
-  const height = Math.round(width * (40 / 152));
+export function CrewMWordmark({ width = 176 }: { width?: number }) {
+  const height = Math.round(width * (44 / 168));
   return (
-    <svg width={width} height={height} viewBox="0 0 152 40" fill="none"
+    <svg width={width} height={height} viewBox="0 0 168 44" fill="none"
       aria-label="Crew M" style={{ display: "block", overflow: "visible" }}>
       <defs>
-        <linearGradient id="wm-g" x1="0" y1="6" x2="152" y2="34" gradientUnits="userSpaceOnUse">
+        <linearGradient id="wm-g" x1="0" y1="8" x2="168" y2="36" gradientUnits="userSpaceOnUse">
           <stop offset="0" stopColor="#0E9AA7" />
-          <stop offset="0.45" stopColor="#22C8D6" />
+          <stop offset="0.42" stopColor="#22C8D6" />
+          <stop offset="0.72" stopColor="#4FE3C1" />
           <stop offset="1" stopColor="#3B82F6" />
         </linearGradient>
       </defs>
-      <text x="0" y="31" fontFamily="Vollkorn, Georgia, serif" fontWeight="700"
-        fontSize="33" letterSpacing="-0.5" fill="url(#wm-g)">
-        Crew M
-      </text>
-      <circle cx="146" cy="10" r="2.6" fill="#4FE3C1" />
+      {/*
+        Geometric sport lettering, drawn as monoline strokes with circular
+        bowls: the register of the reference specimen. Round caps and joins
+        keep it broad rather than pointy, and the bowls are true half-circles
+        so c, e and the m arches share one radius. Static gradient, no motion.
+      */}
+      <g stroke="url(#wm-g)" strokeWidth="7" strokeLinecap="round"
+         strokeLinejoin="round" fill="none">
+        {/* c: three-quarter circle, open right */}
+        <path d="M27 15.5 A10.5 10.5 0 1 0 27 34.5" />
+        {/* r: stem plus quarter-arc shoulder */}
+        <path d="M42 36 V14" />
+        <path d="M42 18 A7.5 7.5 0 0 1 54 20" />
+        {/* e: circular bowl with a flat bar, open at the lower right */}
+        <path d="M74.5 30.5 A10.5 10.5 0 1 0 66 36" />
+        <path d="M54 25 H75" />
+        {/* w: rounded double-v, the waveform kept broad */}
+        <path d="M86 14 L92.5 36 L99 22 L105.5 36 L112 14" />
+        {/* m: stem plus two circular arches, the chart line in geometric form */}
+        <path d="M124 36 V14" />
+        <path d="M124 21 A8 8 0 0 1 140 21 V36" />
+        <path d="M140 21 A8 8 0 0 1 156 21 V36" />
+      </g>
+      {/* static node, no pulse */}
+      <circle cx="163" cy="12" r="2.8" fill="#4FE3C1" />
     </svg>
   );
 }

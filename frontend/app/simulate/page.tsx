@@ -9,10 +9,11 @@ import {
   type CopyAnalysis, type CopyPrediction,
   askAssistant, getRules, SPECTRUM,
   type AssistantReply, type DecisionParam,
+  type FunnelExplain, type TimingDetail,
 } from "@/lib/api";
 import {
   Panel, PanelHead, ChartFrame, Chip, Stat, ErrorState, ChartTip, AXIS, SeriesDefs, GRAD,
-  PageBanner, MacBar,
+  PageBanner, MacBar, ProvenanceNote, StepHead,
 } from "@/components/kit";
 import { ChannelGlyph, ChannelTickY, PlumGlyph, WhatsAppGlyph, GmailGlyph } from "@/components/logos";
 import {
@@ -97,8 +98,9 @@ export default function SimulatePage() {
 
       {/* ---------- STEP 1 ---------- */}
       <Panel className="p-5 rise d1" ground="dot">
-        <PanelHead
-          title="1 · Choose age cohorts"
+        <StepHead
+          step={1}
+          title="Choose age cohorts"
           sub="Cohorts are the primary audience dimension. Select one or more."
           chip="MODELED"
           right={
@@ -160,7 +162,7 @@ export default function SimulatePage() {
 
       {/* ---------- STEP 2 ---------- */}
       <Panel className="p-5 rise d2">
-        <PanelHead title="2 · Narrow the audience" sub="Everything here filters the cohorts you picked above" />
+        <StepHead step={2} title="Narrow the audience" sub="Everything here filters the cohorts you picked above" />
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           <Field label="Objective" hint={opts?.objectives.find((o) => o.key === objective)?.desc}>
             <select className="field" value={objective} onChange={(e) => setObjective(e.target.value)}>
@@ -369,8 +371,9 @@ function CopyStudio({
 
   return (
     <Panel className="p-5 rise d4" ground="grid">
-      <PanelHead
-        title="4 · Copy studio"
+      <StepHead
+        step={4}
+        title="Copy studio"
         sub="Variants assembled from Plum's approved copy library, disciplined per channel, with predicted performance for this exact audience"
         chip="GENERATED"
         right={
@@ -800,6 +803,9 @@ function Result({ result: r }: { result: SimResult }) {
         </ChartFrame>
       </div>
 
+      {r.funnel_explain && <FunnelExplainer fx={r.funnel_explain} />}
+      {r.timing_detail && <TimingPanel t={r.timing_detail} />}
+
       <div className="grid grid-cols-12 gap-5">
         <Panel className="col-span-12 lg:col-span-8 p-5">
           <PanelHead title="How much to trust this" chip="PREDICTED" />
@@ -832,27 +838,14 @@ function Result({ result: r }: { result: SimResult }) {
         </Panel>
 
         <Panel className="col-span-12 lg:col-span-4 p-5" ticked>
-          <PanelHead title="Timing" chip={r.timing.label} />
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl metal-cyan flex items-center justify-center flex-shrink-0">
-              <Clock className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <p className="figure text-[30px]">{String(r.timing.send_hour).padStart(2, "0")}:00</p>
-              <p className="text-[10.5px] text-muted-foreground mt-1">Local time</p>
-            </div>
-          </div>
-          <p className="text-[11.5px] text-muted-foreground mt-4 pt-4 border-t border-border leading-relaxed">
-            {r.timing.note}
+          <PanelHead title="Suppression in this selection" chip="OBSERVED" />
+          <p className="figure text-[32px] text-[color:var(--red)]">
+            {n(r.selection.dnd_in_selection)}
           </p>
-          {r.selection.dnd_in_selection > 0 && (
-            <p className="text-[11px] text-muted-foreground mt-3 pt-3 border-t border-border">
-              <span className="text-[color:var(--red)] font-semibold tnum">
-                {n(r.selection.dnd_in_selection)}
-              </span>{" "}
-              DND-suppressed people sit inside this selection.
-            </p>
-          )}
+          <p className="text-[12px] text-muted-foreground mt-2 leading-relaxed">
+            people carry is_in_DND_CT inside this selection and must be excluded
+            explicitly. Nothing enforces it centrally.
+          </p>
         </Panel>
       </div>
     </div>
@@ -975,18 +968,20 @@ function DecisionBreakdown({ result: r }: { result: SimResult }) {
                   <div className="ribbon">
                     <span style={{
                       width: `${(ch.total / Math.max(maxScore, 1)) * 100}%`,
+                      // Selected reads as the cyan-to-seafoam spectrum rather
+                      // than pure blue; unselected uses a visible mid-tone
+                      // instead of --border-strong, which rendered near-black.
                       background: key === d.selected
-                        ? "linear-gradient(90deg, #22C8D6, #3B82F6)"
-                        : "var(--border-strong)",
+                        ? "linear-gradient(90deg, #0E9AA7, #22C8D6 55%, #4FE3C1)"
+                        : "linear-gradient(90deg, var(--series-3), var(--sand-deep))",
                     }} />
                   </div>
                 </div>
               ))}
               {r.conversion_provenance && (
-                <p className="text-[10.5px] text-muted-foreground pt-2 border-t border-border">
-                  Click-to-convert basis: <Chip kind={r.conversion_provenance.kind} />{" "}
-                  {r.conversion_provenance.basis}.
-                </p>
+                <ProvenanceNote label="Click to convert basis" kind={r.conversion_provenance.kind}>
+                  {r.conversion_provenance.basis}
+                </ProvenanceNote>
               )}
             </div>
           </div>
@@ -1059,8 +1054,9 @@ function AskPanel({
 
   return (
     <Panel className="p-5 rise" ground="grid">
-      <PanelHead
-        title="5 · Ask Crew M"
+      <StepHead
+        step={5}
+        title="Ask SIGNAL"
         sub="Grounded answers only: every reply cites the figures it used and scores itself against the published rubric"
         chip="DERIVED"
         right={
@@ -1210,5 +1206,233 @@ function AiMessage({ msg }: { msg: ChatMsg }) {
         )}
       </div>
     </div>
+  );
+}
+
+/* ==========================================================================
+   Funnel explainer: every projected number with its arithmetic, its rate and
+   its provenance, plus the weight rubric as a spectrum pie. Collapsed.
+   ========================================================================== */
+
+function FunnelExplainer({ fx }: { fx: FunnelExplain }) {
+  const [open, setOpen] = useState(false);
+  const pie = fx.rule.parameters.map((p, i) => ({
+    name: p.label, value: p.weight, fill: SPECTRUM[i % SPECTRUM.length], desc: p.desc,
+  }));
+
+  return (
+    <Panel className="p-0 overflow-hidden">
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center gap-3 px-5 py-4 text-left hover:bg-[color:var(--muted)] transition-colors"
+        aria-expanded={open}
+      >
+        <span className="w-8 h-8 rounded-lg metal-cyan flex items-center justify-center flex-shrink-0">
+          <ChevronDown className={`w-4 h-4 text-white transition-transform ${open ? "rotate-180" : ""}`} />
+        </span>
+        <span className="flex-1">
+          <span className="section-title !text-[16px] block">How this funnel was calculated</span>
+          <span className="text-[12px] text-muted-foreground">
+            {fx.steps.length} stages · {fx.composition.observed} observed,{" "}
+            {fx.composition.derived} derived, {fx.composition.modeled} modeled
+          </span>
+        </span>
+        <Chip kind="PREDICTED" />
+      </button>
+
+      {open && (
+        <div className="px-5 pb-5 pt-1 border-t border-border">
+          <div className="grid grid-cols-12 gap-6">
+            {/* stage-by-stage arithmetic */}
+            <div className="col-span-12 lg:col-span-8 space-y-2">
+              {fx.steps.map((st) => (
+                <div key={st.stage} className="panel-flush p-3.5">
+                  <div className="meta-row">
+                    <span className="label-mono">{st.stage}</span>
+                    <Chip kind={st.provenance} />
+                    {st.rate !== null && (
+                      <span className="text-[11px] text-muted-foreground tnum ml-auto">
+                        rate {pct(st.rate, 2)}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-baseline justify-between gap-3">
+                    <code className="text-[11.5px] text-muted-foreground">{st.math}</code>
+                    <span className="figure text-[19px] flex-shrink-0">{n(st.value)}</span>
+                  </div>
+                  <p className="text-[10.5px] text-muted-foreground mt-1.5">{st.basis}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* weights + honesty */}
+            <div className="col-span-12 lg:col-span-4">
+              <p className="label-mono mb-2">Weight of each input</p>
+              <div className="h-[150px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie data={pie} dataKey="value" nameKey="name" cx="50%" cy="50%"
+                      innerRadius={38} outerRadius={62} paddingAngle={3} strokeWidth={0} />
+                    <Tooltip content={<ChartTip formatter={(v) => `${v}% weight`} />} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="space-y-1.5 mt-2">
+                {pie.map((p) => (
+                  <div key={p.name} className="flex items-center gap-2 text-[11px]" title={p.desc}>
+                    <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: p.fill }} />
+                    <span className="text-muted-foreground truncate">{p.name}</span>
+                    <span className="tnum font-semibold ml-auto">{p.value}%</span>
+                  </div>
+                ))}
+              </div>
+              <p className="text-[11px] text-muted-foreground mt-3.5 pt-3.5 border-t border-border leading-relaxed">
+                {fx.honesty}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+    </Panel>
+  );
+}
+
+/* ==========================================================================
+   Timing panel: the real booking clock, the send slot, and why.
+   ========================================================================== */
+
+function TimingPanel({ t }: { t: TimingDetail }) {
+  const [open, setOpen] = useState(false);
+  const clock = Object.entries(t.clock.shares).map(([h, v]) => ({
+    hour: `${String(h).padStart(2, "0")}`,
+    share: v,
+    isPeak: `${String(h).padStart(2, "0")}:00` === t.primary.intent_peak
+         || `${String(h).padStart(2, "0")}:00` === t.secondary.intent_peak,
+  }));
+
+  return (
+    <Panel className="p-5" ground="dot">
+      <PanelHead
+        title="Send time"
+        sub={`Built on ${n(t.clock.observations)} real bookings in ${t.clock.tz}, not a stated peak window`}
+        chip="RECOMMENDED"
+        right={
+          <div className="flex items-center gap-2">
+            <ChannelGlyph channel={t.channel} size={18} />
+            <span className="text-[12px] font-medium">{t.channel_label}</span>
+          </div>
+        }
+      />
+
+      <div className="relative grid grid-cols-12 gap-6 items-start">
+        {/* the two slots */}
+        <div className="col-span-12 md:col-span-4 space-y-3">
+          {[t.primary, t.secondary].map((slot, i) => (
+            <div key={slot.window}
+              className={`rounded-xl border p-4 ${i === 0
+                ? "border-[color:var(--cyan)] bg-[color:var(--cyan-wash)]"
+                : "border-border bg-[color:var(--muted)]"}`}>
+              <div className="meta-row">
+                <span className="label-mono">{i === 0 ? "Primary slot" : "Second slot"}</span>
+                {i === 0 && <Chip kind="RECOMMENDED" />}
+              </div>
+              <p className="figure text-[30px]">{slot.send_at}</p>
+              <p className="text-[11.5px] text-muted-foreground mt-2 leading-relaxed">
+                Lands {slot.lead_minutes} min before the {slot.intent_peak} intent peak,
+                which carries {pct(slot.intent_share)} of bookings.
+              </p>
+              {slot.inbox_sweep && (
+                <p className="text-[10.5px] text-muted-foreground mt-1.5">
+                  Inside the {slot.inbox_sweep} inbox sweep
+                </p>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* the observed clock */}
+        <div className="col-span-12 md:col-span-8">
+          <p className="label-mono mb-2">When this audience actually books, by hour {t.clock.tz}</p>
+          <div className="h-[168px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={clock} margin={{ left: -14, right: 6, top: 4, bottom: 0 }}>
+                <SeriesDefs />
+                <CartesianGrid strokeDasharray="3 7" stroke="var(--border)" vertical={false} />
+                <XAxis dataKey="hour" {...AXIS} interval={2} tick={{ ...AXIS.tick, fontSize: 10 }} />
+                <YAxis tickFormatter={(v: number) => pct(v, 0)} {...AXIS} width={40} />
+                <Tooltip content={<ChartTip formatter={(v) => pct(v, 2)} />}
+                  cursor={{ fill: "var(--cursor-fill)" }} />
+                <Bar dataKey="share" name="Share of bookings" radius={[3, 3, 0, 0]}>
+                  {clock.map((d) => (
+                    <Cell key={d.hour} fill={d.isPeak ? GRAD.red : GRAD.ink} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-3 pt-3 border-t border-border">
+            <Stat label="Morning 09-14" value={pct(t.clock.morning_share)} size="sm" />
+            <Stat label="Evening 17-21" value={pct(t.clock.evening_share)} size="sm" />
+            <Stat label="Night 21-24" value={pct(t.clock.night_share)} size="sm" />
+            <Stat label="Dead 01-06" value={pct(t.clock.dead_share)} size="sm" tone="red" />
+          </div>
+        </div>
+      </div>
+
+      <button onClick={() => setOpen(!open)}
+        className="relative mt-4 text-[12px] text-[color:var(--cyan-deep)] hover:underline">
+        {open ? "Hide how this is calculated" : "How this is calculated"}
+      </button>
+
+      {open && (
+        <div className="relative mt-3 pt-4 border-t border-border grid grid-cols-12 gap-5">
+          <div className="col-span-12 lg:col-span-5 space-y-2">
+            <p className="label-mono mb-1">Weights</p>
+            {t.rule.parameters.map((p, i) => (
+              <div key={p.key}>
+                <div className="flex items-baseline justify-between gap-2 mb-1">
+                  <span className="text-[11.5px] font-medium">{p.label}</span>
+                  <span className="tnum text-[11.5px] font-semibold">{p.weight}%</span>
+                </div>
+                <div className="ribbon !h-[6px]">
+                  <span style={{ width: `${p.weight}%`, background: SPECTRUM[i % SPECTRUM.length] }} />
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-1">{p.desc}</p>
+              </div>
+            ))}
+          </div>
+          <div className="col-span-12 lg:col-span-7 space-y-3">
+            <div className="panel-flush p-3.5">
+              <p className="label-mono mb-1.5">Why this channel sends when it does</p>
+              <p className="text-[12px] leading-relaxed">{t.why}</p>
+              <p className="text-[11px] text-muted-foreground mt-2">
+                Read latency: {t.read_latency}. Quiet hours {t.quiet_hours} are never used.
+              </p>
+            </div>
+            <div className="panel-flush p-3.5">
+              <p className="label-mono mb-1.5">Journey slots this channel carries</p>
+              {t.journey_slots.length ? t.journey_slots.map((j) => (
+                <p key={`${j.day}`} className="text-[11.5px]">
+                  Day {j.day}
+                  {j.touch ? `, touch ${j.touch}` : ", supplementary"}: {j.role}
+                </p>
+              )) : <p className="text-[11.5px] text-muted-foreground">Not used in the standard journey.</p>}
+            </div>
+            {t.corrections.map((c) => (
+              <div key={c.claim} className="rounded-lg border border-[color:var(--red)]/25 bg-[color:var(--red)]/[0.04] p-3.5">
+                <div className="meta-row">
+                  <span className="label-mono">Corrected</span>
+                  <Chip kind="OBSERVED" />
+                </div>
+                <p className="text-[11.5px] leading-relaxed">
+                  <span className="line-through text-muted-foreground">{c.claim}</span>
+                  {" "}{c.finding}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </Panel>
   );
 }
