@@ -8,14 +8,16 @@
 
 import { useEffect, useState } from "react";
 import {
-  getMethodology, getVerification, getRules, API_BASE,
-  type Methodology, type DecisionParam,
+  getMethodology, getVerification, getRules, resyncCleverTap, API_BASE, n,
+  type Methodology, type DecisionParam, type ResyncResult,
 } from "@/lib/api";
 import {
   Panel, PanelHead, Chip, Stat, ErrorState, Skeleton, PageBanner, ProvenanceNote,
 } from "@/components/kit";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { CheckCircle2, Database, ShieldCheck, Gauge, Palette } from "lucide-react";
+import {
+  CheckCircle2, Database, ShieldCheck, Gauge, Palette, RefreshCw, TriangleAlert,
+} from "lucide-react";
 
 interface Health {
   status: string; version: string; invariants_verified: number; built_at: string;
@@ -105,6 +107,8 @@ export default function SettingsPage() {
             </div>
           </Panel>
 
+          <ResyncPanel />
+
           {/* ---------------- guardrails ---------------- */}
           <Panel className="p-5">
             <PanelHead
@@ -121,7 +125,7 @@ export default function SettingsPage() {
                 "No export or download of records anywhere in the interface",
                 "Every data-access route logs what was requested",
                 "The API refuses to start if any model invariant fails",
-                "Predictions are capped at low confidence while campaign history is missing",
+                "No prediction claims high confidence: no campaign performance history exists to learn from",
                 "Provenance labels are mandatory: observed, derived, modeled, predicted",
               ].map((g) => (
                 <div key={g} className="flex items-start gap-2.5 text-[12.5px]">
@@ -205,6 +209,117 @@ export default function SettingsPage() {
         </>
       )}
     </div>
+  );
+}
+
+/**
+ * Resync the live usage block against CleverTap.
+ *
+ * The panel reports drift against the anchored figure rather than silently
+ * swapping numbers, and states what a resync cannot refresh, so pressing it
+ * never reads as "the whole dashboard was just re-verified".
+ */
+function ResyncPanel() {
+  const [busy, setBusy] = useState(false);
+  const [res, setRes] = useState<ResyncResult | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  async function go() {
+    setBusy(true); setErr(null);
+    try {
+      setRes(await resyncCleverTap("settings"));
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Resync failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Panel className="p-5">
+      <PanelHead
+        title="Live usage from CleverTap"
+        sub="Re-pulls the usage block from the counts API. Read-only, aggregate counts only, every window bounded and none wider than a year."
+        chip="OBSERVED"
+        right={
+          <button onClick={go} disabled={busy} className="btn !px-3.5 !py-2 !text-[12px]">
+            <RefreshCw className={`w-3.5 h-3.5 ${busy ? "animate-spin" : ""}`} />
+            {busy ? "Pulling from CleverTap" : "Resync with CleverTap"}
+          </button>
+        }
+      />
+
+      {err && (
+        <p className="text-[12px] text-[color:var(--red)]">{err}</p>
+      )}
+      {res?.error && (
+        <p className="text-[12px] text-[color:var(--warning)]">{res.error}</p>
+      )}
+      {res?.partial && (
+        <p className="text-[12px] text-[color:var(--warning)] mb-1">{res.partial}</p>
+      )}
+
+      {res && res.fields.length > 0 && (
+        <>
+          <div className="overflow-x-auto">
+            <table className="w-full text-[12px]">
+              <thead>
+                <tr className="text-left">
+                  <th className="label-mono !text-[9px] pb-2">Figure</th>
+                  <th className="label-mono !text-[9px] pb-2 text-right">Anchored</th>
+                  <th className="label-mono !text-[9px] pb-2 text-right">Live now</th>
+                  <th className="label-mono !text-[9px] pb-2 text-right">Drift</th>
+                  <th className="label-mono !text-[9px] pb-2 pl-4">Window queried</th>
+                </tr>
+              </thead>
+              <tbody>
+                {res.fields.map((f) => (
+                  <tr key={f.key} className="border-t border-border">
+                    <td className="py-2 pr-3">
+                      <span className="font-medium">{f.label}</span>
+                      <span className="block text-[10.5px] text-muted-foreground">{f.basis}</span>
+                    </td>
+                    <td className="py-2 text-right tnum">{f.anchored ? n(f.anchored) : "-"}</td>
+                    <td className="py-2 text-right tnum font-semibold">
+                      {f.live === null
+                        ? <span className={f.status === "skipped"
+                            ? "text-[color:var(--warning)]" : "text-[color:var(--red)]"}>
+                            {f.status === "skipped" ? "not queried" : "failed"}
+                          </span>
+                        : n(f.live)}
+                    </td>
+                    <td className={`py-2 text-right tnum ${
+                      f.drift === undefined ? "text-muted-foreground"
+                      : Math.abs(f.drift) < 0.01 ? "text-muted-foreground"
+                      : "text-[color:var(--warning)]"}`}>
+                      {f.drift === undefined ? "-" : `${f.drift > 0 ? "+" : ""}${(f.drift * 100).toFixed(1)}%`}
+                    </td>
+                    <td className="py-2 pl-4 text-[10.5px] text-muted-foreground tnum">{f.window}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <p className="text-[11px] text-muted-foreground mt-3">
+            Pulled {new Date(res.pulled_at).toLocaleString()} · anchored {res.anchored_at} ·{" "}
+            {res.dau_method}. {res.scope}
+          </p>
+
+          <div className="mt-4 pt-4 border-t border-border space-y-3">
+            <span className="label-mono">What a resync cannot refresh</span>
+            {res.cannot_refresh.map((c) => (
+              <div key={c.field} className="flex items-start gap-2.5">
+                <TriangleAlert className="w-3.5 h-3.5 text-[color:var(--warning)] flex-shrink-0 mt-0.5" />
+                <p className="text-[11.5px] text-muted-foreground leading-relaxed">
+                  <span className="font-medium text-foreground">{c.field}.</span> {c.reason}
+                </p>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </Panel>
   );
 }
 

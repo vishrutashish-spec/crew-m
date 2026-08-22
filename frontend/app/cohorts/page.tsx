@@ -10,7 +10,6 @@ import {
   InsightCard, ErrorState, Skeleton, ChartTip, AXIS, SeriesDefs, GRAD, PageBanner,
 } from "@/components/kit";
 import { ChannelGlyph } from "@/components/logos";
-import { SignalChat } from "@/components/signal-chat";
 import { getCohortIntel, type CohortIntel } from "@/lib/api";
 import {
   CartesianGrid,
@@ -48,7 +47,7 @@ export default function CohortsPage() {
   return (
     <div className="space-y-7">
       <PageBanner
-        kicker="Age cohorts"
+        kicker="Cohorts"
         title="Six ways into the base"
         sub="Age is the primary audience dimension. Pick a cohort, then narrow by org type."
         window="crewm / cohorts"
@@ -92,10 +91,6 @@ export default function CohortsPage() {
       )}
 
       {!list ? <Skeleton /> : <CohortCompare cohorts={list.cohorts} />}
-
-      <div className="rise d2">
-        <SignalChat cohortKeys={[active]} org={org === "all" ? null : org} />
-      </div>
 
       {detail ? (
         <Detail detail={detail} org={org} />
@@ -207,8 +202,10 @@ function Detail({ detail, org }: { detail: CohortDetail; org: string }) {
 
   const orgRows = Object.entries(c.org_breakdown);
 
+  // step is the share of the FIRST funnel stage, not of the preceding stage, so
+  // the last bar reads as the true end-to-end conversion.
   const funnelData = (f: Cohort["th_funnel"]) =>
-    f.map((s) => ({ stage: s.stage, count: s.count, step: s.from_prev }));
+    f.map((s) => ({ stage: s.stage, count: s.count, step: s.cumulative }));
 
   const appGauge = [{ name: "app", value: c.app_share * 100, fill: CHART.ink }];
 
@@ -410,7 +407,9 @@ function Detail({ detail, org }: { detail: CohortDetail; org: string }) {
                     cursor={{ fill: "var(--cursor-fill)" }} />
                   <Bar dataKey="count" name="Users" fill={GRAD.ink} radius={[4, 4, 0, 0]} barSize={38}>
                     <LabelList dataKey="step" position="top"
-                      formatter={(v: unknown) => (typeof v === "number" && v < 1 ? pct(v, 0) : "")}
+                      formatter={(v: unknown) =>
+                  // A decimal below 20%, or 12.76% and 13.3% both read "13%".
+                  typeof v === "number" && v < 1 ? pct(v, v < 0.2 ? 1 : 0) : ""}
                       style={{ fontSize: 9.5, fill: "var(--tick)", fontFamily: "Vollkorn, Georgia, serif" }} />
                   </Bar>
                 </BarChart>

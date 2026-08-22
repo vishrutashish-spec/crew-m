@@ -35,6 +35,19 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("crewm")
 
 app = FastAPI(title="Crew M API", version="2.0.0")
+
+# ---------------------------------------------------------------------------
+# CleverTap resync cache
+# ---------------------------------------------------------------------------
+# A successful resync is held in memory for the life of the process and layered
+# over the anchored CT_LIVE block when the overview is served. The anchors
+# themselves are never mutated: they are the committed record of what was
+# verified and when, and a live pull is a different claim with its own
+# timestamp. Nothing here feeds the cohort model, so no invariant can move
+# under a resync.
+_CT_RESYNC: Optional[dict] = None
+
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000", "http://localhost:3001"],
@@ -168,9 +181,12 @@ def overview(org: Optional[str] = Query(None)):
             "label": "OBSERVED",
         },
         "ct_live": {
-            "metrics": A.CT_LIVE,
+            "metrics": ({**A.CT_LIVE, **_CT_RESYNC["live"]}
+                        if _CT_RESYNC and _CT_RESYNC.get("live") else A.CT_LIVE),
             "scope": A.CT_LIVE_SCOPE,
-            "pulled_at": A.CT_PULL_DATE.isoformat(),
+            "pulled_at": (_CT_RESYNC["pulled_at"] if _CT_RESYNC
+                          else A.CT_PULL_DATE.isoformat()),
+            "is_resynced": bool(_CT_RESYNC and _CT_RESYNC.get("live")),
             "window_days": A.CT_WINDOW_DAYS,
             "dau_method": A.DAU_METHOD,
             "label": "OBSERVED",
@@ -524,12 +540,14 @@ class AssistantRequest(BaseModel):
     org: Optional[str] = None
     objective: Optional[str] = None
     channel: Optional[str] = None
+    tuning: Optional[dict] = None
 
 
 @app.post("/api/assistant")
 def assistant_answer(req: AssistantRequest):
     """Grounded campaign Q&A. Deterministic retrieval over the verified model,
-    every reply scored against the published 9-parameter rubric."""
+    every reply scored against the published 10-parameter rubric. Tuning
+    parameters change depth and framing, never whether a figure is labelled."""
     model = get_model()
     msg = (req.message or "").strip()
     if not msg:
@@ -538,7 +556,8 @@ def assistant_answer(req: AssistantRequest):
         raise HTTPException(400, "Keep questions under 600 characters")
     org_f = _org(req.org)
     logger.info(f"DATA_ACCESS: assistant query intents on cohorts={req.cohort_keys}")
-    return SIG.answer(model, msg, req.cohort_keys, org_f, req.objective, req.channel)
+    return SIG.answer(model, msg, req.cohort_keys, org_f, req.objective,
+                      req.channel, tuning=req.tuning)
 
 
 @app.get("/api/rules")
@@ -630,6 +649,41 @@ def copy_analyze(req: CopyAnalyzeRequest):
     prediction = CE.predict(analysis, req.channel, req.objective,
                             audience_sent=req.audience_sent)
     return {"label": "DERIVED", "analysis": analysis, "prediction": prediction}
+
+
+class ResyncRequest(BaseModel):
+    requested_by: Optional[str] = None
+
+
+@app.get("/api/signal/tuning")
+def signal_tuning():
+    """The tuning parameters SIGNAL exposes, and what is deliberately locked."""
+    return SIG.TUNING
+
+
+@app.post("/api/ct/resync")
+def ct_resync(req: Optional[ResyncRequest] = None):
+    """
+    Re-pull the live usage figures from CleverTap on demand.
+
+    Governance: read-only counts endpoints only, never a profile row. Every
+    window is bounded and none exceeds a year. The pull is audit-logged with
+    who asked, when, and exactly which event and window was queried, per the
+    audit-logging requirement for data-access features.
+
+    The response also states what a resync deliberately cannot refresh, so
+    pressing it never implies the whole dashboard was just re-verified.
+    """
+    global _CT_RESYNC
+    import ct_connector as CT
+
+    who = (req.requested_by if req and req.requested_by else "dashboard")
+    logger.info("DATA_ACCESS: ct resync requested by=%s at=%s",
+                who, datetime.now(timezone.utc).isoformat())
+    result = CT.resync(requested_by=who)
+    if result.get("ok"):
+        _CT_RESYNC = result
+    return result
 
 
 if __name__ == "__main__":

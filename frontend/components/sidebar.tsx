@@ -8,7 +8,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 
 const NAV = [
   { href: "/", label: "Overview", icon: LayoutDashboard },
-  { href: "/cohorts", label: "Age cohorts", icon: Users },
+  { href: "/cohorts", label: "Cohorts", icon: Users },
   { href: "/simulate", label: "Simulator", icon: FlaskConical },
   { href: "/methodology", label: "Methodology", icon: BookOpen },
   { href: "/new-campaign", label: "New campaign", icon: Megaphone },

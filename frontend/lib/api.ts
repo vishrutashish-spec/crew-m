@@ -404,6 +404,12 @@ export interface CopyPrediction {
   label: string;
   confidence: string;
   confidence_reason: string;
+  /** True when Crew M recommended this copy out of the shipped library. */
+  from_library: boolean;
+  basis: { copy: string; delivery_open_click: string; convert: string };
+  campaigns_in_account: number;
+  journeys_in_account: number;
+  library_size: number;
   baseline: { open: number; click: number; convert: number };
   predicted: { open: number; click: number; convert: number };
   delta: { open: number; click: number; convert: number };
@@ -512,7 +518,17 @@ export interface AssistantReply {
 export const askAssistant = (req: {
   message: string; cohort_keys?: string[]; org?: string | null;
   objective?: string | null; channel?: string | null;
+  tuning?: Record<string, string | boolean> | null;
 }) => post<AssistantReply>("/api/assistant", req);
+
+export interface TuningParam {
+  key: string; label: string; type: "choice" | "toggle";
+  options?: string[]; default: string | boolean; desc: string;
+}
+
+export const getSignalTuning = () => get<{
+  version: string; parameters: TuningParam[]; locked: string[];
+}>("/api/signal/tuning");
 
 /** Spectrum palette for rubric visuals: deliberately outside the plum chart
     palette so decision explanations can never be confused with data series. */
@@ -529,6 +545,8 @@ export const getRules = () => get<{
 
 export interface FunnelStep {
   stage: string; value: number; math: string; rate: number | null;
+  /** Share of the FIRST stage, which is what the funnel charts label. */
+  of_first: number;
   provenance: string; basis: string;
 }
 
@@ -604,3 +622,42 @@ export const getTiming = (cohorts: string[]) =>
     `/api/timing?cohorts=${cohorts.join(",")}`);
 export const getSignalSuggestions = (cohorts: string[]) =>
   get<{ suggestions: string[] }>(`/api/signal/suggestions?cohorts=${cohorts.join(",")}`);
+
+/* --------------------------------------------------------------------------
+   CleverTap resync
+   -------------------------------------------------------------------------- */
+
+export interface ResyncField {
+  key: string; label: string;
+  anchored: number | null; live: number | null;
+  window: string; window_days: number; basis: string; event: string;
+  status: "moved" | "unchanged" | "failed" | "new" | "skipped";
+  drift?: number;
+}
+
+export interface ResyncResult {
+  ok: boolean;
+  requested_by: string;
+  pulled_at: string;
+  anchored_at: string;
+  scope: string;
+  dau_method: string;
+  fields: ResyncField[];
+  cannot_refresh: { field: string; reason: string }[];
+  refreshed?: number;
+  failed?: number;
+  skipped?: number;
+  partial?: string;
+  error?: string;
+  live?: Record<string, number>;
+}
+
+export async function resyncCleverTap(requestedBy: string): Promise<ResyncResult> {
+  const r = await fetch(`${BASE}/api/ct/resync`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ requested_by: requestedBy }),
+  });
+  if (!r.ok) throw new Error(`Resync failed: ${r.status}`);
+  return r.json();
+}

@@ -15,13 +15,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
-  askAssistant, getSignalSuggestions, getRules, SPECTRUM,
-  type AssistantReply, type DecisionParam,
+  askAssistant, getSignalSuggestions, getRules, getSignalTuning, SPECTRUM,
+  type AssistantReply, type DecisionParam, type TuningParam,
 } from "@/lib/api";
 import { Chip } from "@/components/kit";
 import { SignalAvatar } from "@/components/signal-avatar";
 import {
-  Send, RotateCw, Sparkles, Wifi, BatteryFull, Gauge, X,
+  Send, RotateCw, Sparkles, Wifi, BatteryFull, Gauge, X, SlidersHorizontal,
 } from "lucide-react";
 
 interface Msg {
@@ -43,6 +43,9 @@ export function SignalChat({
   const [busy, setBusy] = useState(false);
   const [suggested, setSuggested] = useState<string[]>([]);
   const [rubric, setRubric] = useState<DecisionParam[] | null>(null);
+  const [tuneSpec, setTuneSpec] = useState<{ parameters: TuningParam[]; locked: string[] } | null>(null);
+  const [tuning, setTuning] = useState<Record<string, string | boolean>>({});
+  const [pane, setPane] = useState<"rubric" | "tuning">("rubric");
   const [sheet, setSheet] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -56,6 +59,13 @@ export function SignalChat({
     getRules().then((r) => {
       const rule = r.rules.find((x) => x.id === "signal_quality");
       if (rule) setRubric(rule.parameters);
+    }).catch(() => {});
+    getSignalTuning().then((t) => {
+      setTuneSpec(t);
+      // Seed from the published defaults so the controls and the server agree.
+      const seed: Record<string, string | boolean> = {};
+      t.parameters.forEach((prm) => { seed[prm.key] = prm.default; });
+      setTuning(seed);
     }).catch(() => {});
   }, []);
 
@@ -72,7 +82,9 @@ export function SignalChat({
     setMessages((m) => [...m, { role: "user", text: msg }]);
     setBusy(true);
     try {
-      const reply = await askAssistant({ message: msg, cohort_keys: cohortKeys, org });
+      const reply = await askAssistant({
+        message: msg, cohort_keys: cohortKeys, org, tuning,
+      });
       setMessages((m) => [...m, { role: "ai", text: reply.answer, reply }]);
     } catch (e) {
       setMessages((m) => [...m, {
@@ -121,7 +133,15 @@ export function SignalChat({
               </span>
             )}
             <button
-              onClick={() => setSheet(true)}
+              onClick={() => { setPane("tuning"); setSheet(true); }}
+              className="w-7 h-7 rounded-lg border border-border flex items-center justify-center flex-shrink-0 hover:border-[color:var(--cyan)]"
+              aria-label="Tune SIGNAL"
+              title="Tune how SIGNAL answers"
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5 text-muted-foreground" />
+            </button>
+            <button
+              onClick={() => { setPane("rubric"); setSheet(true); }}
               className="w-7 h-7 rounded-lg border border-border flex items-center justify-center flex-shrink-0 hover:border-[color:var(--cyan)]"
               aria-label="Answer quality rubric"
               title="How answers are scored"
@@ -196,17 +216,73 @@ export function SignalChat({
           </div>
           <div className="phone-home" aria-hidden />
 
-          {/* rubric sheet, slides over the screen */}
-          {sheet && rubric && (
+          {/* sheet: rubric on one pane, tuning on the other */}
+          {sheet && (
             <div className="phone-sheet glass">
-              <div className="flex items-center gap-2 mb-3">
-                <span className="label-mono flex-1">Answer quality rubric</span>
+              <div className="flex items-center gap-1.5 mb-3">
+                <button onClick={() => setPane("rubric")}
+                  className={`sheet-tab ${pane === "rubric" ? "is-on" : ""}`}>
+                  Scoring
+                </button>
+                <button onClick={() => setPane("tuning")}
+                  className={`sheet-tab ${pane === "tuning" ? "is-on" : ""}`}>
+                  Tuning
+                </button>
                 <button onClick={() => setSheet(false)}
-                  className="w-6 h-6 rounded-md border border-border flex items-center justify-center"
-                  aria-label="Close rubric">
+                  className="w-6 h-6 rounded-md border border-border flex items-center justify-center ml-auto flex-shrink-0"
+                  aria-label="Close">
                   <X className="w-3 h-3" />
                 </button>
               </div>
+
+              {pane === "tuning" && tuneSpec && (
+                <div className="space-y-3">
+                  <p className="text-[10.5px] text-muted-foreground leading-relaxed">
+                    These change how SIGNAL answers, and take effect on the next
+                    question.
+                  </p>
+                  {tuneSpec.parameters.map((prm) => (
+                    <div key={prm.key}>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] font-medium flex-1 min-w-0">{prm.label}</span>
+                        {prm.type === "toggle" ? (
+                          <button
+                            role="switch"
+                            aria-checked={Boolean(tuning[prm.key])}
+                            aria-label={prm.label}
+                            onClick={() => setTuning((t) => ({ ...t, [prm.key]: !t[prm.key] }))}
+                            className={`tune-switch ${tuning[prm.key] ? "is-on" : ""}`}
+                          >
+                            <span />
+                          </button>
+                        ) : (
+                          <div className="flex gap-1 flex-shrink-0">
+                            {prm.options?.map((o) => (
+                              <button key={o}
+                                onClick={() => setTuning((t) => ({ ...t, [prm.key]: o }))}
+                                className={`tune-opt ${tuning[prm.key] === o ? "is-on" : ""}`}>
+                                {o}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <p className="text-[9.5px] text-muted-foreground leading-snug mt-1">
+                        {prm.desc}
+                      </p>
+                    </div>
+                  ))}
+                  <div className="pt-2.5 border-t border-border space-y-1.5">
+                    <span className="label-mono !text-[8.5px]">Not tunable</span>
+                    {tuneSpec.locked.map((l) => (
+                      <p key={l} className="text-[9.5px] text-muted-foreground leading-snug">{l}</p>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {pane === "rubric" && rubric && (
+              <>
               <p className="text-[10.5px] text-muted-foreground mb-3 leading-relaxed">
                 Every reply is scored on these {rubric.length} parameters, computed from
                 the reply itself. Weights sum to 100.
@@ -226,6 +302,8 @@ export function SignalChat({
                   </div>
                 ))}
               </div>
+              </>
+              )}
             </div>
           )}
         </div>
@@ -282,10 +360,10 @@ function AiBubble({ msg }: { msg: Msg }) {
         {r && r.facts.length > 0 && (
           <div className="mt-2.5 space-y-1.5">
             {r.facts.slice(0, 5).map((f, i) => (
-              <div key={i} className="flex items-start gap-2 text-[10px]">
+              <div key={i} className="sig-fact">
                 <Chip kind={f.provenance} />
-                <span className="text-muted-foreground flex-1 min-w-0">{f.label}</span>
-                <span className="tnum font-semibold flex-shrink-0">{f.value}</span>
+                <span className="sig-fact-label">{f.label}</span>
+                <span className="sig-fact-value tnum">{f.value}</span>
               </div>
             ))}
           </div>
