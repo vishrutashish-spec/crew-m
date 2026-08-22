@@ -135,6 +135,12 @@ Use EXACTLY these sections, in this order, each heading on its own line:
     dashboard, 24x7), email support (care@plumhq.com, 9am to 9pm, seven days a
     week), and emergencies without health cards (1800 30 911 911, 24x7, cashless
     only at network hospitals).
+12. A short closing, two or three sentences, on its own after the support
+    section. ${isRenewal
+      ? `Thank ${accountName} employees for continuing with Plum and say the team is glad to keep looking after them.`
+      : `Welcome them to Plum once more and say the team is glad to have them on board.`}
+    Warm and plain. No heading above it, no bullets, no call to action, and do
+    not repeat the helpline or email address again here.
 
 Hard rules:
 - SUM INSURED IS WRITTEN AS "Graded" AND NOTHING ELSE. Never list the per-grade
