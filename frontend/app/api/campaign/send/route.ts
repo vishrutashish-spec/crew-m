@@ -136,6 +136,8 @@ interface SendRequest {
   creative?: { creativeUrl?: string; mobileCreativeUrl?: string; stub?: boolean };
   /** Return the assembled HTML without sending. Never sends. */
   preview?: boolean;
+  /** Who this actually goes to. Omit for the safe default. */
+  sendTo?: SendTo;
 }
 
 function esc(s: string) {
@@ -287,7 +289,7 @@ If you would like to stop receiving these emails, unsubscribe here.
 }
 
 export async function POST(request: Request) {
-  const { requestId, accountName, campaignType, copy, creative, preview } =
+  const { requestId, accountName, campaignType, copy, creative, preview, sendTo } =
     (await request.json()) as SendRequest;
 
   const apiKey = process.env.RESEND_API_KEY;
@@ -301,6 +303,15 @@ export async function POST(request: Request) {
   const body = copy?.body?.trim();
   if (!subject || !body) {
     return NextResponse.json({ ok: false, error: "missing_copy" }, { status: 400 });
+  }
+
+  let recipients: string[];
+  let recipientLabel: string;
+  try {
+    ({ recipients, label: recipientLabel } = resolveRecipients(sendTo));
+  } catch (err) {
+    console.error("recipient resolution failed", err);
+    return NextResponse.json({ ok: false, error: (err as Error).message }, { status: 400 });
   }
 
   // A bespoke creative wins; otherwise fall back to the generic header for
@@ -352,37 +363,60 @@ export async function POST(request: Request) {
 
   if (preview) {
     return NextResponse.json({
-      ok: true, preview: true, wouldSendTo: ONLY_RECIPIENT,
+      ok: true, preview: true, wouldSendTo: recipientLabel, recipientCount: recipients.length,
       imageCount: (html.match(/<img /g) ?? []).length,
       headerUsed,
       html,
     });
   }
 
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-      // Resend sits behind Cloudflare, which blocks some default UAs outright.
-      "User-Agent": "crew-m/1.0 (+https://iw-crew-m-c4b9.insurwreck.com)",
-    },
-    body: JSON.stringify({ from, to: [ONLY_RECIPIENT], subject, html }),
-  });
+  // One Resend call per recipient rather than a shared `to` array — a
+  // company-wide send must not expose everyone's address to everyone else.
+  const results = await Promise.all(
+    recipients.map(async (to) => {
+      try {
+        const res = await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            "Content-Type": "application/json",
+            // Resend sits behind Cloudflare, which blocks some default UAs outright.
+            "User-Agent": "crew-m/1.0 (+https://iw-crew-m-c4b9.insurwreck.com)",
+          },
+          body: JSON.stringify({ from, to: [to], subject, html }),
+        });
+        const text = await res.text();
+        if (!res.ok) {
+          console.error("Resend send failed for", to, res.status, text);
+          return { to, ok: false, error: `send_failed_${res.status}` };
+        }
+        let id: string | undefined;
+        try { id = JSON.parse(text).id; } catch { /* non-JSON success body */ }
+        return { to, ok: true, messageId: id };
+      } catch (err) {
+        console.error("Resend request threw for", to, err);
+        return { to, ok: false, error: "request_threw" };
+      }
+    })
+  );
 
-  const text = await res.text();
-  if (!res.ok) {
-    console.error("Resend send failed", res.status, text);
-    return NextResponse.json({ ok: false, error: "send_failed", status: res.status }, { status: 502 });
+  const sent = results.filter((r) => r.ok);
+  const failed = results.filter((r) => !r.ok);
+
+  if (sent.length === 0) {
+    return NextResponse.json(
+      { ok: false, error: "send_failed", recipientLabel, failed },
+      { status: 502 }
+    );
   }
-
-  let id: string | undefined;
-  try { id = JSON.parse(text).id; } catch { /* non-JSON success body */ }
 
   return NextResponse.json({
     ok: true,
-    messageId: id,
-    sentTo: ONLY_RECIPIENT,
+    messageId: sent[0].messageId,
+    sentTo: recipientLabel,
+    sentCount: sent.length,
+    failedCount: failed.length,
+    failed: failed.length ? failed : undefined,
     requestId, accountName, campaignType,
     creativeWasStub: Boolean(creative?.stub),
     headerUsed,
