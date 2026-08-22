@@ -470,7 +470,7 @@ def _simulate_core(model: dict, objective: str, cohort_keys: list[str],
         "timing_detail": T.recommend(channel, cohort_keys),
         "timing": {
             "send_hour": send_hour,
-            "note": f"Peak window is 20:00-23:00; this selection skews to {send_hour}:00",
+            "note": f"Observed booking peaks are 11:00 and 18:00-19:00 IST; this slot is {send_hour}:00",
             "label": "RECOMMENDED" if send_hour_in is None else "OBSERVED",
         },
         "warnings": warnings,

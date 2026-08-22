@@ -108,17 +108,9 @@ def score_channels(pool: int, options: dict[str, int],
 # Timing rubric: published for the UI, applied in server.py.
 # ---------------------------------------------------------------------------
 
-TIMING_RULE = {
-    "id": "send_timing",
-    "label": "Send-time recommendation",
-    "version": RULES_VERSION,
-    "parameters": [
-        {"key": "peak_window", "label": "Documented peak window", "weight": 60,
-         "desc": "Base-wide activity peaks 20:00 to 23:00", "provenance": "OBSERVED"},
-        {"key": "cohort_skew", "label": "Cohort age skew", "weight": 40,
-         "desc": "Younger cohorts skew later inside the window", "provenance": "MODELED"},
-    ],
-}
+# The send-time rubric now lives in timing.py, built on the observed booking
+# clock rather than the stated 20:00-23:00 window, which real bookings do not
+# support. Kept out of this registry so there is only one source.
 
 # ---------------------------------------------------------------------------
 # Copy scoring rubric: the discipline checks in copy_engine, with weights.
@@ -182,7 +174,7 @@ ASSISTANT_RULE = {
     ],
 }
 
-ALL_RULES = [CHANNEL_RULE, TIMING_RULE, COPY_RULE, ASSISTANT_RULE]
+ALL_RULES = [CHANNEL_RULE, COPY_RULE, ASSISTANT_RULE]
 
 
 def registry() -> dict:

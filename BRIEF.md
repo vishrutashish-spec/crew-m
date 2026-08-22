@@ -427,3 +427,51 @@ runs end-to-end until one is created and `SLACK_BOT_TOKEN` is set.
   banner stats strips, tooltips, popovers, the org control, the theme pill,
   mac title bars. Scarce by rule.
 - Charts carry gradient series fills + soft dashed grids via shared SeriesDefs.
+
+### Clinical intelligence layer (new)
+
+`backend/aggregates/real_aggregates.json` holds aggregate-only extractions from
+Plum's own telehealth consultation file (34,528 valid members, 133,218 consults,
+24 specialties) and health checkup file (36,526 bookings, 11 scored biomarkers).
+No member rows, no free text, doctor_notes never read.
+
+Three data defects handled openly, not hidden:
+- patient_age ranges from -517 to 2026; filtered to 15-80, dropping 2.87%
+- appointment timestamps are UTC; converted to IST or the curve peaks at 05:00
+- checkup bookings carry no age; joined via member id, matching 42.6%
+
+Findings that drive the product: Vitamin D abnormal in 80.2% of bookings
+(median 17 against a 30 threshold) and worst in the young at 88.1%; HbA1c
+nearly triples from 12.1% at 21-25 to 34.1% at 41-50; LDL peaks at 36-40
+(66.8%), which is hard evidence for the Bible's "36-40 is the pivot band"
+copy strategy; Dermatology peaks at 21-25 (18.2%); Psychology collapses after
+36; Orthopedics climbs with age.
+
+### Send timing, rebuilt
+
+`backend/timing.py` replaces the modeled peak-hour table. Real booking intent
+is twin-peaked at 11:00 and 18:00-19:00 IST across 133,218 consults; the
+often-quoted 20:00-23:00 window carries only 18.9% and sits past the peak.
+Sends lead intent by channel: email 90 min ahead into an inbox sweep (09:30),
+WhatsApp 30 min ahead (10:30), push at the peak itself (11:00). Quiet hours
+01:00-06:00 are never used. Every recommendation ships its clock, its weights
+and the corrections it applied.
+
+### SIGNAL
+
+`backend/signal_engine.py`, surfaced on the cohorts page in a glass phone
+frame with a pixel avatar. Deterministic grounded retrieval over the cohort
+model, the clinical aggregates and the approved copy library. Answers
+specialty patterns, biomarker gradients, segment filter rules, timing,
+channels, reach and provenance. Has a voice with deterministically varied
+openers. Scores every reply against a published 10-parameter rubric
+(grounding, numbers, provenance, depth, specificity, action, honesty, voice,
+brevity, hygiene): mean 9.98/10 across 23 question families, nothing below
+9.7.
+
+### Decision transparency, extended
+
+Both the channel recommendation and the funnel projection now ship a "how this
+was calculated" panel: weights as a spectrum pie, per-stage arithmetic with
+rates and provenance, and the observed/derived/modeled composition. Timing
+carries the same treatment plus the corrections it applied.

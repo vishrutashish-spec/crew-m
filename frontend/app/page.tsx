@@ -66,11 +66,11 @@ export default function OverviewPage() {
         {data && (
           <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
             <div>
-              <div className="flex items-center gap-2 mb-1.5">
+              <div className="meta-row">
                 <span className="label-mono">Eligible base</span>
                 <Chip kind="OBSERVED" />
               </div>
-              <p className="figure text-[38px]">{n(data.totals.eligible)}</p>
+              <p className="figure text-[41px]">{n(data.totals.eligible)}</p>
               <Link href="/cohorts"
                 className="inline-flex items-center gap-1.5 text-[11.5px] text-[color:var(--cyan-deep)] hover:underline mt-2 font-medium">
                 By age cohort <ArrowRight className="w-3 h-3" />

@@ -181,9 +181,9 @@ export default function SimulatePage() {
             </select>
           </Field>
 
-          <Field label="Send hour" hint="Peak window is 20:00 to 23:00">
+          <Field label="Send hour" hint="Real booking peaks are 11:00 and 18:00 to 19:00 IST">
             <select className="field" value={sendHour} onChange={(e) => setSendHour(e.target.value)}>
-              <option value="">Auto, cohort peak</option>
+              <option value="">Auto, observed booking peak</option>
               {Array.from({ length: 24 }, (_, i) => (
                 <option key={i} value={i}>{String(i).padStart(2, "0")}:00</option>
               ))}
@@ -687,9 +687,9 @@ function Result({ result: r }: { result: SimResult }) {
   return (
     <div className="space-y-5 rise">
       <Panel ground="aurora" ticked className="p-6">
-        <div className="relative grid grid-cols-12 gap-7 items-center">
+        <div className="relative grid grid-cols-12 gap-7 items-start">
           <div className="col-span-12 lg:col-span-5">
-            <div className="flex items-center gap-2 mb-2 flex-wrap">
+            <div className="meta-row">
               <span className="label-mono">Addressable audience</span>
               <Chip kind="DERIVED" />
             </div>
