@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, FlaskConical, BookOpen, Megaphone, Settings } from "lucide-react";
+import { LayoutDashboard, Users, FlaskConical, BookOpen, Settings } from "lucide-react";
 import { CrewMLogo } from "@/components/logos";
 import { ThemeToggle } from "@/components/theme-toggle";
 
@@ -11,7 +11,6 @@ const NAV = [
   { href: "/cohorts", label: "Cohorts", icon: Users },
   { href: "/simulate", label: "Simulator", icon: FlaskConical },
   { href: "/methodology", label: "Methodology", icon: BookOpen },
-  { href: "/new-campaign", label: "New campaign", icon: Megaphone },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 

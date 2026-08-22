@@ -81,6 +81,9 @@ INTENTS = [
                  "criteria", "user propert", "event propert", "properties",
                  "property", "attribute", "condition", "query", "targeting",
                  "target for", "install targeting", "target"]),
+    ("gender", ["gender", "male", "female", "men", "women", "woman", "man",
+                "boys", "girls", "sex split", "by gender", "male vs",
+                "female vs", "men vs", "women vs"]),
     ("specialty", ["dermat", "specialty", "speciality", "gynae", "gyno", "psycholog",
                    "psychiatr", "nutrition", "ortho", "pediatric", "paediatric",
                    "cardio", "endocrin", "gastro", "neurolog", "ent surgeon",
@@ -1104,6 +1107,136 @@ def _view_facts(key, model, keys, facts):
     return facts
 
 
+def h_gender(model, keys, org, msg, facts, seed):
+    """
+    Which age band and gender consults for what, and which markers come back
+    worst for them.
+
+    Two readings, kept apart on purpose. The specialty a group consults MOST is
+    General Physician in all twelve cells, so that answer is worthless on its
+    own. The specialty most over-represented against the same gender's overall
+    mix is the one that separates one group from another, and it is the one
+    worth building a campaign on.
+    """
+    low = _normalise(msg)
+    q = CI.gender_quality()
+
+    want_f = any(_kw_hit(low, w) for w in ("female", "women", "woman", "she", "girls"))
+    want_m = any(_kw_hit(low, w) for w in ("male", "men", "man", "boys"))
+
+    # No band named: sweep every cell and answer the comparison directly.
+    if not keys or (len(keys) > 2):
+        cells = CI.gender_sweep()
+        if want_f:
+            cells = [c for c in cells if c["gender"] == "FEMALE"]
+        elif want_m:
+            cells = [c for c in cells if c["gender"] == "MALE"]
+        ranked = sorted(
+            (c for c in cells if c["distinctive"]),
+            key=lambda c: -c["distinctive"]["index_vs_gender"])[:5]
+        lines = [
+            f"{_pick('finding', seed)} Across all twelve age band and gender "
+            f"cells, built from {q.get('th_rows_used', 0):,} consultations, "
+            "these are the sharpest concentrations."
+        ]
+        for c in ranked:
+            lab = _label([c["cohort"]]) or c["cohort"]
+            d = c["distinctive"]
+            lines.append(
+                f"  {lab} {c['gender'].lower()}\n"
+                f"    {d['specialty']} at {d['index_vs_gender']}x that gender's "
+                f"own average, {d['share']:.1%} of their {c['consults']:,} consults"
+            )
+        top = ranked[0] if ranked else None
+        if top:
+            facts.append({"label": "Sharpest concentration",
+                          "value": (f"{_label([top['cohort']])} {top['gender'].lower()}, "
+                                    f"{top['distinctive']['specialty']} at "
+                                    f"{top['distinctive']['index_vs_gender']}x"),
+                          "provenance": "OBSERVED"})
+        facts.append({"label": "Consultations analysed",
+                      "value": f"{q.get('th_rows_used', 0):,} across 24 specialties",
+                      "provenance": "OBSERVED"})
+        facts.append({"label": "Cells compared", "value": f"{len(cells)}",
+                      "provenance": "DERIVED"})
+        action = ("Target the over-indexed specialty, not the biggest one. "
+                  "General Physician leads every cell and separates nothing.")
+        return lines, action, facts
+
+    band = keys[0]
+    lab = _label([band]) or band
+    both = CI.gender_compare(band)
+    if not both:
+        return ([f"I have no gender split for {lab}."],
+                "Ask about another band.", facts)
+
+    genders = (["FEMALE"] if want_f and not want_m
+               else ["MALE"] if want_m and not want_f
+               else ["FEMALE", "MALE"])
+
+    lines = [f"{_pick('finding', seed)} {lab}, by gender, from real "
+             f"consultation and checkup records."]
+
+    for g in genders:
+        c = both.get(g)
+        if not c:
+            continue
+        block = [f"  {lab} {g.lower()}, {c['consults']:,} consults"]
+        if c["leading"]:
+            block.append(f"    Most consulted, past General Physician: "
+                         f"{c['leading']['specialty']} at "
+                         f"{c['leading']['share']:.1%}")
+        if c["distinctive"]:
+            d = c["distinctive"]
+            block.append(f"    Most over-represented: {d['specialty']} at "
+                         f"{d['index_vs_gender']}x this gender's own average")
+        if c["markers"]:
+            m = c["markers"][0]
+            block.append(f"    Worst marker: {m['marker']} abnormal in "
+                         f"{m['abnormal_pct']}% of {m['n']:,} results")
+        lines.append("\n".join(block))
+
+    # The contrast is usually the actual finding.
+    f, m = both.get("FEMALE"), both.get("MALE")
+    if len(genders) == 2 and f and m and f["leading"] and m["leading"]:
+        if f["leading"]["specialty"] != m["leading"]["specialty"]:
+            lines.append(
+                f"The split matters here: {lab} women lead on "
+                f"{f['leading']['specialty']}, men on {m['leading']['specialty']}. "
+                "One creative for the band would miss one of them.")
+        else:
+            lines.append(
+                f"Both genders in {lab} lead on {f['leading']['specialty']}, so "
+                "the band can take one message. The over-represented "
+                "specialties still differ, which is where a second variant earns "
+                "its place.")
+
+    for g in genders:
+        c = both.get(g)
+        if c and c["leading"]:
+            facts.append({
+                "label": f"{lab} {g.lower()}, leading specialty",
+                "value": f"{c['leading']['specialty']}, {c['leading']['share']:.1%} of {c['consults']:,}",
+                "provenance": "OBSERVED"})
+    if q.get("hc_match_rate"):
+        facts.append({
+            "label": "Checkup age coverage",
+            "value": f"{q['hc_match_rate']:.0%} of bookings, joined on member id",
+            "provenance": "DERIVED"})
+    facts.append({"label": "Consultations analysed",
+                  "value": f"{q.get('th_rows_used', 0):,}, {q.get('th_dropped_pct', 0)}% dropped on unusable age",
+                  "provenance": "OBSERVED"})
+
+    lead = both.get(genders[0])
+    action = ""
+    if lead and lead["distinctive"]:
+        action = (f"For {lab} {genders[0].lower()}, lead the creative on "
+                  f"{lead['distinctive']['specialty']}: it is "
+                  f"{lead['distinctive']['index_vs_gender']}x over-represented, "
+                  "which General Physician volume hides.")
+    return lines, action, facts
+
+
 def h_views(model, keys, org, msg, facts, seed):
     """Explain a dashboard view: what it shows, how to read it, what to watch."""
     low = _normalise(msg)
@@ -1160,6 +1293,7 @@ def h_views(model, keys, org, msg, facts, seed):
 
 # h_views is defined below HANDLERS, so it registers itself here.
 HANDLERS["views"] = h_views
+HANDLERS["gender"] = h_gender
 
 
 RUBRIC = {
@@ -1192,7 +1326,7 @@ RUBRIC = {
 
 _DEPTH_INTENTS = {"specialty", "biomarker", "segment", "timing", "accuracy",
                   "compare", "channel", "reach", "copy", "push_gap", "dnd",
-                  "conversion", "help" "views",}
+                  "conversion", "help" "views", "gender",}
 
 
 def _score(answer: str, facts: list[dict], action: str, intents: list[str],
@@ -1349,6 +1483,7 @@ def suggestions(cohort_keys: list[str]) -> list[str]:
         f"Which biomarker is most off in {lab}?",
         f"What is the dermatology pattern in {lab}?",
         f"What filters build a checkup segment for {lab}?",
+        f"Which health problem is most common for {lab} women?",
         f"When should I actually send WhatsApp?",
         f"Which channel for {lab}?",
         "How reliable are these numbers?",

@@ -1,18 +1,48 @@
 import { NextResponse } from "next/server";
+import { PLUM_STAFF_EMAILS } from "@/lib/plum-staff-emails";
 
 /**
- * HARD SAFETY RAIL — do not make this configurable.
- *
- * Every campaign this tool sends goes to this one address and nowhere else.
- * It is deliberately a module constant rather than a request field or an env
- * var: if the recipient cannot be supplied by the caller, no malformed
- * payload, prompt, Slack submission or misconfigured segment can redirect a
- * send at a real member. The CleverTap account this project can reach is a
- * shared, live engagement account, so a mistake there would email real
- * people; this route sends through Resend instead, which is a scoped
- * sending-only key, and pins the recipient here.
+ * Default recipient when a request doesn't specify one. This is the
+ * fallback, not a hard lock — a caller can now name an explicit recipient
+ * (a single test address, or "everyone at Plum") via `sendTo`. The
+ * reasoning for keeping a safe default still applies: the CleverTap account
+ * this project can reach is a shared, live engagement account, so a
+ * malformed payload that omits `sendTo` entirely must still land somewhere
+ * safe rather than erroring in a way that could get worked around toward a
+ * real member. Explicit intent (typed by a human in Slack) now overrides
+ * this; silence does not.
  */
-const ONLY_RECIPIENT = "oshin.sharma@plumhq.com";
+const DEFAULT_RECIPIENT = "oshin.sharma@plumhq.com";
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+interface SendTo {
+  mode?: "default" | "single" | "all_plum_staff";
+  email?: string;
+}
+
+/** Resolve who a send actually goes to. Throws rather than guessing on anything malformed. */
+function resolveRecipients(sendTo: SendTo | undefined): { recipients: string[]; label: string } {
+  const mode = sendTo?.mode ?? "default";
+
+  if (mode === "single") {
+    const email = (sendTo?.email ?? "").trim();
+    if (!EMAIL_RE.test(email)) throw new Error(`invalid_recipient_email: "${email}"`);
+    return { recipients: [email], label: `test send to ${email}` };
+  }
+
+  if (mode === "all_plum_staff") {
+    const recipients = PLUM_STAFF_EMAILS.filter((e) => EMAIL_RE.test(e));
+    if (recipients.length === 0) throw new Error("plum_staff_list_empty");
+    // Sanity valve: this is a static list, so it can't balloon on its own,
+    // but a bad edit (e.g. pasting in a segment export by mistake) still
+    // shouldn't be able to silently mail thousands of addresses.
+    if (recipients.length > 2000) throw new Error(`plum_staff_list_too_large: ${recipients.length}`);
+    return { recipients, label: `everyone at Plum (${recipients.length} address${recipients.length === 1 ? "" : "es"})` };
+  }
+
+  return { recipients: [DEFAULT_RECIPIENT], label: `default (${DEFAULT_RECIPIENT})` };
+}
 
 /**
  * Email images are hosted in a SEPARATE Vercel project, not in this app.
@@ -112,6 +142,8 @@ interface SendRequest {
   creative?: { creativeUrl?: string; mobileCreativeUrl?: string; stub?: boolean };
   /** Return the assembled HTML without sending. Never sends. */
   preview?: boolean;
+  /** Who this actually goes to. Omit for the safe default. */
+  sendTo?: SendTo;
 }
 
 function esc(s: string) {
@@ -257,7 +289,7 @@ If you would like to stop receiving these emails, unsubscribe here.
 }
 
 export async function POST(request: Request) {
-  const { requestId, accountName, campaignType, copy, creative, preview } =
+  const { requestId, accountName, campaignType, copy, creative, preview, sendTo } =
     (await request.json()) as SendRequest;
 
   const apiKey = process.env.RESEND_API_KEY;
@@ -272,6 +304,15 @@ export async function POST(request: Request) {
   const body = copy?.body?.trim();
   if (!subject || !body) {
     return NextResponse.json({ ok: false, error: "missing_copy" }, { status: 400 });
+  }
+
+  let recipients: string[];
+  let recipientLabel: string;
+  try {
+    ({ recipients, label: recipientLabel } = resolveRecipients(sendTo));
+  } catch (err) {
+    console.error("recipient resolution failed", err);
+    return NextResponse.json({ ok: false, error: (err as Error).message }, { status: 400 });
   }
 
   // Second gate, in case a caller assembles copy without going through
@@ -341,37 +382,60 @@ export async function POST(request: Request) {
 
   if (preview) {
     return NextResponse.json({
-      ok: true, preview: true, wouldSendTo: ONLY_RECIPIENT,
+      ok: true, preview: true, wouldSendTo: recipientLabel, recipientCount: recipients.length,
       imageCount: (html.match(/<img /g) ?? []).length,
       headerUsed,
       html,
     });
   }
 
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-      // Resend sits behind Cloudflare, which blocks some default UAs outright.
-      "User-Agent": "crew-m/1.0 (+https://iw-crew-m-c4b9.insurwreck.com)",
-    },
-    body: JSON.stringify({ from, to: [ONLY_RECIPIENT], subject, html }),
-  });
+  // One Resend call per recipient rather than a shared `to` array — a
+  // company-wide send must not expose everyone's address to everyone else.
+  const results = await Promise.all(
+    recipients.map(async (to) => {
+      try {
+        const res = await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            "Content-Type": "application/json",
+            // Resend sits behind Cloudflare, which blocks some default UAs outright.
+            "User-Agent": "crew-m/1.0 (+https://iw-crew-m-c4b9.insurwreck.com)",
+          },
+          body: JSON.stringify({ from, to: [to], subject, html }),
+        });
+        const text = await res.text();
+        if (!res.ok) {
+          console.error("Resend send failed for", to, res.status, text);
+          return { to, ok: false, error: `send_failed_${res.status}` };
+        }
+        let id: string | undefined;
+        try { id = JSON.parse(text).id; } catch { /* non-JSON success body */ }
+        return { to, ok: true, messageId: id };
+      } catch (err) {
+        console.error("Resend request threw for", to, err);
+        return { to, ok: false, error: "request_threw" };
+      }
+    })
+  );
 
-  const text = await res.text();
-  if (!res.ok) {
-    console.error("Resend send failed", res.status, text);
-    return NextResponse.json({ ok: false, error: "send_failed", status: res.status }, { status: 502 });
+  const sent = results.filter((r) => r.ok);
+  const failed = results.filter((r) => !r.ok);
+
+  if (sent.length === 0) {
+    return NextResponse.json(
+      { ok: false, error: "send_failed", recipientLabel, failed },
+      { status: 502 }
+    );
   }
-
-  let id: string | undefined;
-  try { id = JSON.parse(text).id; } catch { /* non-JSON success body */ }
 
   return NextResponse.json({
     ok: true,
-    messageId: id,
-    sentTo: ONLY_RECIPIENT,
+    messageId: sent[0].messageId,
+    sentTo: recipientLabel,
+    sentCount: sent.length,
+    failedCount: failed.length,
+    failed: failed.length ? failed : undefined,
     requestId, accountName, campaignType,
     creativeWasStub: Boolean(creative?.stub),
     headerUsed,
