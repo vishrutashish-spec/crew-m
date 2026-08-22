@@ -153,3 +153,166 @@ if __name__ == "__main__":
         print(json.dumps(result, indent=2))
     else:
         print("No CT credentials or data available")
+
+
+# ===========================================================================
+# Resync
+# ===========================================================================
+#
+# Data accessed: aggregate COUNTS from CleverTap's /1/counts endpoints only,
+#   never a profile row. Five figures: annual actives, 30-day actives, DAU,
+#   30-day installs, 30-day sessions.
+# Why: the dashboard's live-usage block is a dated snapshot. This refreshes it
+#   on demand so a demo is not quoting a stale day.
+# What protects it: read-only credentials from the provisioned bundle, every
+#   window explicitly bounded and never wider than a year (guardrail 5), counts
+#   endpoints only, and an audit line per pull naming who asked and for what.
+
+# Windows are expressed in complete days ending YESTERDAY. Today is never the
+# end of a window: a same-day query returns a partial count. That bug reported
+# DAU as 11,703 against a true 16,503, a 29% understatement that drifted
+# upward through the day. See anchors.DAU_METHOD.
+RESYNC_SPEC = [
+    ("annual_active_users", "counts/profiles.json", "App Launched",  364,
+     "unique profiles that launched the app, 364 complete days"),
+    ("mau_30d",             "counts/profiles.json", "App Launched",   30,
+     "unique profiles that launched the app, 30 complete days"),
+    ("dau",                 "counts/profiles.json", "App Launched",    1,
+     "unique profiles on the last COMPLETE day, never today"),
+    ("new_installs_30d",    "counts/profiles.json", "App Installed",  30,
+     "unique profiles that installed, 30 complete days"),
+    ("sessions_30d",        "counts/events.json",   "App Launched",   30,
+     "total App Launched occurrences, 30 complete days"),
+]
+
+MAX_WINDOW_DAYS = 365
+
+# Serverless functions have a hard ceiling, and five sequential count queries
+# with polling can exceed it. Past this budget the remaining fields are marked
+# skipped and the partial result is returned: a resync that completes three of
+# five and says so is worth more than a request that times out with nothing.
+RESYNC_BUDGET_SECONDS = 22
+
+
+def resync(requested_by: str = "unknown") -> dict:
+    """
+    Re-pull the live usage block from CleverTap and report it against what the
+    app currently has anchored, so a stale figure is visible rather than
+    silently replaced.
+
+    Never raises: a failed pull is reported as a failed field, because a resync
+    button that 500s tells the user nothing about which figure is stale.
+    """
+    import anchors as A
+
+    creds = _load_ct_credentials()
+    out: dict = {
+        "ok": False,
+        "requested_by": requested_by,
+        "pulled_at": datetime.now().isoformat(),
+        "anchored_at": A.CT_PULL_DATE.isoformat(),
+        "scope": A.CT_LIVE_SCOPE,
+        "dau_method": A.DAU_METHOD,
+        "fields": [],
+        "cannot_refresh": _cannot_refresh(),
+    }
+    if not creds.get("account_id") or not creds.get("passcode"):
+        out["error"] = ("No CleverTap credentials in this environment, so "
+                        "nothing was queried and the anchored figures stand.")
+        return out
+
+    yesterday = datetime.now() - timedelta(days=1)
+    to_int = _date_int(yesterday)
+    deadline = time.time() + RESYNC_BUDGET_SECONDS
+
+    for key, endpoint, event, days, basis in RESYNC_SPEC:
+        assert days <= MAX_WINDOW_DAYS, f"window for {key} exceeds a year"
+        frm = _date_int(yesterday - timedelta(days=days - 1))
+        logger.info(
+            "DATA_ACCESS: ct resync by=%s field=%s event=%s window=%s..%s "
+            "endpoint=%s (aggregate counts only)",
+            requested_by, key, event, frm, to_int, endpoint,
+        )
+        if time.time() > deadline:
+            out["fields"].append({
+                "key": key, "label": key.replace("_", " "),
+                "anchored": A.CT_LIVE.get(key), "live": None,
+                "window": f"{frm} to {to_int}", "window_days": days,
+                "basis": basis, "event": event, "status": "skipped",
+            })
+            continue
+        value = _count_query(endpoint, event, frm, to_int, creds)
+        anchored = A.CT_LIVE.get(key)
+        row = {
+            "key": key,
+            "label": key.replace("_", " "),
+            "anchored": anchored,
+            "live": value,
+            "window": f"{frm} to {to_int}",
+            "window_days": days,
+            "basis": basis,
+            "event": event,
+        }
+        if value is None:
+            row["status"] = "failed"
+        elif anchored in (None, 0):
+            row["status"] = "new"
+        else:
+            drift = value / anchored - 1
+            row["drift"] = round(drift, 4)
+            row["status"] = "moved" if abs(drift) >= 0.01 else "unchanged"
+        out["fields"].append(row)
+
+    got = [f for f in out["fields"] if f["live"] is not None]
+    out["ok"] = len(got) > 0
+    out["refreshed"] = len(got)
+    out["failed"] = sum(1 for f in out["fields"] if f["status"] == "failed")
+    out["skipped"] = sum(1 for f in out["fields"] if f["status"] == "skipped")
+    if out["skipped"]:
+        out["partial"] = (
+            f"{out['skipped']} of {len(out['fields'])} figures were not "
+            "queried: the pull ran past its time budget. The anchored values "
+            "for those stand, and running it again picks up where it stopped."
+        )
+    if out["ok"]:
+        out["live"] = {f["key"]: f["live"] for f in got}
+        mau, sessions, dau = (out["live"].get("mau_30d"),
+                              out["live"].get("sessions_30d"),
+                              out["live"].get("dau"))
+        if mau:
+            if sessions:
+                out["live"]["sessions_per_mau"] = round(sessions / mau, 2)
+            if dau:
+                out["live"]["dau_mau_ratio"] = round(dau / mau, 4)
+    return out
+
+
+def _cannot_refresh() -> list[dict]:
+    """
+    Figures this button deliberately does NOT touch, and why. Stating them is
+    the point: a "resync" that silently leaves the most important number alone
+    would imply the whole dashboard had just been re-verified.
+    """
+    return [
+        {
+            "field": "Eligible base and every cohort count",
+            "reason": (
+                "The eligible base must be filtered on "
+                "warehouse_production_organisationStatus = active, and the "
+                "/1/counts endpoints silently ignore profile property filters. "
+                "A filtered query and a query with a deliberately nonsensical "
+                "value both return the identical unfiltered total, so no "
+                "org-active figure can be sourced or verified here. It has to "
+                "come from a segment built in the CleverTap dashboard, where "
+                "profile filters actually apply."
+            ),
+        },
+        {
+            "field": "Campaign performance, open and click rates",
+            "reason": (
+                "No per-campaign performance export exists in this account, so "
+                "there is nothing to pull. Delivery, open and click stay "
+                "external priors rather than learned rates."
+            ),
+        },
+    ]

@@ -73,7 +73,7 @@ export default function OverviewPage() {
               <p className="figure text-[41px]">{n(data.totals.eligible)}</p>
               <Link href="/cohorts"
                 className="inline-flex items-center gap-1.5 text-[11.5px] text-[color:var(--cyan-deep)] hover:underline mt-2 font-medium">
-                By age cohort <ArrowRight className="w-3 h-3" />
+                By cohort <ArrowRight className="w-3 h-3" />
               </Link>
             </div>
             <Stat label="App installed" value={pct(data.totals.app_share)}
@@ -248,7 +248,7 @@ function Body({ data }: { data: OverviewX }) {
       {/* ---------------- COHORTS ---------------- */}
       <div className="grid grid-cols-12 gap-5 rise d3">
         <ChartFrame
-          title="Age cohorts"
+          title="Cohorts"
           sub="App ownership falls steadily with age. Bars are people, the line is the share."
           chip="MODELED"
           filename="age-cohorts"
@@ -377,11 +377,13 @@ function FunnelPanel({
   stages: Overview["totals"]["th_funnel"];
   className?: string;
 }) {
+  // The worst stage is still the steepest single-step drop, since that is what
+  // names the bottleneck. What gets LABELLED is the share of the first stage.
   const worst = stages.slice(1).reduce((min, s) => (s.from_prev < min.from_prev ? s : min), stages[1]);
   const data = stages.map((s) => ({
     stage: s.stage,
     count: s.count,
-    step: s.from_prev,
+    step: s.cumulative,          // share of stage one, never of the previous stage
     isWorst: s.stage === worst?.stage,
   }));
 
@@ -409,7 +411,9 @@ function FunnelPanel({
                 <Cell key={d.stage} fill={d.isWorst ? GRAD.red : GRAD.ink} />
               ))}
               <LabelList dataKey="step" position="top"
-                formatter={(v: unknown) => (typeof v === "number" && v < 1 ? pct(v, 0) : "")}
+                formatter={(v: unknown) =>
+                  // A decimal below 20%, or 12.76% and 13.3% both read "13%".
+                  typeof v === "number" && v < 1 ? pct(v, v < 0.2 ? 1 : 0) : ""}
                 style={{ fontSize: 10, fill: "var(--tick)", fontFamily: "Vollkorn, Georgia, serif" }} />
             </Bar>
           </BarChart>
@@ -418,7 +422,8 @@ function FunnelPanel({
       <div className="mt-3 pt-3 border-t border-border flex items-center gap-4 flex-wrap">
         <Legend color={CHART.red} label={`Biggest drop: ${worst?.stage}`} />
         <span className="text-[11px] text-muted-foreground">
-          Labels show the share continuing from the previous stage
+          Labels show the share of {stages[0]?.stage ?? "the first stage"}, so the last one is the
+          end-to-end rate. The red bar is the steepest single-step drop.
         </span>
       </div>
     </ChartFrame>

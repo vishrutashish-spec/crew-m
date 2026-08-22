@@ -16,7 +16,7 @@ import {
   PageBanner, MacBar, ProvenanceNote, StepHead,
 } from "@/components/kit";
 import { ChannelGlyph, ChannelTickY, PlumGlyph, WhatsAppGlyph, GmailGlyph } from "@/components/logos";
-import { SignalChat } from "@/components/signal-chat";
+import { WaMessage } from "@/components/wa-message";
 import {
   CartesianGrid,
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, LabelList,
@@ -101,7 +101,7 @@ export default function SimulatePage() {
       <Panel className="p-5 rise d1" ground="dot">
         <StepHead
           step={1}
-          title="Choose age cohorts"
+          title="Choose cohorts"
           sub="Cohorts are the primary audience dimension. Select one or more."
           chip="MODELED"
           right={
@@ -305,7 +305,6 @@ export default function SimulatePage() {
             itself against the published rubric.
           </p>
         </div>
-        <SignalChat cohortKeys={selected} org={org === "all" ? null : org} />
       </div>
     </div>
   );
@@ -458,7 +457,7 @@ function CopyStudio({
                 </span>
               </div>
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-                {g.variants.map((v) => <VariantCard key={v.id} v={v} />)}
+                {g.variants.map((v) => <VariantCard key={v.id} v={v} objective={objective} />)}
               </div>
             </div>
           ))}
@@ -492,7 +491,14 @@ function CopyStudio({
             </button>
           </div>
           {customResult && (
-            <AnalysisBlock analysis={customResult.analysis} prediction={customResult.prediction} channel={channel} />
+            <div className="space-y-3">
+              {/* Preview your own words in the real message shape, not just scored */}
+              {channel === "whatsapp" && customText.trim() && (
+                <WaMessage body={customText} objective={objective}
+                  category={customResult.analysis.category} />
+              )}
+              <AnalysisBlock analysis={customResult.analysis} prediction={customResult.prediction} channel={channel} />
+            </div>
           )}
         </div>
       </div>
@@ -502,7 +508,7 @@ function CopyStudio({
 
 /* ---------------------------------------------------------------- variants */
 
-function VariantCard({ v }: { v: CopyVariant }) {
+function VariantCard({ v, objective }: { v: CopyVariant; objective: string }) {
   const [open, setOpen] = useState(false);
   const a = v.analysis;
 
@@ -515,12 +521,7 @@ function VariantCard({ v }: { v: CopyVariant }) {
       <div className="p-4">
         {/* Message preview */}
         {v.channel === "whatsapp" && (
-          <div className="flex items-start gap-2.5">
-            <WhatsAppGlyph size={20} />
-            <div className="flex-1 rounded-xl rounded-tl-sm border border-border bg-[color:var(--wa-bubble)] px-3.5 py-3">
-              <p className="text-[12px] leading-relaxed whitespace-pre-line">{v.body}</p>
-            </div>
-          </div>
+          <WaMessage body={v.body} objective={objective} category={a.category} />
         )}
         {v.channel === "push" && (
           <div className="flex items-start gap-2.5 rounded-xl border border-border bg-[color:var(--muted)] px-3.5 py-3">
@@ -583,6 +584,7 @@ function VariantCard({ v }: { v: CopyVariant }) {
 }
 
 function PredictionRow({ p }: { p: CopyPrediction }) {
+  const [why, setWhy] = useState(false);
   const cell = (label: string, base: number, pred: number, delta: number, dp = 1) => (
     <div>
       <p className="label-mono !text-[8.5px] mb-1">{label}</p>
@@ -600,10 +602,50 @@ function PredictionRow({ p }: { p: CopyPrediction }) {
   );
   return (
     <div className="mt-3 rounded-lg border border-border bg-[color:var(--card)] px-3.5 py-2.5">
-      <div className="flex items-center gap-2 mb-2">
+      <div className="meta-row !mb-2">
         <Chip kind="PREDICTED" title={p.confidence_reason} />
-        <span className="text-[10px] text-muted-foreground">{p.confidence} confidence, deltas vs channel prior</span>
+        {/* A confidence caveat belongs on copy someone is testing. Crew M's own
+            recommendation states what it was modelled from instead. */}
+        <span className="text-[10px] text-muted-foreground">
+          {p.from_library
+            ? `modelled from ${p.library_size} shipped messages, deltas vs channel prior`
+            : `${p.confidence} confidence, deltas vs channel prior`}
+        </span>
+        <button onClick={() => setWhy(!why)}
+          className="ml-auto text-[10px] text-[color:var(--cyan-deep)] hover:underline flex-shrink-0">
+          {why ? "Hide basis" : "What predicted this"}
+        </button>
       </div>
+
+      {why && (
+        <div className="mb-3 rounded-lg border border-border bg-[color:var(--muted)] p-3 space-y-2">
+          {([
+            ["Copy", p.basis.copy],
+            ["Delivery, open, click", p.basis.delivery_open_click],
+            ["Convert", p.basis.convert],
+          ] as const).map(([k, v]) => (
+            <div key={k}>
+              <span className="label-mono !text-[8.5px]">{k}</span>
+              <p className="text-[10.5px] text-muted-foreground leading-relaxed mt-0.5">{v}</p>
+            </div>
+          ))}
+          {p.factors.length > 0 && (
+            <div className="pt-2 border-t border-border">
+              <span className="label-mono !text-[8.5px]">Style rules that moved it</span>
+              <ul className="mt-1 space-y-1">
+                {p.factors.map((f) => (
+                  <li key={f} className="text-[10.5px] text-muted-foreground leading-relaxed flex gap-1.5">
+                    <span className="text-[color:var(--cyan-deep)]">·</span>{f}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          <p className="text-[10px] text-muted-foreground pt-2 border-t border-border">
+            {p.confidence_reason}
+          </p>
+        </div>
+      )}
       <div className="grid grid-cols-3 md:grid-cols-4 gap-3">
         {cell("Open", p.baseline.open, p.predicted.open, p.delta.open)}
         {cell("Click", p.baseline.click, p.predicted.click, p.delta.click)}
@@ -683,12 +725,16 @@ function MeterChip({ label, ok }: { label: string; ok: boolean }) {
    ========================================================================== */
 
 function Result({ result: r }: { result: SimResult }) {
+  // Every stage is expressed as a share of SENT, the first stage, not of the
+  // stage before it. Computed from the counts themselves so the label and the
+  // bar can never disagree: the last one is the true end-to-end rate.
+  const ofSent = (count: number) => (r.funnel.sent ? count / r.funnel.sent : 0);
   const funnel = [
     { stage: "Sent", count: r.funnel.sent, rate: 1 },
-    { stage: "Delivered", count: r.funnel.delivered, rate: r.funnel.delivery_rate },
-    { stage: "Opened", count: r.funnel.opened, rate: r.funnel.open_rate },
-    { stage: "Clicked", count: r.funnel.clicked, rate: r.funnel.click_rate },
-    { stage: "Converted", count: r.funnel.converted, rate: r.funnel.click_to_convert },
+    { stage: "Delivered", count: r.funnel.delivered, rate: ofSent(r.funnel.delivered) },
+    { stage: "Opened", count: r.funnel.opened, rate: ofSent(r.funnel.opened) },
+    { stage: "Clicked", count: r.funnel.clicked, rate: ofSent(r.funnel.clicked) },
+    { stage: "Converted", count: r.funnel.converted, rate: ofSent(r.funnel.converted) },
   ];
 
   const channelData = Object.entries(r.channel.options).map(([key, v]) => ({
@@ -1046,11 +1092,15 @@ function FunnelExplainer({ fx }: { fx: FunnelExplain }) {
                   <div className="meta-row">
                     <span className="label-mono">{st.stage}</span>
                     <Chip kind={st.provenance} />
-                    {st.rate !== null && (
-                      <span className="text-[11px] text-muted-foreground tnum ml-auto">
-                        rate {pct(st.rate, 2)}
-                      </span>
-                    )}
+                    <span className="text-[11px] tnum ml-auto">
+                      <span className="text-muted-foreground">of {fx.steps[0].stage.toLowerCase()}</span>{" "}
+                      <span className="font-semibold">{pct(st.of_first, 2)}</span>
+                      {st.rate !== null && (
+                        <span className="text-muted-foreground">
+                          {" "}· step {pct(st.rate, 2)}
+                        </span>
+                      )}
+                    </span>
                   </div>
                   <div className="flex items-baseline justify-between gap-3">
                     <code className="text-[11.5px] text-muted-foreground">{st.math}</code>

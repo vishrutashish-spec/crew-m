@@ -35,6 +35,7 @@ from __future__ import annotations
 
 import re
 import anchors as A
+import copy_angles as CA
 
 # ---------------------------------------------------------------------------
 # Band mapping
@@ -600,7 +601,15 @@ def analyze(text: str, channel: str, band: str, objective: str,
 # ---------------------------------------------------------------------------
 
 def predict(analysis: dict, channel: str, objective: str,
-            audience_sent: int | None = None) -> dict:
+            audience_sent: int | None = None, from_library: bool = False) -> dict:
+    """
+    from_library marks copy Crew M itself recommended, assembled out of the
+    shipped library, as opposed to copy someone pasted in to test. The library
+    case has copy-side precedent and passes every discipline check by
+    construction, so it is not reported at the same confidence as an untested
+    paste. The channel priors are modeled in both cases, which is why neither
+    ever reaches high confidence.
+    """
     base = A.CHANNEL_BENCHMARKS[channel]
     conv = A.OBJECTIVE_CONVERSION[objective]
     open_m, click_m, conv_m = 1.0, 1.0, 1.0
@@ -649,8 +658,16 @@ def predict(analysis: dict, channel: str, objective: str,
 
     out = {
         "label": "PREDICTED",
-        "confidence": "low",
-        "confidence_reason": A.BENCHMARK_PROVENANCE,
+        "confidence": A.CONFIDENCE_LIBRARY if from_library else A.CONFIDENCE_CUSTOM,
+        "confidence_reason": (A.CONFIDENCE_LIBRARY_REASON if from_library
+                              else A.CONFIDENCE_CUSTOM_REASON),
+        "from_library": from_library,
+        # What backs each row of the prediction, so the UI can show the basis
+        # instead of only a confidence word.
+        "basis": A.PREDICTION_BASIS,
+        "campaigns_in_account": A.CT_CAMPAIGNS_IN_ACCOUNT,
+        "journeys_in_account": A.CT_JOURNEYS_IN_ACCOUNT,
+        "library_size": LIBRARY_SIZE,
         "baseline": {"open": base["open"], "click": base["click"], "convert": conv},
         "predicted": {"open": round(open_rate, 4), "click": round(click_rate, 4),
                        "convert": round(conv_rate, 4)},
@@ -669,6 +686,16 @@ def predict(analysis: dict, channel: str, objective: str,
     return out
 
 
+# Size of the shipped copy library, counted rather than hardcoded so the
+# figure quoted in a prediction's basis cannot drift from the library.
+LIBRARY_SIZE = sum(
+    len(v) if isinstance(v, (list, tuple)) else 1
+    for name in ("WA_HC", "WA_TH", "WA_OTHER", "EMAIL_HC", "EMAIL_TH",
+                 "EMAIL_OTHER", "PUSH_HC", "PUSH_TH", "PUSH_OTHER")
+    if isinstance(globals().get(name), dict)
+    for v in globals()[name].values()
+)
+
 # ---------------------------------------------------------------------------
 # Generation
 # ---------------------------------------------------------------------------
@@ -683,7 +710,14 @@ def _variants_for(objective: str, band: str, channel: str,
                   "body": _clean(body), "source": source})
 
     if channel == "whatsapp":
-        if objective == "hc_activation":
+        # An explicit angle writes to that mechanism. Without one, the band's
+        # own approved library message is the best-fit default. Before this the
+        # angle was ignored on WhatsApp entirely and every angle returned the
+        # same body, which made the control meaningless.
+        if CA.has(objective, angle):
+            add("marketing", CA.body(objective, angle, band),
+                source=f"library voice, {angle.replace('_', ' ')} angle")
+        elif objective == "hc_activation":
             add("marketing", WA_HC[band], source="approved WA touch 1, HC")
         elif objective == "th_activation":
             add("marketing", WA_TH[band], source="approved WA touch 1, TH")
@@ -745,7 +779,8 @@ def generate(objective: str, cohort_keys: list[str], channel: str,
             a = analyze(raw["body"], channel, band, objective, title=raw["title"])
             # Utility category overrides the raw kind if the analysis disagrees:
             # the analysis is the arbiter, not the template's intent.
-            p = predict(a, channel, objective, audience_sent)
+            p = predict(a, channel, objective, audience_sent,
+                        from_library=True)
             variants.append({
                 "id": f"{objective}:{band}:{channel}:{i}",
                 "band": band,
