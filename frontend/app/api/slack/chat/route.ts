@@ -40,6 +40,18 @@ For step 3, figure out what this actually is:
 - "Welcome" (a brand-new client's first benefits email) and "Renewal" (an
   existing client renewing their plan) are the two standard types —
   use campaignType "welcome" or "renewal" for these, campaignBrief "".
+- "HRA" (Health Risk Assessment — also called "health assessment" or "health
+  score") is its OWN exact campaignType: use campaignType "hra" — lowercase,
+  exactly those three letters, nothing appended (not "health-risk-assessment"
+  or any other slug) — this exact string is what routes it to the real,
+  hand-written HRA copy instead of a generated one. Recognise it whenever the
+  AM mentions HRA, "health risk assessment," or "health assessment" as the
+  campaign itself. The copy for this is pre-written, not generated, so
+  campaignBrief can just be a short note of who it's for. If the AM names a
+  specific angle for it (one of: curiosity, early-detection, personalization,
+  social-proof, free, self-id, myth-busting, anecdote, minimalist), set
+  "narrative" to that exact key; otherwise omit "narrative" entirely and it
+  rotates automatically.
 - Plum also runs targeted activation nudges, e.g. Health Checkup (getting
   employees to use the free annual checkup already in their plan — the
   right angle is always first-time activation of the one they already have,
@@ -72,8 +84,8 @@ entirely from the JSON.
 
 Once you have the AM's name, the account name, and the campaign type/intent,
 respond with ONLY this JSON (no other text):
-{"action":"draft","amName":"...","accountName":"...","campaignType":"welcome|renewal|<slug>","campaignBrief":"...","logoUrl":"...","sendTo":{"mode":"single|all_plum_staff","email":"..."}}
-("sendTo" is optional — include it only per the rule above.)
+{"action":"draft","amName":"...","accountName":"...","campaignType":"welcome|renewal|hra|<slug>","campaignBrief":"...","logoUrl":"...","narrative":"...","sendTo":{"mode":"single|all_plum_staff","email":"..."}}
+("narrative" and "sendTo" are both optional — include each only per the rules above.)
 
 Until then, respond with ONLY this JSON (no other text):
 {"action":"reply","text":"your next message to the AM"}
