@@ -15,7 +15,9 @@ import {
   Panel, PanelHead, Chip, Stat, ErrorState, Skeleton, PageBanner, ProvenanceNote,
 } from "@/components/kit";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { CheckCircle2, Database, ShieldCheck, Gauge, Palette } from "lucide-react";
+import {
+  CheckCircle2, Database, ShieldCheck, Gauge, Palette, RefreshCw, TriangleAlert,
+} from "lucide-react";
 
 interface Health {
   status: string; version: string; invariants_verified: number; built_at: string;
@@ -123,7 +125,7 @@ export default function SettingsPage() {
                 "No export or download of records anywhere in the interface",
                 "Every data-access route logs what was requested",
                 "The API refuses to start if any model invariant fails",
-                "Predictions are capped at low confidence while campaign history is missing",
+                "No prediction claims high confidence: no campaign performance history exists to learn from",
                 "Provenance labels are mandatory: observed, derived, modeled, predicted",
               ].map((g) => (
                 <div key={g} className="flex items-start gap-2.5 text-[12.5px]">
