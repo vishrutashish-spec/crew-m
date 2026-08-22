@@ -168,6 +168,11 @@
   --amber-text: #8a4a06;
   --cyanw-border: #b3e8ee;      /* cyan-wash outlines */
   --wa-bubble: #f7fef9;         /* WhatsApp preview bubble */
+  --wa-stage: #ece5dd;          /* WhatsApp chat wallpaper */
+  --wa-edge: rgba(43, 11, 33, 0.1);
+  --wa-tick: #53bdeb;           /* read receipt blue, WhatsApp's own */
+  --wa-link: #027eb5;           /* template CTA blue */
+  --wa-muted: #667781;          /* timestamp grey */
   --panel-top: #ffffff;         /* panel gradient stops */
   --panel-bottom: #fdfcfd;
   --bar-top: #fcfbfd;           /* mac title bar */
@@ -242,6 +247,11 @@
   --amber-text: #e8b46a;
   --cyanw-border: #1d4d55;
   --wa-bubble: #0f231a;
+  --wa-stage: #0b141a;
+  --wa-edge: rgba(248, 219, 201, 0.1);
+  --wa-tick: #53bdeb;
+  --wa-link: #53bdeb;
+  --wa-muted: #8696a0;
   --panel-top: #160e19;
   --panel-bottom: #130b16;
   --bar-top: #1b1220;
@@ -1390,4 +1400,93 @@ select.field:focus, input.field:focus, textarea.field:focus {
   overflow-y: auto;
   border-radius: 22px 22px 33px 33px;
   padding: 14px;
+}
+
+
+/* ---------------------------------------------------------------- WhatsApp
+   Message preview built to the real template anatomy: media header inside the
+   bubble, caption beneath it, timestamp and ticks on the last line, and a
+   divided CTA row for marketing templates. See components/wa-message.tsx. */
+
+.wa-stage {
+  background: var(--wa-stage);
+  border: 1px solid var(--wa-edge);
+  border-radius: 14px;
+  padding: 14px 12px;
+}
+
+.wa-row { display: flex; }
+
+.wa-bubble {
+  position: relative;
+  max-width: 320px;
+  background: var(--wa-bubble);
+  border-radius: 2px 8px 8px 8px;
+  box-shadow: 0 1px 1px rgba(11, 20, 26, 0.13);
+  padding: 3px;
+  overflow: hidden;
+}
+
+/* The tail. A triangle in the bubble colour, hung off the top-left corner. */
+.wa-tail {
+  position: absolute;
+  top: 0;
+  left: -8px;
+  width: 8px;
+  height: 13px;
+  background: var(--wa-bubble);
+  clip-path: polygon(100% 0, 0 0, 100% 100%);
+}
+
+.wa-media {
+  margin: 0;
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--muted);
+  line-height: 0;
+}
+
+.wa-media img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+}
+
+.wa-body { padding: 6px 7px 4px 6px; }
+
+.wa-text {
+  font-size: 12.5px;
+  line-height: 1.42;
+  color: var(--foreground);
+  white-space: pre-line;
+  /* Room on the final line so the timestamp never sits on top of the text. */
+  padding-right: 58px;
+}
+
+.wa-meta {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 3px;
+  /* Pull the meta up onto the last text line, as WhatsApp does. */
+  margin-top: -13px;
+  height: 15px;
+}
+
+.wa-time { font-size: 10px; color: var(--wa-muted); }
+.wa-ticks { color: var(--wa-tick); flex-shrink: 0; }
+
+.wa-cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin: 2px 0 0;
+  padding: 8px 0 6px;
+  border-top: 1px solid var(--wa-edge);
+  color: var(--wa-link);
+  font-size: 12.5px;
+  font-weight: 500;
 }

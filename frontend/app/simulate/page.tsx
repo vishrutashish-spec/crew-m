@@ -458,7 +458,7 @@ function CopyStudio({
                 </span>
               </div>
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-                {g.variants.map((v) => <VariantCard key={v.id} v={v} />)}
+                {g.variants.map((v) => <VariantCard key={v.id} v={v} objective={objective} />)}
               </div>
             </div>
           ))}
