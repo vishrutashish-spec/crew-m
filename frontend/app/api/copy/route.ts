@@ -174,8 +174,10 @@ with unrelated benefits.`}
 
 ${knownFacts}
 
-Aim for 150-250 words — this is a short, single-purpose nudge, not a full
-onboarding email. It should read as one clear ask, not a benefits directory.
+Aim for 200-280 words — this is a short, single-purpose nudge, not a full
+onboarding email, but it must clear 150 words with real margin (a send-time
+gate rejects anything shorter). It should read as one clear ask, not a
+benefits directory — pad with specific, relevant detail, never filler.
 
 Structure:
 1. A one-line hook naming the specific action or benefit (not a generic
