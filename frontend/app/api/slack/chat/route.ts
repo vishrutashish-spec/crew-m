@@ -145,6 +145,10 @@ export async function POST(request: Request) {
 
   const reply = await callClaude(history);
 
+  if (!reply) {
+    return NextResponse.json({ ok: false, error: "no_valid_reply" });
+  }
+
   if (reply.action === "reply") {
     await slackApi(token, "chat.postMessage", {
       channel: slackChannel,
