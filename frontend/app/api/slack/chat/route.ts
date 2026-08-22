@@ -44,6 +44,10 @@ async function slackApi(token: string, method: string, body: Record<string, unkn
   return res.json();
 }
 
+// Our own fallback text from a previous bad turn — if this got posted to
+// Slack, exclude it from history so it doesn't compound confusion.
+const FALLBACK_MARKER = "lost my train of thought";
+
 async function getRecentHistory(
   token: string,
   channel: string,
@@ -58,19 +62,22 @@ async function getRecentHistory(
   const messages: Array<{ role: "user" | "assistant"; text: string; ts: string }> = (
     data.messages ?? []
   )
+    // Drop join/leave/rename/etc system messages — they have a `subtype`
+    // and aren't real conversation turns.
+    .filter((m: { subtype?: string }) => !m.subtype)
     .map((m: { bot_id?: string; text?: string; ts: string }) => ({
       role: m.bot_id ? ("assistant" as const) : ("user" as const),
       text: m.text ?? "",
       ts: m.ts,
     }))
-    .filter((m: { text: string }) => m.text);
+    .filter((m: { text: string }) => m.text && !m.text.includes(FALLBACK_MARKER));
 
   // History comes back newest-last for threads, newest-first for channel history.
   const ordered = threadTs ? messages : [...messages].reverse();
   return ordered.map((m) => ({ role: m.role, content: m.text }));
 }
 
-async function callClaude(history: Array<{ role: string; content: string }>) {
+async function askClaude(history: Array<{ role: string; content: string }>): Promise<string> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   const apiBase = process.env.ANTHROPIC_API_BASE ?? "https://api.anthropic.com";
   if (!apiKey) throw new Error("anthropic_not_configured");
@@ -84,7 +91,7 @@ async function callClaude(history: Array<{ role: string; content: string }>) {
     },
     body: JSON.stringify({
       model: "claude-sonnet-5",
-      max_tokens: 4096,
+      max_tokens: 8192,
       system: SYSTEM_PROMPT,
       messages: history.map((m) => ({ role: m.role, content: m.content })),
     }),
@@ -93,13 +100,34 @@ async function callClaude(history: Array<{ role: string; content: string }>) {
   if (!res.ok) throw new Error(`anthropic_error_${res.status}`);
   const data = await res.json();
   const blocks: Array<{ type: string; text?: string }> = data?.content ?? [];
-  const text = blocks.find((b) => b.type === "text")?.text ?? "{}";
+  return blocks.find((b) => b.type === "text")?.text ?? "{}";
+}
 
-  try {
-    return JSON.parse(text) as AgentReply;
-  } catch {
-    return { action: "reply", text: "Sorry, I lost my train of thought — could you say that again?" } as AgentReply;
+async function callClaude(
+  history: Array<{ role: string; content: string }>
+): Promise<AgentReply | null> {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const prompt =
+      attempt === 0
+        ? history
+        : [
+            ...history,
+            {
+              role: "user",
+              content: "(Reminder: reply with ONLY the JSON object, nothing else.)",
+            },
+          ];
+    const text = await askClaude(prompt);
+    try {
+      return JSON.parse(text) as AgentReply;
+    } catch {
+      // retry once
+    }
   }
+  // Both attempts failed to produce valid JSON. Don't post a confusing
+  // "I forgot everything" message — that just pollutes history further.
+  // Stay silent this turn; the user's next message tries again with full context.
+  return null;
 }
 
 export async function POST(request: Request) {
@@ -116,6 +144,10 @@ export async function POST(request: Request) {
   history.push({ role: "user", content: text });
 
   const reply = await callClaude(history);
+
+  if (!reply) {
+    return NextResponse.json({ ok: false, error: "no_valid_reply" });
+  }
 
   if (reply.action === "reply") {
     await slackApi(token, "chat.postMessage", {
