@@ -282,10 +282,10 @@ function AiBubble({ msg }: { msg: Msg }) {
         {r && r.facts.length > 0 && (
           <div className="mt-2.5 space-y-1.5">
             {r.facts.slice(0, 5).map((f, i) => (
-              <div key={i} className="flex items-start gap-2 text-[10px]">
+              <div key={i} className="sig-fact">
                 <Chip kind={f.provenance} />
-                <span className="text-muted-foreground flex-1 min-w-0">{f.label}</span>
-                <span className="tnum font-semibold flex-shrink-0">{f.value}</span>
+                <span className="sig-fact-label">{f.label}</span>
+                <span className="sig-fact-value tnum">{f.value}</span>
               </div>
             ))}
           </div>

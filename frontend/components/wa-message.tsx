@@ -29,6 +29,8 @@
  * See public/creative/README.md for the filenames and the rule.
  */
 
+import { useEffect, useState } from "react";
+
 const CREATIVE: Record<string, { src: string; alt: string }> = {
   th_activation: {
     src: "/creative/evening-call.png",
@@ -84,6 +86,9 @@ export function WaMessage({
   const art = creativeFor(objective);
   const cta = (objective && CTA[objective]) || "Book a consult";
   const marketing = category === "marketing";
+  // Reset when the objective changes, so a newly-placed file is picked up.
+  const [missing, setMissing] = useState(false);
+  useEffect(() => setMissing(false), [art.src]);
 
   return (
     <div className="wa-stage">
@@ -93,8 +98,17 @@ export function WaMessage({
 
           {showMedia && (
             <figure className="wa-media">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={art.src} alt={art.alt} width={1200} height={900} />
+              {missing ? (
+                <div className="wa-media-missing">
+                  <span className="label-mono">Creative not placed</span>
+                  <code>{art.src}</code>
+                  <span>{art.alt}</span>
+                </div>
+              ) : (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img src={art.src} alt={art.alt} width={1200} height={900}
+                  onError={() => setMissing(true)} />
+              )}
             </figure>
           )}
 
