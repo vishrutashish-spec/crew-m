@@ -1,18 +1,48 @@
 import { NextResponse } from "next/server";
+import { PLUM_STAFF_EMAILS } from "@/lib/plum-staff-emails";
 
 /**
- * HARD SAFETY RAIL — do not make this configurable.
- *
- * Every campaign this tool sends goes to this one address and nowhere else.
- * It is deliberately a module constant rather than a request field or an env
- * var: if the recipient cannot be supplied by the caller, no malformed
- * payload, prompt, Slack submission or misconfigured segment can redirect a
- * send at a real member. The CleverTap account this project can reach is a
- * shared, live engagement account, so a mistake there would email real
- * people; this route sends through Resend instead, which is a scoped
- * sending-only key, and pins the recipient here.
+ * Default recipient when a request doesn't specify one. This is the
+ * fallback, not a hard lock — a caller can now name an explicit recipient
+ * (a single test address, or "everyone at Plum") via `sendTo`. The
+ * reasoning for keeping a safe default still applies: the CleverTap account
+ * this project can reach is a shared, live engagement account, so a
+ * malformed payload that omits `sendTo` entirely must still land somewhere
+ * safe rather than erroring in a way that could get worked around toward a
+ * real member. Explicit intent (typed by a human in Slack) now overrides
+ * this; silence does not.
  */
-const ONLY_RECIPIENT = "oshin.sharma@plumhq.com";
+const DEFAULT_RECIPIENT = "oshin.sharma@plumhq.com";
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+interface SendTo {
+  mode?: "default" | "single" | "all_plum_staff";
+  email?: string;
+}
+
+/** Resolve who a send actually goes to. Throws rather than guessing on anything malformed. */
+function resolveRecipients(sendTo: SendTo | undefined): { recipients: string[]; label: string } {
+  const mode = sendTo?.mode ?? "default";
+
+  if (mode === "single") {
+    const email = (sendTo?.email ?? "").trim();
+    if (!EMAIL_RE.test(email)) throw new Error(`invalid_recipient_email: "${email}"`);
+    return { recipients: [email], label: `test send to ${email}` };
+  }
+
+  if (mode === "all_plum_staff") {
+    const recipients = PLUM_STAFF_EMAILS.filter((e) => EMAIL_RE.test(e));
+    if (recipients.length === 0) throw new Error("plum_staff_list_empty");
+    // Sanity valve: this is a static list, so it can't balloon on its own,
+    // but a bad edit (e.g. pasting in a segment export by mistake) still
+    // shouldn't be able to silently mail thousands of addresses.
+    if (recipients.length > 2000) throw new Error(`plum_staff_list_too_large: ${recipients.length}`);
+    return { recipients, label: `everyone at Plum (${recipients.length} address${recipients.length === 1 ? "" : "es"})` };
+  }
+
+  return { recipients: [DEFAULT_RECIPIENT], label: `default (${DEFAULT_RECIPIENT})` };
+}
 
 /**
  * Email images are hosted in a SEPARATE Vercel project, not in this app.
