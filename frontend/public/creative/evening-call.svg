@@ -72,7 +72,6 @@
   <!-- desk phone -->
   <g>
     <path d="M628 716 L1010 690 L1042 800 L660 830 Z" fill="url(#phoneg)"/>
-    <path d="M700 736 L980 716 L1000 786 L716 808 Z" fill="#8E6branch" opacity="0"/>
     <rect x="828" y="726" width="118" height="52" rx="7" fill="#E4CBDD" transform="rotate(-3.6 887 752)"/>
     <g fill="#6B3157">
       <rect x="712" y="748" width="26" height="18" rx="5" transform="rotate(-3.6 725 757)"/>
