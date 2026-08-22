@@ -331,3 +331,86 @@ def consulter_vs_base(cohort: str, base_share: float) -> dict | None:
 def gender_split() -> dict:
     return {**data()["th_gender"], "label": "OBSERVED",
             "basis": "telehealth consulters, 34,528 members"}
+
+
+# ===========================================================================
+# Age band x gender
+# ===========================================================================
+#
+# "Which age bracket and gender faces which health problem most commonly."
+#
+# Two readings, deliberately kept apart, because they answer different
+# questions and the naive one is misleading on its own:
+#
+#   leading    the specialty this group consults most, excluding General
+#              Physician. GP is first in every one of the twelve cells, so
+#              reporting it says nothing about the group.
+#   distinctive the specialty most over-represented against the same gender's
+#              overall mix. This is what actually separates one band from
+#              another, and it is the useful one for targeting.
+#
+# Structural specialties are excluded from the distinctive reading: a
+# pediatrician indexing at 15x in the under-20 band is an age-eligibility
+# artefact, not a health pattern.
+
+GENERIC_SPECIALTY = {"General Physician"}
+STRUCTURAL = {"u20": {"Pediatrician"}}
+
+
+def gender_available() -> bool:
+    return bool(data().get("specialty_by_cohort_gender"))
+
+
+def gender_cell(cohort_key: str, gender: str) -> dict | None:
+    g = (gender or "").strip().upper()
+    if g in ("F", "WOMEN", "WOMAN", "FEMALES"):
+        g = "FEMALE"
+    if g in ("M", "MEN", "MAN", "MALES"):
+        g = "MALE"
+    d = data()
+    cell = (d.get("specialty_by_cohort_gender", {}).get(cohort_key, {}) or {}).get(g)
+    if not cell:
+        return None
+
+    rows = cell["top"]
+    leading = next((r for r in rows if r["specialty"] not in GENERIC_SPECIALTY), None)
+    excluded = GENERIC_SPECIALTY | STRUCTURAL.get(cohort_key, set())
+    candidates = [r for r in rows
+                  if r["specialty"] not in excluded and r["index_vs_gender"]]
+    distinctive = max(candidates, key=lambda r: r["index_vs_gender"], default=None)
+    generic = next((r for r in rows if r["specialty"] in GENERIC_SPECIALTY), None)
+
+    markers = (d.get("biomarkers_by_cohort_gender", {})
+               .get(cohort_key, {}) or {}).get(g) or []
+    return {
+        "gender": g,
+        "consults": cell["consults"],
+        "leading": leading,
+        "distinctive": distinctive,
+        "generic": generic,
+        "markers": markers[:3],
+        "all": rows,
+    }
+
+
+def gender_compare(cohort_key: str) -> dict | None:
+    """Both genders for one band, so the contrast is the answer."""
+    f, m = gender_cell(cohort_key, "FEMALE"), gender_cell(cohort_key, "MALE")
+    if not f and not m:
+        return None
+    return {"FEMALE": f, "MALE": m}
+
+
+def gender_quality() -> dict:
+    return data().get("gender_crosstab_quality", {})
+
+
+def gender_sweep() -> list[dict]:
+    """Every band x gender cell, for a 'which group has the worst X' question."""
+    out = []
+    for band in (data().get("specialty_by_cohort_gender") or {}):
+        for g in ("FEMALE", "MALE"):
+            c = gender_cell(band, g)
+            if c:
+                out.append({"cohort": band, **c})
+    return out

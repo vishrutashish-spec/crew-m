@@ -565,3 +565,31 @@ That is the same posture the desk provisioned for the app, and the engine
 exposes nothing the app does not already show, but it is a real property of the
 deploy rather than an accident to discover later. There are no member rows in
 either path.
+
+### Deploying a shared project: verify the alias, not the deployment
+
+`iw-crew-m-c4b9` is one Vercel project shared by three people deploying from
+three local trees, and **production is whoever deployed last**. That has already
+broken the live site once: two deploys landed from a tree that predated a push,
+and the campaign creative in `public/creative` vanished from
+`iw-crew-m-c4b9.vercel.app` while still being present and reachable on the
+individual deployment URLs.
+
+Two habits avoid it.
+
+**Pull before you deploy.** `git pull --rebase origin main` first, then build,
+then deploy. Deploying a stale tree does not just miss your teammates' work, it
+actively removes it from production.
+
+**Verify on the alias.** `https://iw-crew-m-c4b9.vercel.app` is the only host
+that proves anything. A `…-insurwreck.vercel.app` deployment URL returning 200
+tells you your build is fine and says nothing about what the demo will serve,
+because the alias may be pointing somewhere else entirely.
+
+A quick check that catches the specific failure:
+
+    curl -sL -o /dev/null -w '%{http_code}\n' \
+      https://iw-crew-m-c4b9.vercel.app/creative/evening-call.png
+
+404 there means production is running someone's older tree, and the fix is to
+pull, build and deploy again.
