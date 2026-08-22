@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { PLUM_STAFF_EMAILS } from "@/lib/plum-staff-emails";
 
+// A company-wide send can take well over Vercel's default function timeout
+// once it's rate-limited (see sendAll below) — give it real headroom rather
+// than getting cut off mid-fan-out, which would silently drop whoever
+// hadn't been reached yet.
+export const maxDuration = 300;
+
 /**
  * Default recipient when a request doesn't specify one. This is the
  * fallback, not a hard lock — a caller can now name an explicit recipient
