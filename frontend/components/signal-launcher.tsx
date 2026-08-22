@@ -80,9 +80,10 @@ export function SignalLauncher({
           id="signal-dock"
         >
           <div className="relative">
+            {/* sits just outside the phone frame so it never covers chrome */}
             <button
               onClick={() => { setOpen(false); btnRef.current?.focus(); }}
-              className="absolute right-3 top-3 z-10 w-8 h-8 rounded-lg btn !px-0 !py-0 flex items-center justify-center"
+              className="glass absolute -right-1 -top-3 z-30 w-8 h-8 rounded-full flex items-center justify-center"
               aria-label="Close SIGNAL"
             >
               <X className="w-4 h-4" />
