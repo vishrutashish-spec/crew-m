@@ -17,6 +17,8 @@ interface BuildDraftRequest {
   creative: { creativeUrl?: string; stub?: boolean };
   /** Who this should actually go to once approved. Omit for the safe default. */
   sendTo?: SendTo;
+  /** A literal, unbranded test send — copy generation was skipped entirely. */
+  plain?: boolean;
 }
 
 /**
@@ -43,7 +45,7 @@ function describeSendTo(sendTo: SendTo | undefined): string {
  * Creator -> Approver workflow takes it from there).
  */
 export async function POST(request: Request) {
-  const { requestId, amName, accountName, campaignType, campaignBrief, copy, creative, sendTo } =
+  const { requestId, amName, accountName, campaignType, campaignBrief, copy, creative, sendTo, plain } =
     (await request.json()) as BuildDraftRequest;
 
   const channel = "Email";
@@ -85,6 +87,7 @@ export async function POST(request: Request) {
     campaign_type: campaignType,
     campaign_brief: campaignBrief ?? null,
     send_to: sendTo ?? null,
+    plain: Boolean(plain),
     subject: copy?.subject ?? "",
     body: copy?.body ?? "",
     creative_url: creative?.creativeUrl ?? "",
@@ -141,7 +144,7 @@ export async function POST(request: Request) {
             type: "section",
             text: {
               type: "mrkdwn",
-              text: `*${campaignName}*\nRequested by ${amName}${
+              text: `*${campaignName}*${plain ? " _(plain/unbranded test send)_" : ""}\nRequested by ${amName}${
                 campaignBrief ? `\n*Brief:* ${campaignBrief}` : ""
               }\n\n*Subject:* ${copy?.subject ?? ""}\n\n*Suggested audience:* ${segmentSuggestion}\n\n*Recipients:* ${describeSendTo(sendTo)}\n\n*Preview:* <${previewUrl}|Open the actual email>`,
             },

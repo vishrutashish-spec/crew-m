@@ -22,6 +22,9 @@ interface AgentReply {
   /** Only set for campaignType "hra", and only if the AM named a specific
    *  angle by name. Omitted -> rotates deterministically. */
   narrative?: string;
+  /** True for a literal pipeline/deliverability test — skips copy generation
+   *  entirely and sends campaignBrief verbatim, unbranded, as the body. */
+  plain?: boolean;
   /** Only set if the AM explicitly named a recipient. Omitted -> safe default. */
   sendTo?: { mode: "single" | "all_plum_staff"; email?: string };
 }
@@ -62,6 +65,18 @@ For step 3, figure out what this actually is:
   summarising exactly what they asked for — who it's for and what action
   it's driving. This gets used downstream to write the actual copy, so make
   it specific, not generic.
+- If the AM is asking for a literal pipeline or deliverability test — NOT a
+  real campaign — recognise that explicitly. Signs of this: "send a test
+  email," "just send one that says X," "check the pipeline/send flow
+  works," or similar. Do NOT try to write marketing copy for this: there is
+  no real benefit or action to build a case around, and inventing one to
+  fit the usual structure produces a fake campaign, which is worse than a
+  short email. Instead use campaignType "test", set "plain" to true, and
+  put the exact wording they asked for as campaignBrief verbatim (if they
+  didn't give exact wording, use "This is a test email from Crew M. Please
+  ignore." as campaignBrief). This skips copy generation and sends
+  campaignBrief as-is, unbranded — appropriate for a test, wrong for a real
+  campaign, so only use it when it's genuinely a test.
 - For anything else, don't block them: use a short kebab-case slug for
   campaignType and write the clearest one-sentence campaignBrief you can
   from what they told you. Ask ONE clarifying question first only if their
@@ -84,8 +99,8 @@ entirely from the JSON.
 
 Once you have the AM's name, the account name, and the campaign type/intent,
 respond with ONLY this JSON (no other text):
-{"action":"draft","amName":"...","accountName":"...","campaignType":"welcome|renewal|hra|<slug>","campaignBrief":"...","logoUrl":"...","narrative":"...","sendTo":{"mode":"single|all_plum_staff","email":"..."}}
-("narrative" and "sendTo" are both optional — include each only per the rules above.)
+{"action":"draft","amName":"...","accountName":"...","campaignType":"welcome|renewal|hra|test|<slug>","campaignBrief":"...","logoUrl":"...","narrative":"...","plain":true,"sendTo":{"mode":"single|all_plum_staff","email":"..."}}
+("narrative", "plain" and "sendTo" are all optional — include each only per the rules above.)
 
 Until then, respond with ONLY this JSON (no other text):
 {"action":"reply","text":"your next message to the AM"}
@@ -253,24 +268,32 @@ export async function POST(request: Request) {
 
   // action === "draft": run the existing pipeline against our own API.
   const requestId = `chat-${Date.now()}`;
-  const { amName, accountName, campaignType, campaignBrief, logoUrl, narrative, sendTo } = reply;
+  const { amName, accountName, campaignType, campaignBrief, logoUrl, narrative, plain, sendTo } = reply;
 
-  const copy = await fetch(`${BASE_URL}/api/copy`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ requestId, amName, accountName, campaignType, campaignBrief, logoUrl, narrative }),
-  }).then((r) => r.json());
+  // A literal test send has no real benefit to write a campaign about —
+  // skip the copy model entirely rather than asking it to invent one.
+  // (Asking it to anyway is exactly what produced a multi-paragraph refusal
+  // that then got sent verbatim as the "campaign" body.)
+  const copy = plain
+    ? { subject: `Test — ${accountName}`, body: campaignBrief || "This is a test email from Crew M. Please ignore." }
+    : await fetch(`${BASE_URL}/api/copy`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ requestId, amName, accountName, campaignType, campaignBrief, logoUrl, narrative }),
+      }).then((r) => r.json());
 
-  const creative = await fetch(`${BASE_URL}/api/creative`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ requestId, copy }),
-  }).then((r) => r.json());
+  const creative = plain
+    ? { creativeUrl: "", stub: true }
+    : await fetch(`${BASE_URL}/api/creative`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ requestId, copy }),
+      }).then((r) => r.json());
 
   const draft = await fetch(`${BASE_URL}/api/campaign/draft`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ requestId, amName, accountName, campaignType, campaignBrief, copy, creative, sendTo }),
+    body: JSON.stringify({ requestId, amName, accountName, campaignType, campaignBrief, copy, creative, plain, sendTo }),
   }).then((r) => r.json());
 
   // Tag the saved record with where it came from, so the PMM's approve/reject

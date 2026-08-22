@@ -77,6 +77,7 @@ export async function POST(request: Request) {
           copy: { subject: row.subject, body: row.body },
           creative: { creativeUrl: row.creative_url, stub: row.creative_is_stub },
           sendTo: row.send_to ?? undefined,
+          plain: Boolean(row.plain),
         }),
       });
       sendResult = await res.json();
