@@ -8,6 +8,9 @@ interface GenerateCopyRequest {
   amName: string;
   accountName: string;
   campaignType: "welcome" | "renewal" | string;
+  /** Free-text description of intent for anything that isn't welcome/renewal, e.g.
+   *  "nudge employees who haven't used their free annual health checkup yet". */
+  campaignBrief?: string;
   logoFileId?: string;
   logoUrl?: string;
   slackUser?: string;
@@ -15,9 +18,46 @@ interface GenerateCopyRequest {
 
 const COPY_SKILL_PATH = path.join(process.cwd(), "lib", "prompts", "copy-skill.md");
 
+/**
+ * Messaging angles for known Plum products, distilled from
+ * PLUM_ADOPTION_PRODUCT_CONTEXT.md and CREW_M_MASTER_CT_BIBLE.md so a
+ * non-welcome/renewal request (e.g. "health checkup campaign") still gets
+ * product-accurate framing instead of a generic guess. Matched by substring
+ * against the AM's own words, since the bot doesn't force them into an enum.
+ */
+const PRODUCT_ANGLES: Array<{ match: RegExp; angle: string; deeplink: string }> = [
+  {
+    match: /health\s*-?\s*check\s*-?up|\bhc\b/i,
+    angle: `This is a Health Checkup activation nudge, NOT a renewal or welcome email.
+Most plans give one free checkup per year; once used, there's no urgency to
+rebook, so the right angle is FIRST-TIME activation of the free checkup
+already sitting in their plan — never "book your checkup again" framing.
+Lead with something like "you still haven't used the one already in your
+plan," not a generic wellness pitch. Mention it's free (already included,
+not something to buy), quick, and covers biomarker screening. Do not invent
+package names or turnaround times.`,
+    deeplink: "https://deeplink.plumhq.com/home?screen=hc",
+  },
+  {
+    match: /tele\s*-?\s*health|\bth\b|doctor\s*consult|teleconsult/i,
+    angle: `This is a Telehealth activation nudge. The angle is "help is one call
+away" — unlimited doctor consultations are already part of their plan.
+Emphasise speed and availability (no appointment needed, general physicians
+and specialists), not urgency or scarcity.`,
+    deeplink: "https://deeplink.plumhq.com/care",
+  },
+];
+
+function lookupProductAngle(text: string) {
+  return PRODUCT_ANGLES.find((p) => p.match.test(text)) ?? null;
+}
+
 export async function POST(request: Request) {
-  const { requestId, amName, accountName, campaignType, logoUrl } =
+  const { requestId, amName, accountName, campaignType, campaignBrief, logoUrl } =
     (await request.json()) as GenerateCopyRequest;
+
+  const normalizedType = String(campaignType).toLowerCase();
+  const isStandard = normalizedType === "welcome" || normalizedType === "renewal";
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
@@ -28,7 +68,7 @@ export async function POST(request: Request) {
   const copySkill = fs.readFileSync(COPY_SKILL_PATH, "utf-8");
 
   const facts = lookupAccountFacts(accountName);
-  const isRenewal = String(campaignType).toLowerCase() === "renewal";
+  const isRenewal = normalizedType === "renewal";
 
   // Policy year label for the subject, e.g. "2026-27", derived from the
   // cover start rather than today, so a future-dated policy reads correctly.
@@ -47,7 +87,7 @@ below, but state NO insurer name, date, sum insured, maternity limit, copay or
 any other specific. Where a specific belongs, write that the detail will follow
 shortly. Never invent a figure and never write a placeholder like "[insurer]".`;
 
-  const userPrompt = `Write the body copy for a ${isRenewal ? "RENEWAL" : "WELCOME"} benefits email to employees of "${accountName}".
+  const userPrompt = isStandard ? `Write the body copy for a ${isRenewal ? "RENEWAL" : "WELCOME"} benefits email to employees of "${accountName}".
 Requested by account manager ${amName}.
 
 ${knownFacts}
@@ -116,7 +156,50 @@ Respond with ONLY a raw JSON object (no markdown fences, no commentary):
 {"subject": "...", "body": "..."}
 
 The subject must be EXACTLY this, with nothing added or removed:
-Welcome to Your ${yearLabel} Health Benefits 🎉${accountName}<> Plum`;
+Welcome to Your ${yearLabel} Health Benefits 🎉${accountName}<> Plum`
+    : (() => {
+        const brief = (campaignBrief ?? "").trim();
+        const angle = lookupProductAngle(`${campaignType} ${brief}`);
+        return `Write the body copy for a targeted benefits-engagement email to
+employees of "${accountName}" who already have a Plum plan. This is NOT a
+welcome or renewal email — do not use either of those framings.
+Requested by account manager ${amName}.
+
+What the AM asked for, in their own words: "${brief || campaignType}"
+
+${angle ? angle.angle : `No specific Plum product angle is recognised from that
+description. Infer the single clearest benefit or action being promoted from
+the AM's own words above, and write toward that one thing only — do not pad
+with unrelated benefits.`}
+
+${knownFacts}
+
+Aim for 150-250 words — this is a short, single-purpose nudge, not a full
+onboarding email. It should read as one clear ask, not a benefits directory.
+
+Structure:
+1. A one-line hook naming the specific action or benefit (not a generic
+   greeting).
+2. Two to three sentences of body copy making the case for taking the action,
+   in Plum's voice — concrete, no filler.
+3. "Here's how:" with 2-4 short bullet steps to do it in the Plum app.
+4. One closing line reinforcing why now (only if there's a genuine reason —
+   never invent urgency or a deadline that wasn't supplied).
+
+Hard rules:
+- No em dashes anywhere.
+- No "not X, but Y" negation contrasts.
+- No ", so you know X" tails.
+- Never invent a statistic, limit, date, price or deadline.
+- Spell out acronyms on first use. Never write GMC, GTL, GPA or HRA bare.
+- No jokes, no personification, no wit.
+
+Respond with ONLY a raw JSON object (no markdown fences, no commentary):
+{"subject": "...", "body": "..."}
+
+The subject line should be short (under 60 characters), specific to the one
+action being promoted, and end with "${accountName}<> Plum".`;
+      })();
 
   const apiBase =
     process.env.ANTHROPIC_BASE_URL ??

@@ -5,6 +5,8 @@ interface BuildDraftRequest {
   amName: string;
   accountName: string;
   campaignType: "welcome" | "renewal" | string;
+  /** Free-text description of intent, for anything beyond welcome/renewal. */
+  campaignBrief?: string;
   copy: { subject?: string; body?: string };
   creative: { creativeUrl?: string; stub?: boolean };
 }
@@ -17,7 +19,7 @@ interface BuildDraftRequest {
  * Creator -> Approver workflow takes it from there).
  */
 export async function POST(request: Request) {
-  const { requestId, amName, accountName, campaignType, copy, creative } =
+  const { requestId, amName, accountName, campaignType, campaignBrief, copy, creative } =
     (await request.json()) as BuildDraftRequest;
 
   const channel = "Email";
@@ -27,12 +29,15 @@ export async function POST(request: Request) {
   const segmentSuggestion =
     campaignType === "welcome"
       ? `New employees at ${accountName} who haven't installed the app or completed an activation event yet`
-      : `Active employees at ${accountName} whose plan is due for renewal`;
+      : campaignType === "renewal"
+      ? `Active employees at ${accountName} whose plan is due for renewal`
+      : `Active employees at ${accountName} who haven't yet taken the action this campaign is nudging toward`;
 
   const summary = [
     `*${campaignName}*`,
     `Requested by: ${amName}`,
     `Channel: ${channel} (default for now — no channel picker yet)`,
+    ...(campaignBrief ? [`Brief: ${campaignBrief}`] : []),
     "",
     `*Subject:* ${copy?.subject ?? "(none generated)"}`,
     "*Body:*",
@@ -54,6 +59,7 @@ export async function POST(request: Request) {
     am_name: amName,
     account_name: accountName,
     campaign_type: campaignType,
+    campaign_brief: campaignBrief ?? null,
     subject: copy?.subject ?? "",
     body: copy?.body ?? "",
     creative_url: creative?.creativeUrl ?? "",
@@ -109,7 +115,9 @@ export async function POST(request: Request) {
             type: "section",
             text: {
               type: "mrkdwn",
-              text: `*${campaignName}*\nRequested by ${amName}\n\n*Subject:* ${copy?.subject ?? ""}\n\n*Suggested audience:* ${segmentSuggestion}`,
+              text: `*${campaignName}*\nRequested by ${amName}${
+                campaignBrief ? `\n*Brief:* ${campaignBrief}` : ""
+              }\n\n*Subject:* ${copy?.subject ?? ""}\n\n*Suggested audience:* ${segmentSuggestion}`,
             },
           },
           {

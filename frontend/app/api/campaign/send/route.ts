@@ -32,6 +32,20 @@ const FOOTER_MOBILE = `${ASSETS}/footer-mobile-v2.png`;
 const BENEFITS_DEEPLINK = "https://deeplink.plumhq.com/benefits";
 
 /**
+ * Deeplink table from CLEVERTAP_CAMPAIGN_SETUP_SKILL.md §1, matched against
+ * the campaign type so a Health Checkup / Telehealth nudge sends people to
+ * the right in-app screen instead of the generic benefits page.
+ */
+const PRODUCT_DEEPLINKS: Array<{ match: RegExp; url: string }> = [
+  { match: /health\s*-?\s*check\s*-?up|\bhc\b/i, url: "https://deeplink.plumhq.com/home?screen=hc" },
+  { match: /tele\s*-?\s*health|\bth\b|doctor\s*consult|teleconsult/i, url: "https://deeplink.plumhq.com/care" },
+];
+
+function deeplinkFor(campaignType: string) {
+  return PRODUCT_DEEPLINKS.find((p) => p.match.test(campaignType))?.url ?? BENEFITS_DEEPLINK;
+}
+
+/**
  * Generic single-brand headers, one pair per campaign type. Used when an
  * account has no bespoke creative built yet, so the email still ships a real
  * branded banner instead of no header at all. The bespoke (co-branded,
@@ -147,12 +161,13 @@ function splitAtClosingSection(body: string): { above: string; below: string } {
 function buildHtml(opts: {
   subject: string; body: string;
   desktopHeader?: string; mobileHeader?: string;
+  deeplink: string;
 }) {
-  const { body, desktopHeader, mobileHeader } = opts;
+  const { body, desktopHeader, mobileHeader, deeplink } = opts;
   const { above, below } = splitAtClosingSection(body);
   const header = (src: string, cls: string, extra: string) => `
   <div class="${cls}"${extra}>
-    <a href="${BENEFITS_DEEPLINK}" style="display:block;">
+    <a href="${deeplink}" style="display:block;">
       <img src="${src}" alt="" style="display:block; width:100%; height:auto; border:0;">
     </a>
   </div>`;
@@ -191,7 +206,7 @@ ${bodyToHtml(above)}
 <tr><td class="cta" align="center" style="padding:8px 40px 28px 40px;">
 <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
 <td align="center" bgcolor="#571541" style="border-radius:8px;">
-<a href="${BENEFITS_DEEPLINK}" style="display:inline-block; padding:11px 22px; font-family:Inter, Helvetica, Arial, sans-serif; font-size:15px; font-weight:600; line-height:1.4; color:#FFFFFF; text-decoration:none; border-radius:8px;">See what your plan covers</a>
+<a href="${deeplink}" style="display:inline-block; padding:11px 22px; font-family:Inter, Helvetica, Arial, sans-serif; font-size:15px; font-weight:600; line-height:1.4; color:#FFFFFF; text-decoration:none; border-radius:8px;">See what your plan covers</a>
 </td></tr></table>
 </td></tr>
 
@@ -251,23 +266,40 @@ export async function POST(request: Request) {
   // this campaign type so the email is never sent without a banner.
   // Header precedence: a creative passed in by the pipeline, then this
   // account's own co-branded creative, then the generic one for this campaign
-  // type. Only "none" if the campaign type is unrecognised.
+  // type.
   const typeKey = (campaignType ?? "").trim().toLowerCase();
   const acctKey = `${(accountName ?? "").trim().toLowerCase()}|${typeKey}`;
   const account = ACCOUNT_CREATIVES[acctKey];
-  const generic = GENERIC_HEADERS[typeKey];
+  // No bespoke or generic header exists yet for anything beyond welcome/
+  // renewal (e.g. a Health Checkup nudge) — no Figma build has been run for
+  // it. Per an explicit call to use only existing collateral rather than
+  // ship no banner: borrow the "renewal" generic header, since its framing
+  // (an existing, active member being re-engaged) fits an engagement nudge
+  // far better than "welcome" (new-employee onboarding). This is a stand-in,
+  // not a real fix — a bespoke banner should replace it via the Figma
+  // pipeline in EMAIL-DESIGN-PLAYBOOK.md once one exists.
+  const generic = GENERIC_HEADERS[typeKey] ?? GENERIC_HEADERS["renewal"];
 
   const passedIn = !creative?.stub && creative?.creativeUrl ? creative : null;
   const chosen = passedIn
     ? { desktop: passedIn.creativeUrl!, mobile: passedIn.mobileCreativeUrl ?? passedIn.creativeUrl! }
     : (account ?? generic);
 
-  const headerUsed = passedIn ? "pipeline" : account ? `account:${acctKey}` : generic ? `generic:${typeKey}` : "none";
+  const headerUsed = passedIn
+    ? "pipeline"
+    : account
+    ? `account:${acctKey}`
+    : GENERIC_HEADERS[typeKey]
+    ? `generic:${typeKey}`
+    : `generic:renewal (borrowed, no header built for "${typeKey}")`;
+
+  const deeplink = deeplinkFor(typeKey);
 
   const html = buildHtml({
     subject, body,
     desktopHeader: chosen?.desktop,
     mobileHeader: chosen?.mobile,
+    deeplink,
   });
 
   if (preview) {
