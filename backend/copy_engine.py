@@ -246,39 +246,241 @@ ANGLES = {
 # Email composition (subject + body from the same locked mechanisms)
 # ---------------------------------------------------------------------------
 
-def _email_for(objective: str, band: str) -> tuple[str, str]:
-    hooks_hc = {
-        "u20": "A health baseline is worth having early",
-        "21_25": "Find out where you actually stand",
-        "26_35": "The checkup that keeps getting pushed down the list",
-        "36_40": "Feeling fine isn't the same as knowing",
-        "41_50": "What changed since last year's report?",
-        "51p": "The simplest way to catch things early",
-    }
-    hooks_th = {
-        "u20": "A doctor's take beats guessing",
-        "21_25": "Google can wait. A doctor is 15 minutes away",
-        "26_35": "Deal with it before later gets longer",
-        "36_40": "Some symptoms deserve more than getting used to",
-        "41_50": "Recurring symptoms are worth an answer",
-        "51p": "A quick consult can give you clarity",
-    }
-    if objective in ("hc_activation",):
-        subject = hooks_hc[band]
-        body = _clean(WA_HC[band])
-    elif objective in ("th_activation",):
-        subject = hooks_th[band]
-        body = _clean(WA_TH[band])
-    elif objective == "hc_crosssell":
-        subject = "Your checkup report, explained by a doctor"
-        body = CROSSSELL_WA
-    elif objective == "app_install":
-        subject = "Your Plum benefits are one app away"
-        body = APP_INSTALL_WA["young" if band in ("u20", "21_25", "26_35") else "older"]
-    else:
-        subject = "Your Plum benefits are still unused this cycle"
-        body = REENGAGE_WA
-    return subject[:LIMITS["email"]["subject_target"]], body
+# Email is Touch 3 in the journey: day 9, after a deliberate channel switch,
+# and the last attempt. It must NOT reuse the WhatsApp body. It reads longer,
+# acknowledges that time has passed, drops the emoji bullet block for a plain
+# list, and closes harder than a WhatsApp nudge would. Subject lines stay under
+# 60 characters and carry no emoji, which is what the shipped email set does.
+
+EMAIL_HC = {
+    "u20": (
+        "A health baseline, whenever you want it",
+        "Nothing urgent. Just worth having on record.",
+        "Your Plum benefits include a full Health Checkup, completely free and already "
+        "covered, whether it is for you or someone you manage this benefit for.\n\n"
+        "It has been sitting unused, so this is a last note about it rather than a "
+        "reminder you need to act on. The value is simply having a clear picture on "
+        "file before anyone ever needs one.\n\n"
+        "What is included:\n"
+        "At-home sample collection, no clinic visit\n"
+        "Results in 24 to 48 hours on the Plum app\n"
+        "A doctor talks you through every result\n"
+        "Around 30 minutes, at a time you pick\n\n"
+        "Book it whenever it suits you."
+    ),
+    "21_25": (
+        "The checkup in your benefits is still unused",
+        "Your 20s are the cheapest decade to get a baseline.",
+        "A few weeks ago we mentioned the Health Checkup sitting in your Plum "
+        "benefits. It is still unclaimed, so this is the last note about it.\n\n"
+        "It is not the basic blood-pressure-and-weight kind. It is a deeper panel "
+        "most people pay thousands for, and every rupee of it is already covered.\n\n"
+        "Late nights, desk lunches and skipped meals do not feel like anything until "
+        "something like Vitamin D or B12 runs low and your focus quietly drops. A "
+        "baseline now is what makes that visible later.\n\n"
+        "What is included:\n"
+        "At-home sample collection, no clinic queues\n"
+        "Results in 24 to 48 hours on the Plum app\n"
+        "A doctor explains every result\n"
+        "Booked around your schedule\n\n"
+        "Worth closing off before the year does."
+    ),
+    "26_35": (
+        "One thing you can actually tick off",
+        "The checkup is still there, still free.",
+        "Work, plans and everything else keep moving, and this is the kind of task "
+        "that gets pushed rather than dropped. It is still open, so here is the last "
+        "note about it.\n\n"
+        "Your Plum benefits include a full Health Checkup, a deeper panel than the "
+        "standard blood-pressure-and-weight check, already paid for.\n\n"
+        "You may feel completely fine, and that is the point of a baseline: knowing "
+        "what normal looks like for you before life gets busier.\n\n"
+        "What is included:\n"
+        "At-home sample collection\n"
+        "Results in 24 to 48 hours on the Plum app\n"
+        "A doctor explains every result\n"
+        "Booked around your schedule\n\n"
+        "Ten minutes to book, and it is off the list."
+    ),
+    "36_40": (
+        "Feeling fine is not the same as knowing",
+        "Some markers move before you notice anything.",
+        "This is the last note about the Health Checkup in your Plum benefits, which "
+        "is still unclaimed.\n\n"
+        "Around this age, blood sugar and cholesterol can start shifting well before "
+        "they give you any reason to notice. That is exactly why a checkup is more "
+        "useful now than it was five years ago, and less useful than it will have "
+        "been five years from now.\n\n"
+        "It is a deeper panel than a standard check, and it is already covered.\n\n"
+        "What is included:\n"
+        "A deeper look at key health markers\n"
+        "At-home sample collection\n"
+        "Results in 24 to 48 hours on the Plum app\n"
+        "A doctor explains every result\n\n"
+        "Catching a change while it is still a change is the whole value here."
+    ),
+    "41_50": (
+        "What changed since your last report?",
+        "A year moves more than it feels like it does.",
+        "Last year's report tells you what was true last year. This is the last note "
+        "about the Health Checkup still sitting in your Plum benefits.\n\n"
+        "A year of work, sleep, food and stress can move cholesterol, blood pressure "
+        "and blood sugar without giving you a reason to notice. Confirming they have "
+        "not is worth half an hour.\n\n"
+        "It is a deeper panel than a standard check, already covered in full.\n\n"
+        "What is included:\n"
+        "A deeper look at key health markers\n"
+        "At-home sample collection\n"
+        "Results in 24 to 48 hours on the Plum app\n"
+        "A doctor explains every result\n\n"
+        "Check in, confirm, and move on with peace of mind."
+    ),
+    "51p": (
+        "The simplest way to catch things early",
+        "Regular checks are the whole point.",
+        "This is the last note about the Health Checkup in your Plum benefits, which "
+        "has not been used this cycle.\n\n"
+        "The earlier something is caught, the more options there usually are. That is "
+        "true whether or not you feel perfectly well, which is why regular checks "
+        "matter more than symptom-led ones.\n\n"
+        "It is a deeper panel than the basic blood-pressure-and-weight check, and one "
+        "most people would otherwise pay thousands for. Every rupee is covered.\n\n"
+        "What is included:\n"
+        "A deeper look at key health markers\n"
+        "At-home sample collection\n"
+        "Results in 24 to 48 hours on the Plum app\n"
+        "A doctor explains every result\n\n"
+        "This one is worth doing rather than deferring again."
+    ),
+}
+
+EMAIL_TH = {
+    "u20": (
+        "A doctor's take beats guessing",
+        "Free consults are part of your benefits.",
+        "Not every health problem looks like one. Tiredness that will not lift, skin "
+        "acting up, stomach trouble, sleep that has gone bad. Sometimes it is a "
+        "phase, and sometimes it is worth asking someone.\n\n"
+        "Your Plum benefits include free doctor consultations, and they have gone "
+        "unused. You can speak to a General Physician, or to specialists across "
+        "dermatology, psychology and nutrition.\n\n"
+        "A consult takes about fifteen minutes and costs you nothing. If something "
+        "has been bothering you, that is a low price for an answer."
+    ),
+    "21_25": (
+        "Google can wait. A doctor is 15 minutes away",
+        "Your consults are free and unused.",
+        "Low energy, hair fall, bad sleep, recurring acidity, brain fog, stress you "
+        "have started treating as normal. Your body tends to send small signals "
+        "rather than dramatic ones, and your 20s are a good time to understand what "
+        "is behind them.\n\n"
+        "Your Plum benefits include free consultations with a General Physician and "
+        "with specialists across dermatology, psychology and nutrition. They have not "
+        "been used.\n\n"
+        "Slots are usually available within minutes. It costs you a quarter of an "
+        "hour and nothing else."
+    ),
+    "26_35": (
+        "Before later gets longer",
+        "The consult is free and still unused.",
+        "Somewhere between being tired and getting it checked, a lot of life happens. "
+        "Headaches become normal, sleep gets worse, digestion turns temperamental, "
+        "stress becomes the baseline.\n\n"
+        "This is the last note about the free consultations in your Plum benefits. "
+        "You can speak to a General Physician, or to specialists across dermatology, "
+        "psychology and nutrition.\n\n"
+        "Slots are available within minutes and the consult costs nothing. If "
+        "something has been on your mind for a while, this is the cheap version of "
+        "dealing with it."
+    ),
+    "36_40": (
+        "Do not get so used to it that you stop noticing",
+        "Free consults, still unused this cycle.",
+        "The tricky part about your late 30s is that you can feel perfectly fine "
+        "while cholesterol, blood sugar and other markers begin to shift. Meanwhile "
+        "headaches, fatigue and poor sleep are easy to blame on work.\n\n"
+        "Your Plum benefits include free consultations, and this is the last note "
+        "about them. A General Physician is the right starting point, and specialists "
+        "across nutrition, dermatology and mental health are included too.\n\n"
+        "Slots are usually open within fifteen minutes."
+    ),
+    "41_50": (
+        "The aches that keep coming back",
+        "Free consults are included and unused.",
+        "By now you have probably learned which aches are nothing. The ones worth "
+        "attention are the ones that keep returning: fatigue, changing sleep, blood "
+        "pressure creeping up, headaches you notice and then explain away.\n\n"
+        "Your Plum benefits include free consultations with a General Physician, and "
+        "with specialists across cardiology, diabetology and nutrition. They have not "
+        "been used this cycle.\n\n"
+        "Fifteen minutes for an answer instead of another intention to get it checked."
+    ),
+    "51p": (
+        "Catching it early gives you more options",
+        "Free consults, included in your plan.",
+        "Blood pressure, blood sugar and cholesterol can all change without making "
+        "you feel any different. Recurring fatigue, changing sleep and unexplained "
+        "aches deserve more than getting used to them.\n\n"
+        "Your Plum benefits include free consultations with a General Physician and "
+        "with specialists across cardiology, diabetology and nutrition. This is the "
+        "last note about them this cycle.\n\n"
+        "Slots are usually available within fifteen minutes. A short conversation is "
+        "often all it takes to get clarity."
+    ),
+}
+
+EMAIL_OTHER = {
+    "app_install": (
+        "Your benefits live in one app",
+        "Two minutes to set up, already paid for.",
+        "Your company has already paid for your Plum benefits: free doctor "
+        "consultations, a full health checkup with at-home collection, and your "
+        "records in one place.\n\n"
+        "All of it is reached through the Plum app, and your account has not been set "
+        "up yet. Log in with your work email and everything is already waiting.\n\n"
+        "What you unlock:\n"
+        "Doctor consultations within about fifteen minutes\n"
+        "A full health checkup with at-home sample collection\n"
+        "Every report saved in one place\n\n"
+        "Two minutes now, and the rest is available whenever you need it."
+    ),
+    "reengagement": (
+        "Your benefits are still unused this cycle",
+        "Nothing to arrange and nothing to pay.",
+        "Your Plum membership includes free doctor consultations and a full health "
+        "checkup. Both are unused for this cycle, and the cycle does eventually "
+        "close.\n\n"
+        "There is nothing to arrange and nothing to pay. It is already yours.\n\n"
+        "Available to you:\n"
+        "Doctor consultations within about fifteen minutes\n"
+        "A health checkup with at-home sample collection\n"
+        "Everything on the Plum app\n\n"
+        "Worth the two minutes before the cycle turns over."
+    ),
+    "hc_crosssell": (
+        "Your checkup report, explained by a doctor",
+        "The part most people skip.",
+        "Your health checkup report is ready. Reading it on your own is the hard way "
+        "to use it.\n\n"
+        "A doctor can tell you in about ten minutes which numbers matter, which do "
+        "not, and what is actually worth doing next. Your Plum benefits include a "
+        "free consultation, so the follow-through costs nothing.\n\n"
+        "What the consult covers:\n"
+        "A doctor walks through every result\n"
+        "Slots usually within fifteen minutes\n"
+        "Prescription and plan saved on the app\n\n"
+        "The test was the easy half. This is the half that changes something."
+    ),
+}
+
+
+def _email_for(objective: str, band: str) -> tuple[str, str, str]:
+    """Return (subject, preheader, body) for an email. Never the WhatsApp body."""
+    if objective == "hc_activation":
+        return EMAIL_HC[band]
+    if objective == "th_activation":
+        return EMAIL_TH[band]
+    return EMAIL_OTHER[objective]
 
 
 # ---------------------------------------------------------------------------
@@ -518,10 +720,9 @@ def _variants_for(objective: str, band: str, channel: str,
                 source="composed in PN library voice")
 
     else:  # email
-        subject, body = _email_for(objective, band)
-        add("marketing", body, title=subject,
-            preheader="Included in your Plum benefits. Nothing to pay.",
-            source="composed from the approved touch-1 copy")
+        subject, preheader, body = _email_for(objective, band)
+        add("marketing", body, title=subject, preheader=preheader,
+            source="email touch 3, written for the channel switch, not the WA body")
 
     return v
 

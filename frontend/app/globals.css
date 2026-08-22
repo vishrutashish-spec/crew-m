@@ -1171,6 +1171,10 @@ select.field:focus, input.field:focus, textarea.field:focus {
 
 .recharts-tooltip-item-list .recharts-tooltip-item-separator { opacity: 0.5; }
 .tip-dot {
+  /* inline-block matters: on a bare inline span, width and height are ignored
+     and the swatch collapses. Flex children get blockified anyway, but this
+     makes the dot correct wherever it is used. */
+  display: inline-block;
   width: 9px; height: 9px; border-radius: 999px;
   flex-shrink: 0;
   border: 1px solid rgba(0, 0, 0, 0.18);
@@ -1186,6 +1190,7 @@ select.field:focus, input.field:focus, textarea.field:focus {
    =========================================================================== */
 
 .phone { width: 100%; max-width: 318px; }
+.signal-dock .phone { max-width: 360px; }
 .phone-screen {
   aspect-ratio: 9 / 16;
   height: auto;
@@ -1233,26 +1238,34 @@ select.field:focus, input.field:focus, textarea.field:focus {
   border: 2px solid var(--background);
 }
 
+/*
+  The dock is phone-shaped, not a wide panel. Earlier it spread to 840px and
+  the phone became a thumbnail inside a generic card, which lost the whole
+  point. Now the phone is the dock: it sits at its natural width and the
+  identity strip and suggestions live inside the frame with it.
+*/
 .signal-dock {
   position: fixed;
-  right: 26px; bottom: 100px;
+  right: 26px; bottom: 104px;
   z-index: 61;
-  width: min(760px, calc(100vw - 52px));
-  max-height: calc(100vh - 130px);
-  overflow: auto;
-  border-radius: 22px;
-  animation: dock-in 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+  width: 396px;
+  max-height: calc(100vh - 140px);
+  border-radius: 46px;
+  animation: dock-in 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
   transform-origin: bottom right;
 }
+.signal-dock .phone { max-width: none; }
+.signal-dock .phone-screen { height: min(660px, calc(100vh - 210px)); }
 @keyframes dock-in {
   from { opacity: 0; transform: translateY(14px) scale(0.96); }
   to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 @media (max-width: 720px) {
   .signal-dock {
-    right: 12px; left: 12px; bottom: 96px;
-    width: auto; max-height: calc(100vh - 120px);
+    right: 10px; left: 10px; bottom: 92px;
+    width: auto;
   }
+  .signal-dock .phone-screen { height: calc(100vh - 190px); }
   .signal-fab { right: 16px; bottom: 16px; }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -1261,9 +1274,48 @@ select.field:focus, input.field:focus, textarea.field:focus {
   .signal-fab:hover { transform: none; }
 }
 
-/* Long CleverTap property names were overflowing the glass. Break them. */
-.bubble, .bubble * { overflow-wrap: anywhere; word-break: break-word; min-width: 0; }
-.bubble code, .phone-thread code { overflow-wrap: anywhere; }
+/*
+  Long CleverTap property names overflowed the glass. word-break: break-word
+  "fixed" it by shattering them one character per line in a 284px bubble, which
+  was worse. Prose wraps normally; machine tokens get their own non-wrapping
+  row that scrolls horizontally instead.
+*/
+.bubble, .bubble * { min-width: 0; }
+.bubble p { overflow-wrap: break-word; }
+.rule-row {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 1.5;
+  white-space: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 5px 8px;
+  margin-top: 4px;
+  border-radius: 7px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  scrollbar-width: thin;
+}
+.rule-row::-webkit-scrollbar { height: 5px; }
+.rule-why {
+  display: block;
+  font-size: 10px;
+  line-height: 1.45;
+  color: var(--muted-foreground);
+  padding: 2px 8px 0;
+  overflow-wrap: break-word;
+  white-space: normal;
+}
+.rule-group {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--red);
+  margin-top: 9px;
+}
 
 /* Avatar idle animation: a slow breathing scale plus a scanline sweep. */
 @keyframes avatar-breathe {
@@ -1288,4 +1340,54 @@ select.field:focus, input.field:focus, textarea.field:focus {
 @media (prefers-reduced-motion: reduce) {
   .avatar-live { animation: none; }
   .avatar-scan { display: none; }
+}
+
+
+/* ===========================================================================
+   SIGNAL inside the phone: identity strip, suggestion tray, rubric sheet.
+   Everything the side panel used to hold now lives in the frame.
+   =========================================================================== */
+
+.phone-identity {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 13px;
+  border-bottom: 1px solid var(--border);
+  background:
+    radial-gradient(circle at 12% 10%, rgba(34,200,214,0.10), transparent 55%),
+    linear-gradient(180deg, var(--bar-top), var(--bar-bottom));
+}
+.phone-identity-name {
+  font-family: var(--font-serif);
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 1;
+  background-image: linear-gradient(100deg, #0E9AA7, #22C8D6 45%, #3B82F6);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.phone-tray {
+  border-top: 1px solid var(--border);
+  padding: 9px 11px 4px;
+  background: var(--card);
+}
+.phone-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 6px 10px; margin: 0 5px 5px 0;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: var(--muted);
+  font-size: 10.5px;
+  color: var(--foreground);
+  max-width: 100%;
+  transition: border-color 0.16s, color 0.16s;
+}
+.phone-chip:hover { border-color: var(--cyan); color: var(--cyan-deep); }
+.phone-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.phone-sheet {
+  position: absolute; inset: auto 0 0 0;
+  z-index: 20;
+  max-height: 72%;
+  overflow-y: auto;
+  border-radius: 22px 22px 33px 33px;
+  padding: 14px;
 }
