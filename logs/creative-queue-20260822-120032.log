@@ -1,0 +1,10 @@
+The queue is empty — same behavior as all previous runs this session.
+
+**Run summary — 2026-08-22 06:30 UTC**
+
+- Queue rows fetched: 0 (HTTP 200, empty body — consistent with all prior runs today)
+- Rows finished: 0
+- Rows skipped: 0
+- Figma operations: none
+- Deploy: not attempted
+- Status: normal — nothing to do this run.
