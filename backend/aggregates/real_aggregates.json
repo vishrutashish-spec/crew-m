@@ -1,0 +1,812 @@
+{
+ "th_quality": {
+  "rows_raw": 35550,
+  "rows_valid": 34528,
+  "dropped_pct": 2.87,
+  "filter": "patient_age between 15 and 80"
+ },
+ "th_gender": {
+  "MALE": 0.6833,
+  "FEMALE": 0.3165
+ },
+ "specialty_by_cohort": {
+  "u20": {
+   "General Physician": 0.5028,
+   "Dermatologist": 0.1564,
+   "Psychologist": 0.1285,
+   "Obstetrician-Gynecologist": 0.095,
+   "Nutrition-Dietetics": 0.0279,
+   "Neurologist": 0.0168,
+   "Pediatrician": 0.0168,
+   "ENT Surgeon": 0.0112,
+   "Physiotherapist": 0.0112,
+   "Endocrinologist": 0.0112
+  },
+  "21_25": {
+   "General Physician": 0.4311,
+   "Dermatologist": 0.1819,
+   "Psychologist": 0.1419,
+   "Obstetrician-Gynecologist": 0.0654,
+   "Nutrition-Dietetics": 0.0315,
+   "Orthopedics": 0.0264,
+   "Psychiatrist": 0.0185,
+   "ENT Surgeon": 0.0168,
+   "Gastroenterologist": 0.0139,
+   "Ophthalmologist": 0.0132
+  },
+  "26_35": {
+   "General Physician": 0.3922,
+   "Dermatologist": 0.1379,
+   "Psychologist": 0.1302,
+   "Obstetrician-Gynecologist": 0.0905,
+   "Pediatrician": 0.0397,
+   "Nutrition-Dietetics": 0.0353,
+   "Orthopedics": 0.0295,
+   "Psychiatrist": 0.0201,
+   "ENT Surgeon": 0.0178,
+   "Gastroenterologist": 0.0148
+  },
+  "36_40": {
+   "General Physician": 0.3944,
+   "Dermatologist": 0.117,
+   "Pediatrician": 0.106,
+   "Psychologist": 0.0887,
+   "Obstetrician-Gynecologist": 0.0766,
+   "Nutrition-Dietetics": 0.032,
+   "Orthopedics": 0.0311,
+   "ENT Surgeon": 0.0168,
+   "Psychiatrist": 0.0168,
+   "Neurologist": 0.0155
+  },
+  "41_50": {
+   "General Physician": 0.3714,
+   "Dermatologist": 0.1572,
+   "Psychologist": 0.0829,
+   "Obstetrician-Gynecologist": 0.0693,
+   "Pediatrician": 0.0562,
+   "Orthopedics": 0.0446,
+   "Nutrition-Dietetics": 0.0376,
+   "Neurologist": 0.0234,
+   "Psychiatrist": 0.0217,
+   "ENT Surgeon": 0.0199
+  },
+  "51p": {
+   "General Physician": 0.3138,
+   "Dermatologist": 0.1334,
+   "Psychologist": 0.1,
+   "Obstetrician-Gynecologist": 0.0802,
+   "Pediatrician": 0.0797,
+   "Orthopedics": 0.0552,
+   "Nutrition-Dietetics": 0.0331,
+   "Neurologist": 0.0246,
+   "ENT Surgeon": 0.0232,
+   "Endocrinologist": 0.0201
+  }
+ },
+ "cohort_th_meta": {
+  "u20": {
+   "members": 108,
+   "consults": 179,
+   "consults_per_member": 1.66,
+   "share_of_consulters": 0.0031,
+   "female_share": 0.5556
+  },
+  "21_25": {
+   "members": 5927,
+   "consults": 13746,
+   "consults_per_member": 2.32,
+   "share_of_consulters": 0.1717,
+   "female_share": 0.3747
+  },
+  "26_35": {
+   "members": 18573,
+   "consults": 54113,
+   "consults_per_member": 2.91,
+   "share_of_consulters": 0.5379,
+   "female_share": 0.3352
+  },
+  "36_40": {
+   "members": 3094,
+   "consults": 10844,
+   "consults_per_member": 3.5,
+   "share_of_consulters": 0.0896,
+   "female_share": 0.244
+  },
+  "41_50": {
+   "members": 2258,
+   "consults": 10229,
+   "consults_per_member": 4.53,
+   "share_of_consulters": 0.0654,
+   "female_share": 0.3087
+  },
+  "51p": {
+   "members": 4568,
+   "consults": 41548,
+   "consults_per_member": 9.1,
+   "share_of_consulters": 0.1323,
+   "female_share": 0.2119
+  }
+ },
+ "specialty_totals": {
+  "General Physician": 48351,
+  "Dermatologist": 18410,
+  "Psychologist": 14983,
+  "Obstetrician-Gynecologist": 10684,
+  "Pediatrician": 7226,
+  "Orthopedics": 5045,
+  "Nutrition-Dietetics": 4452,
+  "ENT Surgeon": 2546,
+  "Psychiatrist": 2441,
+  "Neurologist": 2280,
+  "Gastroenterologist": 2121,
+  "Endocrinologist": 2039,
+  "Ophthalmologist": 1863,
+  "Internal Medicine": 1621,
+  "Urologist": 1469,
+  "Cardiologist": 1026,
+  "Sexologist": 1000,
+  "Physiotherapist": 803,
+  "Diabetologist": 644,
+  "Pulmonologist": 615,
+  "Veterinary Medicine": 581,
+  "Nephrologist": 349,
+  "Oncologist": 109,
+  "Geriatrics": 1
+ },
+ "booking_clock_ist": {
+  "hours": {
+   "0": 2735,
+   "1": 1619,
+   "2": 872,
+   "3": 624,
+   "4": 522,
+   "5": 565,
+   "6": 1083,
+   "7": 2480,
+   "8": 4645,
+   "9": 6857,
+   "10": 8586,
+   "11": 9338,
+   "12": 9161,
+   "13": 7884,
+   "14": 7973,
+   "15": 7890,
+   "16": 8141,
+   "17": 8500,
+   "18": 9294,
+   "19": 9314,
+   "20": 8523,
+   "21": 7110,
+   "22": 5534,
+   "23": 3968
+  },
+  "total": 133218,
+  "shares": {
+   "0": 0.0205,
+   "1": 0.0122,
+   "2": 0.0065,
+   "3": 0.0047,
+   "4": 0.0039,
+   "5": 0.0042,
+   "6": 0.0081,
+   "7": 0.0186,
+   "8": 0.0349,
+   "9": 0.0515,
+   "10": 0.0645,
+   "11": 0.0701,
+   "12": 0.0688,
+   "13": 0.0592,
+   "14": 0.0598,
+   "15": 0.0592,
+   "16": 0.0611,
+   "17": 0.0638,
+   "18": 0.0698,
+   "19": 0.0699,
+   "20": 0.064,
+   "21": 0.0534,
+   "22": 0.0415,
+   "23": 0.0298
+  },
+  "tz_note": "source timestamps are UTC; converted to IST (UTC+5:30)",
+  "window": "2025-07-29 to 2026-07-29"
+ },
+ "booking_weekday_ist": {
+  "Mon": 0.1623,
+  "Tue": 0.1505,
+  "Wed": 0.145,
+  "Thu": 0.1379,
+  "Fri": 0.1298,
+  "Sat": 0.1378,
+  "Sun": 0.1367
+ },
+ "booking_clock_by_cohort": {
+  "u20": {
+   "peak_hour": 19,
+   "n": 16250,
+   "shares": {
+    "0": 0.0164,
+    "1": 0.0082,
+    "2": 0.0047,
+    "3": 0.0041,
+    "4": 0.0038,
+    "5": 0.0055,
+    "6": 0.0102,
+    "7": 0.0244,
+    "8": 0.0434,
+    "9": 0.0589,
+    "10": 0.0673,
+    "11": 0.0626,
+    "12": 0.0652,
+    "13": 0.0587,
+    "14": 0.0553,
+    "15": 0.0563,
+    "16": 0.0572,
+    "17": 0.0663,
+    "18": 0.0748,
+    "19": 0.0762,
+    "20": 0.0683,
+    "21": 0.05,
+    "22": 0.0369,
+    "23": 0.0254
+   }
+  },
+  "21_25": {
+   "peak_hour": 19,
+   "n": 20218,
+   "shares": {
+    "0": 0.0277,
+    "1": 0.0175,
+    "2": 0.0087,
+    "3": 0.0072,
+    "4": 0.0048,
+    "5": 0.0048,
+    "6": 0.0068,
+    "7": 0.0129,
+    "8": 0.027,
+    "9": 0.0439,
+    "10": 0.0582,
+    "11": 0.0693,
+    "12": 0.0676,
+    "13": 0.0591,
+    "14": 0.0625,
+    "15": 0.059,
+    "16": 0.0608,
+    "17": 0.0621,
+    "18": 0.0672,
+    "19": 0.0705,
+    "20": 0.0666,
+    "21": 0.0561,
+    "22": 0.0466,
+    "23": 0.033
+   }
+  },
+  "26_35": {
+   "peak_hour": 11,
+   "n": 70079,
+   "shares": {
+    "0": 0.0224,
+    "1": 0.0136,
+    "2": 0.0074,
+    "3": 0.0051,
+    "4": 0.0043,
+    "5": 0.0042,
+    "6": 0.0077,
+    "7": 0.018,
+    "8": 0.0335,
+    "9": 0.0497,
+    "10": 0.0639,
+    "11": 0.0717,
+    "12": 0.07,
+    "13": 0.0595,
+    "14": 0.0616,
+    "15": 0.0613,
+    "16": 0.0624,
+    "17": 0.0637,
+    "18": 0.0667,
+    "19": 0.0672,
+    "20": 0.0612,
+    "21": 0.0519,
+    "22": 0.0418,
+    "23": 0.0312
+   }
+  },
+  "36_40": {
+   "peak_hour": 18,
+   "n": 10240,
+   "shares": {
+    "0": 0.0139,
+    "1": 0.0087,
+    "2": 0.0052,
+    "3": 0.0025,
+    "4": 0.0032,
+    "5": 0.003,
+    "6": 0.0102,
+    "7": 0.0252,
+    "8": 0.0399,
+    "9": 0.0606,
+    "10": 0.071,
+    "11": 0.0728,
+    "12": 0.0677,
+    "13": 0.0577,
+    "14": 0.0574,
+    "15": 0.0593,
+    "16": 0.0652,
+    "17": 0.0641,
+    "18": 0.0782,
+    "19": 0.0655,
+    "20": 0.0594,
+    "21": 0.0495,
+    "22": 0.0354,
+    "23": 0.0243
+   }
+  },
+  "41_50": {
+   "peak_hour": 18,
+   "n": 6202,
+   "shares": {
+    "0": 0.0135,
+    "1": 0.0066,
+    "2": 0.0029,
+    "3": 0.0021,
+    "4": 0.0021,
+    "5": 0.0044,
+    "6": 0.0114,
+    "7": 0.0232,
+    "8": 0.0474,
+    "9": 0.054,
+    "10": 0.0698,
+    "11": 0.0734,
+    "12": 0.0729,
+    "13": 0.0577,
+    "14": 0.0561,
+    "15": 0.0548,
+    "16": 0.0568,
+    "17": 0.0629,
+    "18": 0.0784,
+    "19": 0.0687,
+    "20": 0.0653,
+    "21": 0.0542,
+    "22": 0.0382,
+    "23": 0.0232
+   }
+  },
+  "51p": {
+   "peak_hour": 19,
+   "n": 10224,
+   "shares": {
+    "0": 0.0112,
+    "1": 0.005,
+    "2": 0.0027,
+    "3": 0.0017,
+    "4": 0.0015,
+    "5": 0.0022,
+    "6": 0.0064,
+    "7": 0.0156,
+    "8": 0.0335,
+    "9": 0.0558,
+    "10": 0.0664,
+    "11": 0.068,
+    "12": 0.0671,
+    "13": 0.0598,
+    "14": 0.0548,
+    "15": 0.0528,
+    "16": 0.0577,
+    "17": 0.0643,
+    "18": 0.0742,
+    "19": 0.0824,
+    "20": 0.075,
+    "21": 0.0671,
+    "22": 0.0449,
+    "23": 0.0301
+   }
+  }
+ },
+ "hc_meta": {
+  "bookings": 36526,
+  "relationship": {
+   "SELF": 0.8158,
+   "PARENT": 0.0891,
+   "SPOUSE": 0.0765,
+   "SIBLING": 0.0101,
+   "PARENT-IN-LAW": 0.0048
+  }
+ },
+ "hc_join": {
+  "bookings": 36526,
+  "age_matched": 15561,
+  "match_rate": 0.426,
+  "how": "HC member_id joined to TH unique_member_id for age"
+ },
+ "biomarkers_overall": {
+  "Vitamin D 25-OH": {
+   "n": 20549,
+   "abnormal_pct": 80.2,
+   "median": 17.0,
+   "threshold": 30.0,
+   "direction": "low",
+   "basis": "ng/mL, insufficiency below 30"
+  },
+  "Vitamin B12": {
+   "n": 20505,
+   "abnormal_pct": 46.6,
+   "median": 219.0,
+   "threshold": 211.0,
+   "direction": "low",
+   "basis": "pg/mL, deficiency below 211"
+  },
+  "Glycosylated Haemoglobin (HbA1c)": {
+   "n": 7113,
+   "abnormal_pct": 23.3,
+   "median": 5.3,
+   "threshold": 5.7,
+   "direction": "high",
+   "basis": "%, prediabetic at 5.7 and above"
+  },
+  "Cholesterol Total": {
+   "n": 35545,
+   "abnormal_pct": 24.7,
+   "median": 174.0,
+   "threshold": 200.0,
+   "direction": "high",
+   "basis": "mg/dL, above 200 elevated"
+  },
+  "Triglycerides": {
+   "n": 35541,
+   "abnormal_pct": 33.6,
+   "median": 119.0,
+   "threshold": 150.0,
+   "direction": "high",
+   "basis": "mg/dL, above 150 elevated"
+  },
+  "Cholesterol LDL - Direct": {
+   "n": 35534,
+   "abnormal_pct": 58.6,
+   "median": 106.0,
+   "threshold": 100.0,
+   "direction": "high",
+   "basis": "mg/dL, above 100 above optimal"
+  },
+  "Cholesterol HDL": {
+   "n": 35542,
+   "abnormal_pct": 41.1,
+   "median": 42.0,
+   "threshold": 40.0,
+   "direction": "low",
+   "basis": "mg/dL, below 40 low"
+  },
+  "Glucose Fasting": {
+   "n": 34782,
+   "abnormal_pct": 14.4,
+   "median": 87.0,
+   "threshold": 100.0,
+   "direction": "high",
+   "basis": "mg/dL, above 100 impaired"
+  },
+  "Alanine Aminotransferase (SGPT)": {
+   "n": 31279,
+   "abnormal_pct": 15.7,
+   "median": 26.0,
+   "threshold": 50.0,
+   "direction": "high",
+   "basis": "U/L, above 50 elevated"
+  },
+  "Uric Acid": {
+   "n": 35516,
+   "abnormal_pct": 17.4,
+   "median": 5.6,
+   "threshold": 7.0,
+   "direction": "high",
+   "basis": "mg/dL, above 7 elevated"
+  },
+  "Haemoglobin": {
+   "n": 35738,
+   "abnormal_pct": 25.9,
+   "median": 14.4,
+   "threshold": 13.0,
+   "direction": "low",
+   "basis": "g/dL, below 13 low"
+  }
+ },
+ "biomarkers_by_cohort": {
+  "21_25": {
+   "bookings": 2302,
+   "markers": {
+    "Vitamin D 25-OH": {
+     "n": 1384,
+     "abnormal_pct": 88.1,
+     "median": 13.8
+    },
+    "Vitamin B12": {
+     "n": 1383,
+     "abnormal_pct": 57.9,
+     "median": 194.0
+    },
+    "Glycosylated Haemoglobin (HbA1c)": {
+     "n": 480,
+     "abnormal_pct": 12.1,
+     "median": 5.2
+    },
+    "Cholesterol Total": {
+     "n": 2243,
+     "abnormal_pct": 13.3,
+     "median": 163.0
+    },
+    "Triglycerides": {
+     "n": 2243,
+     "abnormal_pct": 20.8,
+     "median": 99.0
+    },
+    "Cholesterol LDL - Direct": {
+     "n": 2243,
+     "abnormal_pct": 45.9,
+     "median": 97.0
+    },
+    "Cholesterol HDL": {
+     "n": 2243,
+     "abnormal_pct": 37.7,
+     "median": 42.0
+    },
+    "Glucose Fasting": {
+     "n": 2178,
+     "abnormal_pct": 5.0,
+     "median": 84.1
+    },
+    "Alanine Aminotransferase (SGPT)": {
+     "n": 2017,
+     "abnormal_pct": 15.5,
+     "median": 25.0
+    },
+    "Uric Acid": {
+     "n": 2246,
+     "abnormal_pct": 15.7,
+     "median": 5.5
+    },
+    "Haemoglobin": {
+     "n": 2262,
+     "abnormal_pct": 23.5,
+     "median": 14.7
+    }
+   }
+  },
+  "26_35": {
+   "bookings": 8104,
+   "markers": {
+    "Vitamin D 25-OH": {
+     "n": 4888,
+     "abnormal_pct": 80.6,
+     "median": 16.8
+    },
+    "Vitamin B12": {
+     "n": 4887,
+     "abnormal_pct": 47.7,
+     "median": 216.0
+    },
+    "Glycosylated Haemoglobin (HbA1c)": {
+     "n": 1599,
+     "abnormal_pct": 17.5,
+     "median": 5.3
+    },
+    "Cholesterol Total": {
+     "n": 7855,
+     "abnormal_pct": 23.8,
+     "median": 173.0
+    },
+    "Triglycerides": {
+     "n": 7854,
+     "abnormal_pct": 33.4,
+     "median": 119.0
+    },
+    "Cholesterol LDL - Direct": {
+     "n": 7852,
+     "abnormal_pct": 58.2,
+     "median": 105.6
+    },
+    "Cholesterol HDL": {
+     "n": 7854,
+     "abnormal_pct": 41.6,
+     "median": 41.7
+    },
+    "Glucose Fasting": {
+     "n": 7657,
+     "abnormal_pct": 10.8,
+     "median": 87.0
+    },
+    "Alanine Aminotransferase (SGPT)": {
+     "n": 6866,
+     "abnormal_pct": 18.4,
+     "median": 27.0
+    },
+    "Uric Acid": {
+     "n": 7847,
+     "abnormal_pct": 18.3,
+     "median": 5.6
+    },
+    "Haemoglobin": {
+     "n": 7897,
+     "abnormal_pct": 25.0,
+     "median": 14.4
+    }
+   }
+  },
+  "36_40": {
+   "bookings": 1467,
+   "markers": {
+    "Vitamin D 25-OH": {
+     "n": 862,
+     "abnormal_pct": 77.6,
+     "median": 18.9
+    },
+    "Vitamin B12": {
+     "n": 863,
+     "abnormal_pct": 43.8,
+     "median": 228.0
+    },
+    "Glycosylated Haemoglobin (HbA1c)": {
+     "n": 289,
+     "abnormal_pct": 31.1,
+     "median": 5.4
+    },
+    "Cholesterol Total": {
+     "n": 1421,
+     "abnormal_pct": 30.8,
+     "median": 182.0
+    },
+    "Triglycerides": {
+     "n": 1421,
+     "abnormal_pct": 43.6,
+     "median": 138.0
+    },
+    "Cholesterol LDL - Direct": {
+     "n": 1421,
+     "abnormal_pct": 66.8,
+     "median": 111.8
+    },
+    "Cholesterol HDL": {
+     "n": 1421,
+     "abnormal_pct": 46.6,
+     "median": 40.0
+    },
+    "Glucose Fasting": {
+     "n": 1395,
+     "abnormal_pct": 19.2,
+     "median": 89.0
+    },
+    "Alanine Aminotransferase (SGPT)": {
+     "n": 1208,
+     "abnormal_pct": 16.4,
+     "median": 27.0
+    },
+    "Uric Acid": {
+     "n": 1422,
+     "abnormal_pct": 19.1,
+     "median": 5.6
+    },
+    "Haemoglobin": {
+     "n": 1432,
+     "abnormal_pct": 28.0,
+     "median": 14.2
+    }
+   }
+  },
+  "41_50": {
+   "bookings": 1171,
+   "markers": {
+    "Vitamin D 25-OH": {
+     "n": 714,
+     "abnormal_pct": 75.9,
+     "median": 20.2
+    },
+    "Vitamin B12": {
+     "n": 714,
+     "abnormal_pct": 45.4,
+     "median": 224.0
+    },
+    "Glycosylated Haemoglobin (HbA1c)": {
+     "n": 226,
+     "abnormal_pct": 34.1,
+     "median": 5.5
+    },
+    "Cholesterol Total": {
+     "n": 1132,
+     "abnormal_pct": 30.1,
+     "median": 180.0
+    },
+    "Triglycerides": {
+     "n": 1132,
+     "abnormal_pct": 40.2,
+     "median": 130.5
+    },
+    "Cholesterol LDL - Direct": {
+     "n": 1132,
+     "abnormal_pct": 61.7,
+     "median": 109.6
+    },
+    "Cholesterol HDL": {
+     "n": 1132,
+     "abnormal_pct": 41.1,
+     "median": 42.0
+    },
+    "Glucose Fasting": {
+     "n": 1112,
+     "abnormal_pct": 24.1,
+     "median": 90.0
+    },
+    "Alanine Aminotransferase (SGPT)": {
+     "n": 1000,
+     "abnormal_pct": 12.5,
+     "median": 25.0
+    },
+    "Uric Acid": {
+     "n": 1130,
+     "abnormal_pct": 14.6,
+     "median": 5.4
+    },
+    "Haemoglobin": {
+     "n": 1139,
+     "abnormal_pct": 32.7,
+     "median": 13.9
+    }
+   }
+  },
+  "51p": {
+   "bookings": 2486,
+   "markers": {
+    "Vitamin D 25-OH": {
+     "n": 1612,
+     "abnormal_pct": 75.2,
+     "median": 19.9
+    },
+    "Vitamin B12": {
+     "n": 1612,
+     "abnormal_pct": 41.6,
+     "median": 234.0
+    },
+    "Glycosylated Haemoglobin (HbA1c)": {
+     "n": 553,
+     "abnormal_pct": 33.1,
+     "median": 5.4
+    },
+    "Cholesterol Total": {
+     "n": 2403,
+     "abnormal_pct": 27.3,
+     "median": 176.0
+    },
+    "Triglycerides": {
+     "n": 2403,
+     "abnormal_pct": 35.4,
+     "median": 122.0
+    },
+    "Cholesterol LDL - Direct": {
+     "n": 2402,
+     "abnormal_pct": 59.4,
+     "median": 107.0
+    },
+    "Cholesterol HDL": {
+     "n": 2403,
+     "abnormal_pct": 37.7,
+     "median": 42.9
+    },
+    "Glucose Fasting": {
+     "n": 2370,
+     "abnormal_pct": 21.8,
+     "median": 89.0
+    },
+    "Alanine Aminotransferase (SGPT)": {
+     "n": 2110,
+     "abnormal_pct": 13.4,
+     "median": 25.0
+    },
+    "Uric Acid": {
+     "n": 2392,
+     "abnormal_pct": 13.8,
+     "median": 5.4
+    },
+    "Haemoglobin": {
+     "n": 2416,
+     "abnormal_pct": 34.4,
+     "median": 13.7
+    }
+   }
+  }
+ }
+}

@@ -418,11 +418,10 @@ runs end-to-end until one is created and `SLACK_BOT_TOKEN` is set.
   model + approved copy library. Every reply carries the facts it used with
   provenance and scores itself against a published 9-parameter rubric
   (mean 9.8/10 across ten question families in testing). No free generation.
-- Brand v4 (locked): wordmark only, never boxed. "CREW M" custom-lettered
-  in a heavy condensed oblique register (flat-cut butt caps, miter joins,
-  10-degree lean, Nike-adjacent); the W is a waveform, the M a chart line,
-  the cyan spectrum animates through the letters, a spark travels the word,
-  the signal node floats over the W. Favicon: bare waveform on transparency.
+- Brand v5 (locked): "Crew M" in Vollkorn Bold as SVG text with a static
+  cyan-spectrum gradient. No animation, nothing pointy, never boxed. One
+  static seafoam node after the M. Favicon: broad rounded wave with node,
+  on transparency.
 - Liquid glass: a restrained .glass utility (backdrop blur + saturate,
   hairline top light, diagonal specular) on surfaces that float over colour:
   banner stats strips, tooltips, popovers, the org control, the theme pill,
