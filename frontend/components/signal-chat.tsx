@@ -28,10 +28,12 @@ interface Msg {
 }
 
 export function SignalChat({
-  cohortKeys, org,
+  cohortKeys, org, compact = false,
 }: {
   cohortKeys: string[];
   org: string | null;
+  /** Dock mode: tighter padding and a stacked layout for the floating panel. */
+  compact?: boolean;
 }) {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
@@ -92,10 +94,10 @@ export function SignalChat({
         <span className="mac-title">signal / cohort analyst</span>
       </div>
 
-      <div className="grid-ground aurora px-6 py-6">
+      <div className={`grid-ground aurora ${compact ? "px-4 py-4" : "px-6 py-6"}`}>
         <div className="relative grid grid-cols-12 gap-7">
           {/* ---------------- identity + rubric ---------------- */}
-          <div className="col-span-12 lg:col-span-4">
+          <div className={compact ? "col-span-12 xl:col-span-5" : "col-span-12 lg:col-span-4"}>
             <div className="flex items-start gap-4">
               <SignalBadge size={56} />
               <div className="min-w-0">
@@ -163,7 +165,7 @@ export function SignalChat({
           </div>
 
           {/* ---------------- the phone ---------------- */}
-          <div className="col-span-12 lg:col-span-8 flex justify-center">
+          <div className={`flex justify-center ${compact ? "col-span-12 xl:col-span-7" : "col-span-12 lg:col-span-8"}`}>
             <div className="phone">
               <div className="phone-frame">
                 <div className="phone-screen">
@@ -179,7 +181,7 @@ export function SignalChat({
 
                   {/* thread header */}
                   <div className="phone-head">
-                    <SignalAvatar size={30} />
+                    <SignalAvatar size={30} live thinking={busy} />
                     <div className="min-w-0">
                       <p className="text-[12.5px] font-semibold leading-none">SIGNAL</p>
                       <p className="text-[10px] text-muted-foreground mt-0.5">
@@ -193,7 +195,7 @@ export function SignalChat({
                     {messages.length === 0 && (
                       <div className="flex items-start gap-2">
                         <SignalAvatar size={24} />
-                        <div className="bubble bubble-ai">
+                        <div className="bubble bubble-ai min-w-0">
                           <p className="text-[12px] leading-relaxed">
                             Ask me which biomarker is off in a cohort, what the consult
                             pattern looks like, or which filters build a segment. I only
@@ -206,7 +208,7 @@ export function SignalChat({
                     {messages.map((m, i) =>
                       m.role === "user" ? (
                         <div key={i} className="flex justify-end">
-                          <div className="bubble bubble-me">
+                          <div className="bubble bubble-me min-w-0">
                             <p className="text-[12px] leading-relaxed">{m.text}</p>
                           </div>
                         </div>
@@ -217,7 +219,7 @@ export function SignalChat({
 
                     {busy && (
                       <div className="flex items-start gap-2">
-                        <SignalAvatar size={24} />
+                        <SignalAvatar size={24} live thinking />
                         <div className="bubble bubble-ai">
                           <span className="typing"><i /><i /><i /></span>
                         </div>
@@ -255,8 +257,8 @@ function AiBubble({ msg }: { msg: Msg }) {
   const [open, setOpen] = useState(false);
   const r = msg.reply;
   return (
-    <div className="flex items-start gap-2">
-      <SignalAvatar size={24} />
+    <div className="flex items-start gap-2 min-w-0">
+      <SignalAvatar size={24} live />
       <div className="bubble bubble-ai min-w-0">
         <p className="text-[12px] leading-relaxed whitespace-pre-line">{msg.text}</p>
 
