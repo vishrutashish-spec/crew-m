@@ -147,6 +147,37 @@ interface SendRequest {
   preview?: boolean;
   /** Who this actually goes to. Omit for the safe default. */
   sendTo?: SendTo;
+  /**
+   * Send `copy` as a plain message with no banner, CTA or app footer.
+   *
+   * For deliverability/reach tests. The branded assembly below is built to
+   * look like a real Plum benefits campaign, which is exactly wrong for a
+   * test blast — recipients would read a test as a genuine health comms.
+   * Plain mode also skips the failed-generation word floor, since a test
+   * body is legitimately short.
+   */
+  plain?: boolean;
+}
+
+function buildPlainHtml(subject: string, body: string) {
+  const paragraphs = body
+    .split(/\n{2,}/)
+    .map((p) => `<p style="margin:0 0 16px 0;">${esc(p.trim()).replace(/\n/g, "<br>")}</p>`)
+    .join("\n");
+
+  return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${esc(subject)}</title>
+</head>
+<body style="margin:0; padding:24px; background-color:#FFFFFF; font-family:Inter, Helvetica, Arial, sans-serif; font-size:16px; line-height:1.6; color:#1A1A1A;">
+<div style="max-width:600px; margin:0 auto;">
+${paragraphs}
+</div>
+</body>
+</html>`;
 }
 
 function esc(s: string) {
@@ -292,8 +323,46 @@ If you would like to stop receiving these emails, unsubscribe here.
 </html>`;
 }
 
+/**
+ * One Resend call per recipient rather than a shared `to` array — a
+ * company-wide send must not expose everyone's address to everyone else.
+ */
+async function sendAll(
+  recipients: string[],
+  opts: { apiKey: string; from: string; subject: string; html: string }
+): Promise<{ to: string; ok: boolean; messageId?: string; error?: string }[]> {
+  const { apiKey, from, subject, html } = opts;
+  return Promise.all(
+    recipients.map(async (to) => {
+      try {
+        const res = await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            "Content-Type": "application/json",
+            // Resend sits behind Cloudflare, which blocks some default UAs outright.
+            "User-Agent": "crew-m/1.0 (+https://iw-crew-m-c4b9.insurwreck.com)",
+          },
+          body: JSON.stringify({ from, to: [to], subject, html }),
+        });
+        const text = await res.text();
+        if (!res.ok) {
+          console.error("Resend send failed for", to, res.status, text);
+          return { to, ok: false, error: `send_failed_${res.status}` };
+        }
+        let id: string | undefined;
+        try { id = JSON.parse(text).id; } catch { /* non-JSON success body */ }
+        return { to, ok: true, messageId: id };
+      } catch (err) {
+        console.error("Resend request threw for", to, err);
+        return { to, ok: false, error: "request_threw" };
+      }
+    })
+  );
+}
+
 export async function POST(request: Request) {
-  const { requestId, accountName, campaignType, copy, creative, preview, sendTo } =
+  const { requestId, accountName, campaignType, copy, creative, preview, sendTo, plain } =
     (await request.json()) as SendRequest;
 
   const apiKey = process.env.RESEND_API_KEY;
@@ -321,7 +390,36 @@ export async function POST(request: Request) {
 
   // Second gate, in case a caller assembles copy without going through
   // /api/copy: never send a body that is obviously a failed generation.
+  // Plain sends opt out — a test body is legitimately short.
   const words = body.split(/\s+/).length;
+  if (plain) {
+    const plainHtml = buildPlainHtml(subject, body);
+    if (preview) {
+      return NextResponse.json({
+        ok: true, preview: true, plain: true,
+        wouldSendTo: recipientLabel, recipientCount: recipients.length,
+        html: plainHtml,
+      });
+    }
+    const plainResults = await sendAll(recipients, { apiKey, from, subject, html: plainHtml });
+    const plainSent = plainResults.filter((r) => r.ok);
+    const plainFailed = plainResults.filter((r) => !r.ok);
+    if (plainSent.length === 0) {
+      return NextResponse.json(
+        { ok: false, error: "send_failed", recipientLabel, failed: plainFailed },
+        { status: 502 }
+      );
+    }
+    return NextResponse.json({
+      ok: true, plain: true,
+      messageId: plainSent[0].messageId,
+      sentTo: recipientLabel,
+      sentCount: plainSent.length,
+      failedCount: plainFailed.length,
+      failed: plainFailed.length ? plainFailed : undefined,
+      requestId,
+    });
+  }
   // HRA narratives are deliberately short - the minimalist one is 24 words -
   // so the failed-generation floor only really applies to model-written copy.
   // Keep a low floor here purely to catch an empty body.
@@ -394,35 +492,7 @@ export async function POST(request: Request) {
     });
   }
 
-  // One Resend call per recipient rather than a shared `to` array — a
-  // company-wide send must not expose everyone's address to everyone else.
-  const results = await Promise.all(
-    recipients.map(async (to) => {
-      try {
-        const res = await fetch("https://api.resend.com/emails", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${apiKey}`,
-            "Content-Type": "application/json",
-            // Resend sits behind Cloudflare, which blocks some default UAs outright.
-            "User-Agent": "crew-m/1.0 (+https://iw-crew-m-c4b9.insurwreck.com)",
-          },
-          body: JSON.stringify({ from, to: [to], subject, html }),
-        });
-        const text = await res.text();
-        if (!res.ok) {
-          console.error("Resend send failed for", to, res.status, text);
-          return { to, ok: false, error: `send_failed_${res.status}` };
-        }
-        let id: string | undefined;
-        try { id = JSON.parse(text).id; } catch { /* non-JSON success body */ }
-        return { to, ok: true, messageId: id };
-      } catch (err) {
-        console.error("Resend request threw for", to, err);
-        return { to, ok: false, error: "request_threw" };
-      }
-    })
-  );
+  const results = await sendAll(recipients, { apiKey, from, subject, html });
 
   const sent = results.filter((r) => r.ok);
   const failed = results.filter((r) => !r.ok);
