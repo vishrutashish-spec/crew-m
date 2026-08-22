@@ -19,6 +19,9 @@ interface AgentReply {
    *  plain welcome/renewal request — carried through to copy generation. */
   campaignBrief?: string;
   logoUrl?: string;
+  /** Only set for campaignType "hra", and only if the AM named a specific
+   *  angle by name. Omitted -> rotates deterministically. */
+  narrative?: string;
   /** Only set if the AM explicitly named a recipient. Omitted -> safe default. */
   sendTo?: { mode: "single" | "all_plum_staff"; email?: string };
 }
@@ -37,6 +40,18 @@ For step 3, figure out what this actually is:
 - "Welcome" (a brand-new client's first benefits email) and "Renewal" (an
   existing client renewing their plan) are the two standard types —
   use campaignType "welcome" or "renewal" for these, campaignBrief "".
+- "HRA" (Health Risk Assessment — also called "health assessment" or "health
+  score") is its OWN exact campaignType: use campaignType "hra" — lowercase,
+  exactly those three letters, nothing appended (not "health-risk-assessment"
+  or any other slug) — this exact string is what routes it to the real,
+  hand-written HRA copy instead of a generated one. Recognise it whenever the
+  AM mentions HRA, "health risk assessment," or "health assessment" as the
+  campaign itself. The copy for this is pre-written, not generated, so
+  campaignBrief can just be a short note of who it's for. If the AM names a
+  specific angle for it (one of: curiosity, early-detection, personalization,
+  social-proof, free, self-id, myth-busting, anecdote, minimalist), set
+  "narrative" to that exact key; otherwise omit "narrative" entirely and it
+  rotates automatically.
 - Plum also runs targeted activation nudges, e.g. Health Checkup (getting
   employees to use the free annual checkup already in their plan — the
   right angle is always first-time activation of the one they already have,
@@ -69,8 +84,8 @@ entirely from the JSON.
 
 Once you have the AM's name, the account name, and the campaign type/intent,
 respond with ONLY this JSON (no other text):
-{"action":"draft","amName":"...","accountName":"...","campaignType":"welcome|renewal|<slug>","campaignBrief":"...","logoUrl":"...","sendTo":{"mode":"single|all_plum_staff","email":"..."}}
-("sendTo" is optional — include it only per the rule above.)
+{"action":"draft","amName":"...","accountName":"...","campaignType":"welcome|renewal|hra|<slug>","campaignBrief":"...","logoUrl":"...","narrative":"...","sendTo":{"mode":"single|all_plum_staff","email":"..."}}
+("narrative" and "sendTo" are both optional — include each only per the rules above.)
 
 Until then, respond with ONLY this JSON (no other text):
 {"action":"reply","text":"your next message to the AM"}
@@ -238,12 +253,12 @@ export async function POST(request: Request) {
 
   // action === "draft": run the existing pipeline against our own API.
   const requestId = `chat-${Date.now()}`;
-  const { amName, accountName, campaignType, campaignBrief, logoUrl, sendTo } = reply;
+  const { amName, accountName, campaignType, campaignBrief, logoUrl, narrative, sendTo } = reply;
 
   const copy = await fetch(`${BASE_URL}/api/copy`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ requestId, amName, accountName, campaignType, campaignBrief, logoUrl }),
+    body: JSON.stringify({ requestId, amName, accountName, campaignType, campaignBrief, logoUrl, narrative }),
   }).then((r) => r.json());
 
   const creative = await fetch(`${BASE_URL}/api/creative`, {
