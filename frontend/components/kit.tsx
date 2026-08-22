@@ -72,10 +72,10 @@ export function PanelHead({
     <div className="flex items-start justify-between gap-4 mb-4 relative">
       <div className="min-w-0">
         <div className="flex items-center gap-2.5 flex-wrap">
-          <h3 className="text-[15px] leading-tight">{title}</h3>
+          <h3 className="section-title">{title}</h3>
           {chip && <Chip kind={chip} />}
         </div>
-        {sub && <p className="text-[12px] text-muted-foreground mt-1 leading-relaxed">{sub}</p>}
+        {sub && <p className="text-[12.5px] text-muted-foreground mt-1.5 leading-relaxed">{sub}</p>}
       </div>
       {right && <div className="flex-shrink-0">{right}</div>}
     </div>
@@ -196,7 +196,7 @@ export function Stat({
   size?: "sm" | "md" | "lg" | "xl";
   chip?: Provenance | string;
 }) {
-  const sizes = { sm: "text-[19px]", md: "text-[26px]", lg: "text-[34px]", xl: "text-[46px]" };
+  const sizes = { sm: "text-[22px]", md: "text-[29px]", lg: "text-[37px]", xl: "text-[49px]" };
   const tones = {
     ink: "text-[color:var(--ink-text)]",
     red: "text-[color:var(--red)]",
@@ -205,12 +205,13 @@ export function Stat({
   };
   return (
     <div>
-      <div className="flex items-center gap-2 mb-1.5">
+      {/* meta row: label and chip aligned above the value, never beside it */}
+      <div className="meta-row">
         <span className="label-mono">{label}</span>
         {chip && <Chip kind={chip} />}
       </div>
       <p className={`figure ${sizes[size]} ${tones[tone]}`}>{value}</p>
-      {sub && <p className="text-[11.5px] text-muted-foreground mt-1.5 leading-snug">{sub}</p>}
+      {sub && <p className="text-[12px] text-muted-foreground mt-2 leading-snug">{sub}</p>}
     </div>
   );
 }
@@ -510,3 +511,49 @@ export const GRAD = {
   red: "url(#gs2)",
   sand: "url(#gs3)",
 } as const;
+
+/* --------------------------------------------------------------------------
+   ProvenanceNote: a labelled line that carries a chip without stuffing it
+   mid-sentence. Use this anywhere a caveat needs a provenance label.
+   -------------------------------------------------------------------------- */
+
+export function ProvenanceNote({
+  label, kind, children,
+}: {
+  label: string;
+  kind: Provenance | string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="chip-line">
+      <span className="label-mono">{label}</span>
+      <Chip kind={kind} />
+      <span className="text-[12px] text-muted-foreground flex-1 min-w-[12rem]">{children}</span>
+    </div>
+  );
+}
+
+/** A numbered step heading: "1" above, title below, no dash separator. */
+export function StepHead({
+  step, title, sub, chip, right,
+}: {
+  step: number | string;
+  title: string;
+  sub?: string;
+  chip?: Provenance | string;
+  right?: ReactNode;
+}) {
+  return (
+    <div className="flex items-start justify-between gap-4 mb-4 relative">
+      <div className="min-w-0">
+        <span className="step-num">STEP {step}</span>
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <h3 className="section-title">{title}</h3>
+          {chip && <Chip kind={chip} />}
+        </div>
+        {sub && <p className="text-[12.5px] text-muted-foreground mt-1.5 leading-relaxed">{sub}</p>}
+      </div>
+      {right && <div className="flex-shrink-0">{right}</div>}
+    </div>
+  );
+}

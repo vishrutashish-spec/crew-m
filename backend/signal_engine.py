@@ -191,6 +191,9 @@ def h_specialty(model, keys, org, msg, facts, seed):
             f"{_pct(idx['peak_share'])}. Full ladder: {ladder}. That is measured off "
             f"{_n(prov['consults'])} real consults, not a model."
         )
+        facts.append({"label": "Targeting call",
+                      "value": f"lead with {_label([idx['peak_cohort']])}",
+                      "provenance": "RECOMMENDED"})
         act = (f"If you are building a {named} angle, target "
                f"{_label([idx['peak_cohort']])} first; it carries the strongest "
                f"existing demand signal.")
@@ -217,6 +220,8 @@ def h_specialty(model, keys, org, msg, facts, seed):
     if rising:
         r = ", ".join(f"{x['specialty']} at index {x['index']}" for x in rising)
         text += f" What is distinctive rather than just large: {r}."
+    facts.append({"label": "Creative call",
+                  "value": f"lead on {mix[0]['specialty']}", "provenance": "RECOMMENDED"})
     act = (f"Lead {lab} telehealth copy with {mix[0]['specialty']} for volume, and "
            f"use {rising[0]['specialty'] if rising else mix[1]['specialty']} as the "
            f"differentiated angle.")
@@ -252,6 +257,9 @@ def h_biomarker(model, keys, org, msg, facts, seed):
         )
         if here is not None:
             text += f" For {lab} specifically it is {here}%."
+        facts.append({"label": "Angle call",
+                      "value": f"target {_label([t['worst_cohort']])}",
+                      "provenance": "RECOMMENDED"})
         act = (f"Build the {t['marker']} angle against {_label([t['worst_cohort']])} "
                f"first and let the number carry the message; no fear framing needed "
                f"when the base rate is already this high.")
@@ -267,7 +275,7 @@ def h_biomarker(model, keys, org, msg, facts, seed):
         {"label": "Bookings behind this", "value": _n(b["bookings"]), "provenance": "OBSERVED"},
         {"label": "Age match rate", "value": _pct(prov["match_rate"]), "provenance": "DERIVED"},
     ]
-    ladder = ", ".join(f"{m['marker']} {m['abnormal_pct']}%" for m in worst)
+    ladder = ", ".join(f"{m['marker']} {m['abnormal_pct']}%" for m in worst[1:])
     w = worst[0]
     text = (
         f"{_pick('finding', seed)} In {lab}, the marker most often out of range is "
@@ -281,6 +289,8 @@ def h_biomarker(model, keys, org, msg, facts, seed):
         text += (f" The sharpest age gradient in the whole panel is {s['marker']}, "
                  f"climbing from {s['best_pct']}% in {_label([s['best_cohort']])} to "
                  f"{s['worst_pct']}% in {_label([s['worst_cohort']])}.")
+    facts.append({"label": "Hook call", "value": f"use {w['marker']}",
+                  "provenance": "RECOMMENDED"})
     act = (f"Use {w['marker']} as the {lab} checkup hook. It is the single most "
            f"common abnormal finding in this cohort, so the claim is defensible.")
     return [text], act, facts
@@ -372,8 +382,10 @@ def h_timing(model, keys, org, msg, facts, seed):
         {"label": "Dead zone", "value": f"{_pct(c['dead_share'])} of bookings 01:00 to 06:00",
          "provenance": "OBSERVED"},
     ]
+    facts.append({"label": "Clock source", "value": r["clock"]["source"],
+                  "provenance": "DERIVED"})
     text = (
-        f"{_pick('caution', seed)} Send {r['channel_label']} at "
+        f"{_pick('caution', seed)} For {_label(keys)}, send {r['channel_label']} at "
         f"{r['primary']['send_at']} IST, with {r['secondary']['send_at']} as the "
         f"second slot. Booking intent is twin-peaked, not single-peaked: "
         f"{_pct(c['morning_share'])} of real bookings land between 09:00 and 14:00 "
@@ -413,7 +425,28 @@ def h_channel(model, keys, org, msg, facts, seed):
         f"12, delivery at 10, frequency headroom at 9 and DND safety at 7. It can "
         f"address {_n(w['addressable'])} people here."
     )
-    act = f"Run the simulator on {w['label']} and open the rubric breakdown to audit the components."
+    facts.append({"label": "Rubric",
+                  "value": f"6 weighted parameters, v{D.RULES_VERSION}",
+                  "provenance": "RECOMMENDED"})
+    tm = T.recommend(win, keys)
+    clk = tm["clock"]
+    facts.append({"label": f"Best {w['label']} slot",
+                  "value": f"{tm['primary']['send_at']} IST",
+                  "provenance": "RECOMMENDED"})
+    text += (
+        f" Pair it with the observed clock: this selection books hardest around "
+        f"{tm['primary']['intent_peak']} IST, so the send belongs at "
+        f"{tm['primary']['send_at']}, measured off {_n(clk['observations'])} real bookings."
+    )
+    mix = CI.specialty_mix(keys[0])[:2]
+    if mix:
+        facts.append({"label": "Top demand in cohort",
+                      "value": f"{mix[0]['specialty']} at {_pct(mix[0]['share'])}",
+                      "provenance": "OBSERVED"})
+        text += (f" For creative, their strongest existing demand is "
+                 f"{mix[0]['specialty']} at {_pct(mix[0]['share'])} of consults.")
+    act = (f"Run the simulator on {w['label']}, send at {tm['primary']['send_at']} IST, "
+           f"and open the rubric breakdown to audit the components.")
     return [text], act, facts
 
 
@@ -438,6 +471,17 @@ def h_reach(model, keys, org, msg, facts, seed):
         f"{_n(rep)} for push; the gap is stale tokens on uninstalled apps that "
         f"report as sent and land nowhere."
     )
+    cmp = CI.consulter_vs_base(keys[0], cs[0]["share_of_base"]) if cs else None
+    if cmp:
+        facts.append({"label": "Telehealth use vs cohort size",
+                      "value": f"index {cmp['index']}", "provenance": "DERIVED"})
+        text += (
+            f" Worth pairing with intent: this cohort {cmp['reads']} at index "
+            f"{cmp['index']}, comparing its {_pct(cmp['consulter_share'])} share of "
+            f"real consulters against its {_pct(cmp['base_share'])} share of the base."
+        )
+    facts.append({"label": "Sizing rule", "value": "deliverable, not reported",
+                  "provenance": "RECOMMENDED"})
     act = "Plan push against the deliverable figure and lead with WhatsApp for anything base-wide."
     return [text], act, facts
 
@@ -472,6 +516,31 @@ def h_conversion(model, keys, org, msg, facts, seed):
             f"Audience sizing for {lab} stays exact either way; treat this rate as "
             f"directional."
         )
+    if obj in ("hc_activation", "hc_crosssell"):
+        m = CI.worst_marker(keys[0])
+        if m:
+            facts.append({"label": f"Clinical hook in {lab}",
+                          "value": f"{m['marker']} abnormal in {m['abnormal_pct']}%",
+                          "provenance": "OBSERVED"})
+            lines.append(
+                f"On lifting that rate: {m['marker']} runs abnormal in "
+                f"{m['abnormal_pct']}% of {lab} checkup bookings, median {m['median']} "
+                f"against a {m['threshold']} threshold. A hook built on a base rate "
+                f"that high does not need urgency language to work."
+            )
+    else:
+        mix = CI.specialty_mix(keys[0])[:1]
+        if mix:
+            facts.append({"label": f"Strongest demand in {lab}",
+                          "value": f"{mix[0]['specialty']} at {_pct(mix[0]['share'])}",
+                          "provenance": "OBSERVED"})
+            lines.append(
+                f"On lifting that rate: {mix[0]['specialty']} is already "
+                f"{_pct(mix[0]['share'])} of {lab} consults, so leading with existing "
+                f"demand beats introducing a new one."
+            )
+    facts.append({"label": "Method", "value": "target off observed, test the leak step",
+                  "provenance": "RECOMMENDED"})
     act = "Set the target off the observed rate and A/B only the step above the biggest leak."
     return lines, act, facts
 
@@ -492,6 +561,22 @@ def h_push_gap(model, keys, org, msg, facts, seed):
         f"between are stale tokens: App Uninstalled never fires in this account, so "
         f"tokens are never invalidated. Those sends report as delivered and reach nobody."
     )
+    ios = sum(c["ios"] for c in cs)
+    android = sum(c["android"] for c in cs)
+    app = sum(c["app"] for c in cs) or 1
+    facts += [
+        {"label": "App base", "value": _n(app), "provenance": "OBSERVED"},
+        {"label": "iOS share of app base",
+         "value": f"{_pct(ios/app, 0)} ({_n(ios)})", "provenance": "MODELED"},
+        {"label": "Fix", "value": "exclude no-app from push segments",
+         "provenance": "RECOMMENDED"},
+    ]
+    text += (
+        f" There is a second loss underneath the first: of the {_n(app)} real app "
+        f"users here, {_n(ios)} are iOS ({_pct(ios/app, 0)}) and iOS requires an "
+        f"explicit notification opt-in, so effective push is lower again than the "
+        f"{_n(real)} install signal implies."
+    )
     act = "Exclude the no-app segment from every push campaign and size against the deliverable count."
     return [text], act, facts
 
@@ -509,6 +594,24 @@ def h_dnd(model, keys, org, msg, facts, seed):
         f"{_pct(dnd/total)} of the selection, carry is_in_DND_CT. Nothing enforces it "
         f"centrally: the flag-setting journey only sets the flag, so every campaign "
         f"has to exclude it itself. It also skews Enterprise, so do not model it flat."
+    )
+    ready = sum(c["reach"]["whatsapp"]["campaign_ready"] for c in cs)
+    facts += [
+        {"label": "Campaign-ready on WhatsApp", "value": _n(ready), "provenance": "DERIVED"},
+        {"label": "Documented P1 dark, both products",
+         "value": _n(A.P1_DARK_BOTH), "provenance": "OBSERVED"},
+        {"label": "DND-locked, telehealth",
+         "value": _n(A.DND_TH_LOCKED), "provenance": "OBSERVED"},
+        {"label": "Property", "value": "is_in_DND_CT, 373 campaigns use it",
+         "provenance": "OBSERVED"},
+        {"label": "Rule", "value": "exclude explicitly, per campaign",
+         "provenance": "RECOMMENDED"},
+    ]
+    text += (
+        f" After suppression this selection leaves {_n(ready)} campaign-ready on "
+        f"WhatsApp. For scale context, {_n(A.DND_TH_LOCKED)} employees are DND-locked "
+        f"on telehealth base-wide and {_n(A.P1_DARK_BOTH)} sit in the documented P1 "
+        f"dark-on-both segment. Those are P1, never P0."
     )
     act = ("Add is_in_DND_CT != true to every segment and confirm the comparison value "
            "is actually set; a blank once inflated a count past 3.8 million.")
@@ -562,6 +665,9 @@ def h_compare(model, keys, org, msg, facts, seed):
     if over:
         text += (f" Against their share of the base, these cohorts over-index on actual "
                  f"telehealth use: {', '.join(over)}.")
+    facts.append({"label": "Sequencing call",
+                  "value": f"{biggest['label']} then {best_th['label']}",
+                  "provenance": "RECOMMENDED"})
     act = f"Start with {biggest['label']} for volume and {best_th['label']} for efficiency."
     return [text], act, facts
 
@@ -627,23 +733,43 @@ def h_accuracy(model, keys, org, msg, facts, seed):
         f"carry no age, so age is joined via member id and matches "
         f"{_pct(prov['hc']['match_rate'])}."
     )
+    facts.append({"label": "Where to verify", "value": "Methodology page, live checks",
+                  "provenance": "RECOMMENDED"})
     act = "Open Methodology for field-level provenance and the live invariant list."
     return [text], act, facts
 
 
 def h_help(model, keys, org, msg, facts, seed):
     prov = CI.provenance()
-    facts.append({"label": "Evidence available",
-                  "value": f"{_n(prov['th']['consults'])} consults, 24 specialties, 11 biomarkers",
-                  "provenance": "OBSERVED"})
+    t = P.totals(model)
+    steep = CI.steepest_gradient(1)
+    facts += [
+        {"label": "Eligible base", "value": _n(t["eligible"]), "provenance": "OBSERVED"},
+        {"label": "Consults readable",
+         "value": f"{_n(prov['th']['consults'])} across 24 specialties", "provenance": "OBSERVED"},
+        {"label": "Checkup bookings readable",
+         "value": f"{_n(prov['hc']['bookings'])} across 11 scored markers", "provenance": "OBSERVED"},
+        {"label": "Model invariants", "value": "25 asserted at boot", "provenance": "DERIVED"},
+        {"label": "Scope", "value": "aggregates only, no member rows", "provenance": "RECOMMENDED"},
+    ]
     text = (
-        "I read the cohort model, the approved copy library and Plum's own "
-        "consultation and checkup files. Useful things to ask: which channel to use, "
-        "what the real send time is, which biomarker is most off in a cohort, what "
-        "the dermatology or mental-health pattern looks like, what filters to put in "
-        "a segment, or how far to trust any number I give you."
+        f"{_pick('plain', seed)} I read four things: the cohort model over "
+        f"{_n(t['eligible'])} eligible people, Plum's own "
+        f"{_n(prov['th']['consults'])} telehealth consults across 24 specialties, "
+        f"{_n(prov['hc']['bookings'])} checkup bookings across 11 scored biomarkers, "
+        f"and the approved copy library. Everything I say is a figure one of those "
+        f"actually holds, labelled OBSERVED, DERIVED, MODELED or PREDICTED."
     )
-    act = "Try: which biomarker is most off in 36-40, or what filters build a checkup segment for 26-35."
+    if steep:
+        g = steep[0]
+        text += (
+            f" A taste of what is in there: {g['marker']} runs abnormal in "
+            f"{g['worst_pct']}% of {_label([g['worst_cohort']])} bookings against "
+            f"{g['best_pct']}% in {_label([g['best_cohort']])}, a {g['spread']}-point "
+            f"age gradient and one of the strongest campaign angles in the data."
+        )
+    act = ("Try: which biomarker is most off in 36-40, what the dermatology pattern is "
+           "in 21-25, or what filters build a checkup segment for 26-35.")
     return [text], act, facts
 
 
@@ -687,7 +813,9 @@ RUBRIC = {
     ],
 }
 
-_DEPTH_INTENTS = {"specialty", "biomarker", "segment", "timing", "accuracy", "compare"}
+_DEPTH_INTENTS = {"specialty", "biomarker", "segment", "timing", "accuracy",
+                  "compare", "channel", "reach", "copy", "push_gap", "dnd",
+                  "conversion", "help"}
 
 
 def _score(answer: str, facts: list[dict], action: str, intents: list[str],
@@ -736,11 +864,11 @@ def answer(model: dict, message: str, cohort_keys: list[str],
     action = ""
 
     for intent in intents[:2]:
-        fn = HANDLERS[intent]
         if intent == "copy":
             lines, act, facts = h_copy(model, keys, org, message, facts, seed,
                                        channel or "whatsapp")
         else:
+            fn = HANDLERS.get(intent, h_help)
             lines, act, facts = fn(model, keys, org, message, facts, seed)
         paras += lines
         action = action or act
