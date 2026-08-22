@@ -1,5 +1,12 @@
 import { NextResponse } from "next/server";
 
+// A company-wide approval triggers a real send inline (see below) that can
+// now take well over a minute once rate-limited against Resend's cap — give
+// this route the same headroom as /api/campaign/send rather than risking the
+// platform aborting the function mid-send because the caller's own timeout
+// (n8n's HTTP node) gave up waiting first.
+export const maxDuration = 300;
+
 const BASE_URL = "https://iw-crew-m-c4b9.insurwreck.com";
 
 interface InteractionRequest {

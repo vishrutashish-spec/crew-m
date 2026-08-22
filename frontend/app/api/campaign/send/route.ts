@@ -332,39 +332,67 @@ If you would like to stop receiving these emails, unsubscribe here.
 /**
  * One Resend call per recipient rather than a shared `to` array — a
  * company-wide send must not expose everyone's address to everyone else.
+ *
+ * Rate-limited to Resend's actual cap on this key — confirmed live via
+ * response headers: `ratelimit-limit: 10` (10 requests/second). Sending
+ * all recipients through Promise.all with no throttling (the original
+ * version of this function) fired every request at once; only the first
+ * ~10 landed inside that window and the rest came back 429, but the
+ * caller only needs ONE success to report ok:true — so a 591-recipient
+ * "everyone at Plum" send reported success while ~580 people silently
+ * never got it. Sending in small batches with a pause between them, plus
+ * one retry on 429, keeps every request under the real limit instead of
+ * hoping partial failures don't matter.
  */
 async function sendAll(
   recipients: string[],
   opts: { apiKey: string; from: string; subject: string; html: string }
 ): Promise<{ to: string; ok: boolean; messageId?: string; error?: string }[]> {
   const { apiKey, from, subject, html } = opts;
-  return Promise.all(
-    recipients.map(async (to) => {
-      try {
-        const res = await fetch("https://api.resend.com/emails", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${apiKey}`,
-            "Content-Type": "application/json",
-            // Resend sits behind Cloudflare, which blocks some default UAs outright.
-            "User-Agent": "crew-m/1.0 (+https://iw-crew-m-c4b9.insurwreck.com)",
-          },
-          body: JSON.stringify({ from, to: [to], subject, html }),
-        });
-        const text = await res.text();
-        if (!res.ok) {
-          console.error("Resend send failed for", to, res.status, text);
-          return { to, ok: false, error: `send_failed_${res.status}` };
-        }
-        let id: string | undefined;
-        try { id = JSON.parse(text).id; } catch { /* non-JSON success body */ }
-        return { to, ok: true, messageId: id };
-      } catch (err) {
-        console.error("Resend request threw for", to, err);
-        return { to, ok: false, error: "request_threw" };
+  const BATCH_SIZE = 8; // under the 10 req/s cap, with margin for jitter
+  const BATCH_DELAY_MS = 1100;
+
+  async function sendOne(to: string, isRetry = false): Promise<{ to: string; ok: boolean; messageId?: string; error?: string }> {
+    try {
+      const res = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+          // Resend sits behind Cloudflare, which blocks some default UAs outright.
+          "User-Agent": "crew-m/1.0 (+https://iw-crew-m-c4b9.insurwreck.com)",
+        },
+        body: JSON.stringify({ from, to: [to], subject, html }),
+      });
+      const text = await res.text();
+      if (res.status === 429 && !isRetry) {
+        const resetSeconds = Number(res.headers.get("ratelimit-reset")) || 1;
+        await new Promise((r) => setTimeout(r, (resetSeconds + 0.5) * 1000));
+        return sendOne(to, true);
       }
-    })
-  );
+      if (!res.ok) {
+        console.error("Resend send failed for", to, res.status, text);
+        return { to, ok: false, error: `send_failed_${res.status}` };
+      }
+      let id: string | undefined;
+      try { id = JSON.parse(text).id; } catch { /* non-JSON success body */ }
+      return { to, ok: true, messageId: id };
+    } catch (err) {
+      console.error("Resend request threw for", to, err);
+      return { to, ok: false, error: "request_threw" };
+    }
+  }
+
+  const results: { to: string; ok: boolean; messageId?: string; error?: string }[] = [];
+  for (let i = 0; i < recipients.length; i += BATCH_SIZE) {
+    const batch = recipients.slice(i, i + BATCH_SIZE);
+    const batchResults = await Promise.all(batch.map((to) => sendOne(to)));
+    results.push(...batchResults);
+    if (i + BATCH_SIZE < recipients.length) {
+      await new Promise((r) => setTimeout(r, BATCH_DELAY_MS));
+    }
+  }
+  return results;
 }
 
 export async function POST(request: Request) {
