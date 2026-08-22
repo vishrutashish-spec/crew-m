@@ -159,8 +159,8 @@ a mobile export.
 | Mobile | `160:638` "HRA Mobile" | 514 × 721 |
 
 **Single brand, no partner logo slot** — HRA is a Plum product campaign, not
-a client co-branded one, so §7's "every header carries the client logo" rule
-does not apply here. Template copy is already correct: heading "Meet your
+a client co-branded one. This is the documented exception to §7's client-logo
+rule, and §7 states it too. Template copy is already correct: heading "Meet your
 Health Risk Assessment" (42px), subtext "Answer a few questions / and
 personalise your health journey." (20.55px, break already set). Only the font
 substitution is needed. See `CREW-M-CAMPAIGN-PLAYBOOK.md` §5.
@@ -558,7 +558,7 @@ The lockup structure is:
 
 # PART 7 — THE CLIENT LOGO
 
-## RULE: every header carries the client logo — no exceptions
+## RULE: every client header carries the client logo
 
 **Updated 2026-08-22, and this supersedes the earlier "ask the AM, never
 scrape" rule below.** A header showing only the Plum wordmark must never
@@ -575,6 +575,21 @@ worth knowing (they are why step 1 is preferred), but they are no longer a
 reason to ship without a logo — they are a reason to check the one you found
 before using it: right company, dark-on-light, wordmark over icon, not a
 favicon-sized crop.
+
+### The one exception: Plum product campaigns
+
+This rule governs **client** emails — welcome, renewal, anything addressed to
+one organisation's employees on behalf of that organisation. It does not
+govern **Plum product campaigns**, which go to members across every account
+and have no single client to co-brand with. Those templates ship single-brand
+with no partner logo slot at all, so there is nothing to fill.
+
+Currently that means the **HRA adoption** headers (§3.1b, Figma `160:620` and
+`160:638`).
+
+**The test:** if a template contains a `Logo Co branding Unit`, the rule
+applies and the client logo is mandatory. If it contains none, the design is
+single-brand on purpose — do not graft a lockup onto it to satisfy the rule.
 
 ### Historical note — why scraping was originally rejected
 

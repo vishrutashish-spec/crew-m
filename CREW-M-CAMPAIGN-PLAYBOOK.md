@@ -105,7 +105,11 @@ section and closing render *below* the button.
 Different from welcome/renewal — it does **not** use the section order above.
 
 - Banners: Figma `160:620` desktop (1023x507), `160:638` mobile (514x721).
-  Both single-brand with no partner logo slot, by design.
+  Both single-brand with no partner logo slot, by design — this is the
+  documented exception to the client-logo rule in
+  `EMAIL-DESIGN-PLAYBOOK.md` §7, stated there too. The test is simply whether
+  a template contains a `Logo Co branding Unit`: HRA's do not, so there is
+  nothing to fill and no lockup should be grafted on.
 - Body: nine hand-written narratives in `frontend/lib/hra-narratives.ts`,
   used **verbatim**. This path never calls the copy model — they are
   deliberate marketing copy and regenerating them flattens the voice.
