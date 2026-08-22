@@ -244,8 +244,18 @@ export function SignalChat({
         <span className="mac-dot mac-dot-g" />
         <span className="mac-title">signal / cohort analyst</span>
       </div>
-      <div className="grid-ground aurora px-6 py-7 flex justify-center">
-        <div className="relative">{phone}</div>
+      <div className="grid-ground aurora px-6 py-7">
+        <div className="relative flex flex-col items-center gap-5">
+          {phone}
+          {/* A single evidence line under the phone. Keeps the phone the
+              centrepiece while giving the surface a reason to be there. */}
+          <p className="text-[11.5px] text-muted-foreground text-center max-w-lg leading-relaxed">
+            Reads the cohort model over 956,050 eligible people, 133,218 telehealth
+            consults across 24 specialties, and 36,526 checkup bookings across 11
+            scored biomarkers. It answers with figures those actually hold, and
+            labels every one.
+          </p>
+        </div>
       </div>
     </section>
   );

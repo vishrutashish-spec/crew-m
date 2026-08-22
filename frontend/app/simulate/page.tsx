@@ -16,6 +16,7 @@ import {
   PageBanner, MacBar, ProvenanceNote, StepHead,
 } from "@/components/kit";
 import { ChannelGlyph, ChannelTickY, PlumGlyph, WhatsAppGlyph, GmailGlyph } from "@/components/logos";
+import { SignalChat } from "@/components/signal-chat";
 import {
   CartesianGrid,
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, LabelList,
@@ -287,13 +288,25 @@ export default function SimulatePage() {
         copyOpts={copyOpts}
       />
 
-      {/* ---------- STEP 5: ask ---------- */}
-      <AskPanel
-        cohortKeys={selected}
-        org={org === "all" ? null : org}
-        objective={objective}
-        channel={channel || result?.channel.selected || null}
-      />
+      {/* ---------- STEP 5: SIGNAL ----------
+          Rendered non-compact so it brings its own window chrome and aurora
+          ground. A bare phone floating in a wide empty panel reads thin; the
+          framed version keeps the phone as the centrepiece with a surface
+          under it. */}
+      <div className="rise">
+        <div className="mb-4">
+          <span className="step-num">STEP 5</span>
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <h3 className="section-title">Ask SIGNAL</h3>
+            <Chip kind="DERIVED" />
+          </div>
+          <p className="text-[12.5px] text-muted-foreground mt-1.5">
+            Grounded answers only. Every reply cites the figures it used and scores
+            itself against the published rubric.
+          </p>
+        </div>
+        <SignalChat cohortKeys={selected} org={org === "all" ? null : org} />
+      </div>
     </div>
   );
 }
@@ -995,223 +1008,6 @@ function DecisionBreakdown({ result: r }: { result: SimResult }) {
    Ask Crew M: grounded campaign Q&A. Every reply carries the facts it used
    with provenance, and a quality score against the published 9-parameter
    rubric, computed from the reply itself.
-   ========================================================================== */
-
-interface ChatMsg {
-  role: "user" | "ai";
-  text: string;
-  reply?: AssistantReply;
-}
-
-const SUGGESTED = [
-  "Which channel for this selection?",
-  "How many can we actually reach on push?",
-  "Write a WhatsApp message for this cohort",
-  "How do I know these numbers are reliable?",
-];
-
-function AskPanel({
-  cohortKeys, org, objective, channel,
-}: {
-  cohortKeys: string[];
-  org: string | null;
-  objective: string;
-  channel: string | null;
-}) {
-  const [messages, setMessages] = useState<ChatMsg[]>([]);
-  const [input, setInput] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [rubric, setRubric] = useState<DecisionParam[] | null>(null);
-  const [rubricOpen, setRubricOpen] = useState(false);
-
-  useEffect(() => {
-    getRules().then((r) => {
-      const rule = r.rules.find((x) => x.id === "assistant_quality");
-      if (rule) setRubric(rule.parameters);
-    }).catch(() => {});
-  }, []);
-
-  async function send(text?: string) {
-    const msg = (text ?? input).trim();
-    if (!msg || busy) return;
-    setInput("");
-    setMessages((m) => [...m, { role: "user", text: msg }]);
-    setBusy(true);
-    try {
-      const reply = await askAssistant({
-        message: msg, cohort_keys: cohortKeys, org, objective, channel,
-      });
-      setMessages((m) => [...m, { role: "ai", text: reply.answer, reply }]);
-    } catch (e) {
-      setMessages((m) => [...m, {
-        role: "ai",
-        text: e instanceof Error ? `That did not work: ${e.message}` : "That did not work.",
-      }]);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <Panel className="p-5 rise" ground="grid">
-      <StepHead
-        step={5}
-        title="Ask SIGNAL"
-        sub="Grounded answers only: every reply cites the figures it used and scores itself against the published rubric"
-        chip="DERIVED"
-        right={
-          <div className="relative">
-            <button className="btn !px-3 !py-1.5 !text-[11px]" onClick={() => setRubricOpen(!rubricOpen)}>
-              Scored on {rubric?.length ?? 9} parameters
-              <ChevronDown className={`w-3 h-3 transition-transform ${rubricOpen ? "rotate-180" : ""}`} />
-            </button>
-            {rubricOpen && rubric && (
-              <div className="glass absolute right-0 top-full mt-2 w-[340px] z-30 rounded-2xl p-4">
-                <p className="label-mono mb-2.5">Answer quality rubric · weights sum to 100</p>
-                <div className="space-y-2">
-                  {rubric.map((p, i) => (
-                    <div key={p.key} className="flex items-start gap-2 text-[11px]">
-                      <span className="w-2 h-2 rounded-full mt-1 flex-shrink-0"
-                        style={{ background: SPECTRUM[i % SPECTRUM.length] }} />
-                      <span className="flex-1">
-                        <span className="font-medium">{p.label}</span>
-                        <span className="text-muted-foreground block text-[10px] leading-snug">{p.desc}</span>
-                      </span>
-                      <span className="tnum font-semibold flex-shrink-0">{p.weight}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        }
-      />
-
-      {/* Thread */}
-      <div className="relative space-y-3 mb-4">
-        {messages.length === 0 && (
-          <div className="flex items-start gap-3 py-2">
-            <span className="w-8 h-8 rounded-lg metal-ink flex items-center justify-center flex-shrink-0">
-              <MessageCircle className="w-4 h-4 text-[color:var(--sand)]" />
-            </span>
-            <p className="text-[12px] text-muted-foreground leading-relaxed pt-1.5">
-              Ask about reach, channels, conversion, timing, DND, devices or copy for your current
-              selection. Answers use only figures the cohort model serves.
-            </p>
-          </div>
-        )}
-        {messages.map((m, i) => (
-          m.role === "user" ? (
-            <div key={i} className="flex justify-end">
-              <div className="max-w-[70%] rounded-2xl rounded-br-md px-4 py-2.5 metal-ink">
-                <p className="text-[12.5px] text-white leading-relaxed">{m.text}</p>
-              </div>
-            </div>
-          ) : (
-            <AiMessage key={i} msg={m} />
-          )
-        ))}
-        {busy && (
-          <div className="flex items-center gap-2.5 text-[12px] text-muted-foreground">
-            <RotateCw className="w-3.5 h-3.5 animate-spin" /> Checking the model
-          </div>
-        )}
-      </div>
-
-      {/* Suggestions + input */}
-      {messages.length === 0 && (
-        <div className="relative flex flex-wrap gap-2 mb-3">
-          {SUGGESTED.map((q) => (
-            <button key={q} className="btn !px-3 !py-1.5 !text-[11px]" onClick={() => send(q)}>
-              {q}
-            </button>
-          ))}
-        </div>
-      )}
-      <div className="relative flex gap-2.5">
-        <input
-          className="field flex-1"
-          placeholder="Ask about this campaign plan"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && send()}
-        />
-        <button onClick={() => send()} disabled={busy || !input.trim()}
-          className="btn btn-primary !px-5">
-          <Send className="w-4 h-4" />
-        </button>
-      </div>
-    </Panel>
-  );
-}
-
-function AiMessage({ msg }: { msg: ChatMsg }) {
-  const [showScore, setShowScore] = useState(false);
-  const r = msg.reply;
-  return (
-    <div className="flex items-start gap-3">
-      <span className="w-8 h-8 rounded-lg metal-cyan flex items-center justify-center flex-shrink-0 mt-1">
-        <MessageCircle className="w-4 h-4 text-white" />
-      </span>
-      <div className="flex-1 min-w-0 panel-flush p-4">
-        <p className="text-[12.5px] leading-relaxed whitespace-pre-line">{msg.text}</p>
-        {r?.action && (
-          <p className="text-[11.5px] mt-2.5 pt-2.5 border-t border-border">
-            <span className="label-mono !text-[color:var(--cyan-deep)] mr-2">Do this</span>
-            {r.action}
-          </p>
-        )}
-        {r && (
-          <>
-            <div className="flex flex-wrap gap-1.5 mt-3">
-              {r.facts.slice(0, 4).map((f, i) => (
-                <span key={i} className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg border border-border bg-[color:var(--card)] text-[10px]">
-                  <Chip kind={f.provenance} />
-                  <span className="text-muted-foreground">{f.label}:</span>
-                  <span className="tnum font-semibold">{f.value}</span>
-                </span>
-              ))}
-            </div>
-            <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-border">
-              <button onClick={() => setShowScore(!showScore)}
-                className="text-[11px] text-[color:var(--cyan-deep)] hover:underline">
-                {showScore ? "Hide scoring" : "How this answer was scored"}
-              </button>
-              <span className="inline-flex items-center gap-1.5">
-                <span className="label-mono !text-[9px]">Quality</span>
-                <span className={`tnum font-heading font-bold text-[15px] ${
-                  r.score.total >= 9 ? "text-[color:var(--success)]"
-                  : r.score.total >= 7 ? "text-[color:var(--warning)]" : "text-[color:var(--red)]"
-                }`}>
-                  {r.score.total}/{r.score.out_of}
-                </span>
-              </span>
-            </div>
-            {showScore && (
-              <div className="mt-2.5 space-y-1.5">
-                {r.score.parameters.map((p, i) => (
-                  <div key={p.key} className="flex items-center gap-2.5 text-[10.5px]">
-                    <span className="w-28 text-muted-foreground truncate flex-shrink-0">{p.label}</span>
-                    <div className="ribbon flex-1 !h-[6px]">
-                      <span style={{ width: `${p.score * 100}%`, background: SPECTRUM[i % SPECTRUM.length] }} />
-                    </div>
-                    <span className="tnum w-14 text-right text-muted-foreground flex-shrink-0">
-                      {p.points}/{p.weight}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
-
-/* ==========================================================================
-   Funnel explainer: every projected number with its arithmetic, its rate and
-   its provenance, plus the weight rubric as a spectrum pie. Collapsed.
    ========================================================================== */
 
 function FunnelExplainer({ fx }: { fx: FunnelExplain }) {

@@ -504,3 +504,19 @@ carries the same treatment plus the corrections it applied.
   Brigold licensing caveat.
 - Wordmark uses Brigold DEMO. Personal-use licence only; commercial licence
   needed before this ships.
+
+### SIGNAL surfaces
+
+Three placements, one component, so answer quality cannot drift:
+- Cohorts page: inline, framed with window chrome and aurora, phone centred.
+- Simulator step 5: the same framed treatment, replacing the old flat AskPanel
+  that was still rendering there.
+- Global floating launcher on every page, opening a phone-shaped dock.
+
+Query understanding hardened: intents are ranked by matched-keyword weight
+rather than declaration order, so multi-part questions lead with the intent
+that carries more of the sentence. A normalisation pass fixes common
+misspellings before detection. Unmatched questions get an honest answer that
+says so and lists what SIGNAL can actually answer, rather than a generic
+brochure. Verified across 24 queries including typos, multi-intent and
+nonsense: mean 9.90, min 9.4, none below 9.

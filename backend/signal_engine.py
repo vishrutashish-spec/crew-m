@@ -97,7 +97,7 @@ INTENTS = [
     ("conversion", ["conversion", "convert", "funnel", "drop", "book rate", "cvr"]),
     ("reach", ["reach", "audience size", "how many", "addressable", "deliverable",
                "reachab"]),
-    ("push_gap", ["stale", "token", "push gap", "push problem"]),
+    ("push_gap", ["stale", "token", "push gap", "push problem", "push"]),
     ("dnd", ["dnd", "suppress", "opt out", "do not disturb"]),
     ("device", ["ios", "android", "device", "platform"]),
     ("compare", ["compare", "which cohort", "best cohort", "biggest cohort",
@@ -129,14 +129,58 @@ def _kw_hit(low: str, kw: str) -> bool:
     return re.search(r"(?<![a-z])" + re.escape(kw.strip()), low) is not None
 
 
+# Common misspellings and shorthand seen in real use. Normalised before intent
+# detection so a typo does not silently fall through to the generic answer.
+NORMALISE = {
+    "whatsap": "whatsapp", "whatsapp's": "whatsapp", "wa ": "whatsapp ",
+    "biomarkers": "biomarker", "bio marker": "biomarker", "bio-marker": "biomarker",
+    "dermatalogist": "dermatologist", "dermetologist": "dermatologist",
+    "gynacologist": "gynaecologist", "psycologist": "psychologist",
+    "pyschologist": "psychologist", "nutritionist": "nutrition",
+    "cohorts": "cohort", "segmant": "segment", "segement": "segment",
+    "propertys": "properties", "propeties": "properties", "proeprties": "properties",
+    "recomend": "recommend", "converion": "conversion", "convertion": "conversion",
+    "relaible": "reliable", "accurate?": "accurate", "vitd": "vitamin d",
+    "hb a1c": "hba1c", "a1 c": "hba1c", "cholestrol": "cholesterol",
+    "tellhealth": "telehealth", "telehalth": "telehealth", "healthcheckup": "checkup",
+    "health check up": "checkup", "reachablity": "reachability",
+    "reachabilty": "reachability", "supression": "suppression",
+}
+
+
+def _normalise(msg: str) -> str:
+    low = " " + msg.lower().strip() + " "
+    for wrong, right in NORMALISE.items():
+        low = low.replace(wrong, right)
+    return low
+
+
 def _detect(msg: str) -> list[str]:
-    low = msg.lower()
-    hits = [n for n, keys in INTENTS if any(_kw_hit(low, k) for k in keys)]
-    return hits or ["help"]
+    """
+    Rank intents rather than taking them in declaration order.
+
+    A question like "which channel and what time for 26-35" carries two real
+    intents, and the one with more evidence in the text should lead. Scoring by
+    the number and length of matched keywords does that, and it stops a single
+    incidental keyword from hijacking a question that is clearly about
+    something else.
+    """
+    low = _normalise(msg)
+    scored: list[tuple[int, int, str]] = []
+    for name, keys in INTENTS:
+        hits = [k for k in keys if _kw_hit(low, k)]
+        if hits:
+            # weight by how much of the question the match accounts for
+            weight = sum(len(k) for k in hits) + len(hits) * 2
+            scored.append((weight, len(hits), name))
+    if not scored:
+        return ["help"]
+    scored.sort(reverse=True)
+    return [n for _, _, n in scored]
 
 
 def _cohorts_from(msg: str, fallback: list[str]) -> list[str]:
-    low = msg.lower()
+    low = _normalise(msg)
     named = [k for k, al in COHORT_ALIASES.items() if any(a in low for a in al)]
     return named or [k for k in fallback if k in CE.BANDS] or ["26_35"]
 
@@ -147,7 +191,7 @@ def _label(keys: list[str]) -> str:
 
 
 def _objective_from(msg: str, fallback: str) -> str:
-    low = msg.lower()
+    low = _normalise(msg)
     if "cross" in low or "report" in low:
         return "hc_crosssell"
     if "install" in low or "download" in low:
@@ -819,6 +863,9 @@ def h_accuracy(model, keys, org, msg, facts, seed):
 
 def h_help(model, keys, org, msg, facts, seed):
     prov = CI.provenance()
+    # If the question had content but matched nothing, say so plainly and point
+    # at the nearest capabilities instead of returning a generic brochure.
+    unmatched = len(msg.split()) > 2
     t = P.totals(model)
     steep = CI.steepest_gradient(1)
     facts += [
@@ -845,6 +892,20 @@ def h_help(model, keys, org, msg, facts, seed):
             f"{g['worst_pct']}% of {_label([g['worst_cohort']])} bookings against "
             f"{g['best_pct']}% in {_label([g['best_cohort']])}, a {g['spread']}-point "
             f"age gradient and one of the strongest campaign angles in the data."
+        )
+    if unmatched:
+        text = (
+            f"I could not map that to something I hold, so rather than guess: here is "
+            f"what I can actually answer. I read the cohort model over "
+            f"{_n(t['eligible'])} eligible people, {_n(prov['th']['consults'])} "
+            f"telehealth consults across 24 specialties, "
+            f"{_n(prov['hc']['bookings'])} checkup bookings across 11 scored "
+            f"biomarkers, and the approved copy library.\n\n"
+            f"Reach and deliverable audience. Channel choice and why. Real send times "
+            f"from the booking clock. Conversion and where the funnel leaks. Which "
+            f"biomarker is most off in a cohort. Specialty and consult patterns. "
+            f"Segment filters with literal CleverTap names. DND and suppression. "
+            f"Device split. Copy for any channel. And how far to trust any of it."
         )
     act = ("Try: which biomarker is most off in 36-40, what the dermatology pattern is "
            "in 21-25, or what filters build a checkup segment for 26-35.")

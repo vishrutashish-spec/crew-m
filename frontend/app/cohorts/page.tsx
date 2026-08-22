@@ -10,7 +10,7 @@ import {
   InsightCard, ErrorState, Skeleton, ChartTip, AXIS, SeriesDefs, GRAD, PageBanner,
 } from "@/components/kit";
 import { ChannelGlyph } from "@/components/logos";
-import { SignalLauncher } from "@/components/signal-launcher";
+import { SignalChat } from "@/components/signal-chat";
 import { getCohortIntel, type CohortIntel } from "@/lib/api";
 import {
   CartesianGrid,
@@ -93,7 +93,9 @@ export default function CohortsPage() {
 
       {!list ? <Skeleton /> : <CohortCompare cohorts={list.cohorts} />}
 
-      <SignalLauncher cohortKeys={[active]} org={org === "all" ? null : org} />
+      <div className="rise d2">
+        <SignalChat cohortKeys={[active]} org={org === "all" ? null : org} />
+      </div>
 
       {detail ? (
         <Detail detail={detail} org={org} />

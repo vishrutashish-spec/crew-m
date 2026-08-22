@@ -3,6 +3,7 @@ import { Inter, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Sidebar } from "@/components/sidebar";
 import { CursorGlow } from "@/components/cursor-glow";
+import { SignalLauncher } from "@/components/signal-launcher";
 
 // Inter carries body copy; Vollkorn is loaded from /public/fonts via @font-face
 // in globals.css and owns every heading, figure and chart label.
@@ -40,6 +41,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             {children}
           </div>
         </main>
+        {/* SIGNAL is reachable from every screen. Pages that care about a
+            specific cohort still render their own inline phone. */}
+        <SignalLauncher cohortKeys={["26_35"]} org={null} />
       </body>
     </html>
   );
