@@ -268,7 +268,16 @@ export async function POST(request: Request) {
 
   // action === "draft": run the existing pipeline against our own API.
   const requestId = `chat-${Date.now()}`;
-  const { amName, accountName, campaignType, campaignBrief, logoUrl, narrative, plain, sendTo } = reply;
+  const { amName, accountName, campaignType, campaignBrief, logoUrl, narrative, plain } = reply;
+
+  // "Plum" / "PlumHQ" as the account is never a real client (Plum's actual
+  // clients are companies like Groww, Prochant) — the only reason to name
+  // Plum itself as the account is an internal/company-wide send. Default to
+  // everyone at Plum for this specific case, deterministically, rather than
+  // relying on the model to remember a new rule turn to turn. An explicit
+  // sendTo from the AM still wins (e.g. "just to me at x@plumhq.com").
+  const isPlumItself = /^plum(hq)?$/i.test((accountName ?? "").trim());
+  const sendTo = reply.sendTo ?? (isPlumItself ? { mode: "all_plum_staff" as const } : undefined);
 
   // A literal test send has no real benefit to write a campaign about —
   // skip the copy model entirely rather than asking it to invent one.
