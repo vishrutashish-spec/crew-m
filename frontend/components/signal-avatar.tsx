@@ -41,9 +41,24 @@ const GRID = [
   "BBBBTTTTTTTTTBBB",
 ];
 
-export function SignalAvatar({ size = 44, rounded = true }: {
-  size?: number; rounded?: boolean;
+export function SignalAvatar({ size = 44, rounded = true, live = false, thinking = false }: {
+  size?: number; rounded?: boolean; live?: boolean; thinking?: boolean;
 }) {
+  const inner = (
+    <SignalAvatarSvg size={size} rounded={rounded} />
+  );
+  if (!live) return inner;
+  return (
+    <span className="avatar-wrap inline-block" style={{ width: size, height: size }}>
+      <span className={`avatar-live inline-block ${thinking ? "avatar-thinking" : ""}`}>
+        {inner}
+      </span>
+      <span className="avatar-scan" aria-hidden />
+    </span>
+  );
+}
+
+function SignalAvatarSvg({ size, rounded }: { size: number; rounded: boolean }) {
   const cols = GRID[0].length;
   const rows = GRID.length;
   return (

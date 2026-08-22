@@ -420,6 +420,17 @@ export function ChartTip({
   );
 }
 
+/**
+ * Resolve a Recharts paint value to something a CSS background can show.
+ * Gradient fills arrive as url(#gs1); map those back to the matching solid
+ * series token so the tooltip swatch is filled and colour-correct.
+ */
+export function solidPaint(paint: string): string {
+  const m = /url\(#gs(\d)\)/.exec(paint);
+  if (m) return `var(--series-${m[1]})`;
+  return paint;
+}
+
 /** Shared axis styling so every chart's ticks match. */
 export const AXIS = {
   tick: { fontSize: 11, fill: "var(--tick)", fontFamily: "Vollkorn, Georgia, serif" },
