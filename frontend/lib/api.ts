@@ -631,7 +631,7 @@ export interface ResyncField {
   key: string; label: string;
   anchored: number | null; live: number | null;
   window: string; window_days: number; basis: string; event: string;
-  status: "moved" | "unchanged" | "failed" | "new";
+  status: "moved" | "unchanged" | "failed" | "new" | "skipped";
   drift?: number;
 }
 
@@ -646,6 +646,8 @@ export interface ResyncResult {
   cannot_refresh: { field: string; reason: string }[];
   refreshed?: number;
   failed?: number;
+  skipped?: number;
+  partial?: string;
   error?: string;
   live?: Record<string, number>;
 }

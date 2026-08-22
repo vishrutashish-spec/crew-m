@@ -187,6 +187,12 @@ RESYNC_SPEC = [
 
 MAX_WINDOW_DAYS = 365
 
+# Serverless functions have a hard ceiling, and five sequential count queries
+# with polling can exceed it. Past this budget the remaining fields are marked
+# skipped and the partial result is returned: a resync that completes three of
+# five and says so is worth more than a request that times out with nothing.
+RESYNC_BUDGET_SECONDS = 22
+
 
 def resync(requested_by: str = "unknown") -> dict:
     """
@@ -217,6 +223,7 @@ def resync(requested_by: str = "unknown") -> dict:
 
     yesterday = datetime.now() - timedelta(days=1)
     to_int = _date_int(yesterday)
+    deadline = time.time() + RESYNC_BUDGET_SECONDS
 
     for key, endpoint, event, days, basis in RESYNC_SPEC:
         assert days <= MAX_WINDOW_DAYS, f"window for {key} exceeds a year"
@@ -226,6 +233,14 @@ def resync(requested_by: str = "unknown") -> dict:
             "endpoint=%s (aggregate counts only)",
             requested_by, key, event, frm, to_int, endpoint,
         )
+        if time.time() > deadline:
+            out["fields"].append({
+                "key": key, "label": key.replace("_", " "),
+                "anchored": A.CT_LIVE.get(key), "live": None,
+                "window": f"{frm} to {to_int}", "window_days": days,
+                "basis": basis, "event": event, "status": "skipped",
+            })
+            continue
         value = _count_query(endpoint, event, frm, to_int, creds)
         anchored = A.CT_LIVE.get(key)
         row = {
@@ -251,7 +266,14 @@ def resync(requested_by: str = "unknown") -> dict:
     got = [f for f in out["fields"] if f["live"] is not None]
     out["ok"] = len(got) > 0
     out["refreshed"] = len(got)
-    out["failed"] = len(out["fields"]) - len(got)
+    out["failed"] = sum(1 for f in out["fields"] if f["status"] == "failed")
+    out["skipped"] = sum(1 for f in out["fields"] if f["status"] == "skipped")
+    if out["skipped"]:
+        out["partial"] = (
+            f"{out['skipped']} of {len(out['fields'])} figures were not "
+            "queried: the pull ran past its time budget. The anchored values "
+            "for those stand, and running it again picks up where it stopped."
+        )
     if out["ok"]:
         out["live"] = {f["key"]: f["live"] for f in got}
         mau, sessions, dau = (out["live"].get("mau_30d"),

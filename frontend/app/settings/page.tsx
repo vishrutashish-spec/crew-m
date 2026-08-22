@@ -255,6 +255,9 @@ function ResyncPanel() {
       {res?.error && (
         <p className="text-[12px] text-[color:var(--warning)]">{res.error}</p>
       )}
+      {res?.partial && (
+        <p className="text-[12px] text-[color:var(--warning)] mb-1">{res.partial}</p>
+      )}
 
       {res && res.fields.length > 0 && (
         <>
@@ -278,7 +281,12 @@ function ResyncPanel() {
                     </td>
                     <td className="py-2 text-right tnum">{f.anchored ? n(f.anchored) : "-"}</td>
                     <td className="py-2 text-right tnum font-semibold">
-                      {f.live === null ? <span className="text-[color:var(--red)]">failed</span> : n(f.live)}
+                      {f.live === null
+                        ? <span className={f.status === "skipped"
+                            ? "text-[color:var(--warning)]" : "text-[color:var(--red)]"}>
+                            {f.status === "skipped" ? "not queried" : "failed"}
+                          </span>
+                        : n(f.live)}
                     </td>
                     <td className={`py-2 text-right tnum ${
                       f.drift === undefined ? "text-muted-foreground"
