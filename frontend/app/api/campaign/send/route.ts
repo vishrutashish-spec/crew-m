@@ -18,6 +18,24 @@ const ASSETS = "https://iw-crew-m-c4b9.insurwreck.com/email-assets";
 const FOOTER_DESKTOP = `${ASSETS}/footer-desktop-v2.png`;
 const FOOTER_MOBILE = `${ASSETS}/footer-mobile-v2.png`;
 const BENEFITS_DEEPLINK = "https://deeplink.plumhq.com/benefits";
+
+/**
+ * Generic single-brand headers, one pair per campaign type. Used when an
+ * account has no bespoke creative built yet, so the email still ships a real
+ * branded banner instead of no header at all. The bespoke (co-branded,
+ * per-account) creative replaces these once the Figma agent builds it.
+ * Copy baked into these matches the queue prompt's generic wording.
+ */
+const GENERIC_HEADERS: Record<string, { desktop: string; mobile: string }> = {
+  welcome: {
+    desktop: `${ASSETS}/generic-welcome-desktop.png`,
+    mobile: `${ASSETS}/generic-welcome-mobile.png`,
+  },
+  renewal: {
+    desktop: `${ASSETS}/generic-renewal-desktop.png`,
+    mobile: `${ASSETS}/generic-renewal-mobile.png`,
+  },
+};
 const APP_DOWNLOAD = "https://plumhq.app.link";
 
 interface SendRequest {
@@ -27,6 +45,8 @@ interface SendRequest {
   campaignType?: string;
   copy?: { subject?: string; body?: string };
   creative?: { creativeUrl?: string; mobileCreativeUrl?: string; stub?: boolean };
+  /** Return the assembled HTML without sending. Never sends. */
+  preview?: boolean;
 }
 
 function esc(s: string) {
@@ -136,7 +156,7 @@ If you would like to stop receiving these emails, unsubscribe here.
 }
 
 export async function POST(request: Request) {
-  const { requestId, accountName, campaignType, copy, creative } =
+  const { requestId, accountName, campaignType, copy, creative, preview } =
     (await request.json()) as SendRequest;
 
   const apiKey = process.env.RESEND_API_KEY;
@@ -152,12 +172,26 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "missing_copy" }, { status: 400 });
   }
 
-  const html = buildHtml({
-    subject,
-    body,
-    desktopHeader: creative?.stub ? undefined : creative?.creativeUrl,
-    mobileHeader: creative?.stub ? undefined : (creative?.mobileCreativeUrl ?? creative?.creativeUrl),
-  });
+  // A bespoke creative wins; otherwise fall back to the generic header for
+  // this campaign type so the email is never sent without a banner.
+  const generic = GENERIC_HEADERS[(campaignType ?? "").toLowerCase()];
+  const usingGeneric = Boolean(creative?.stub) || !creative?.creativeUrl;
+
+  const desktopHeader = usingGeneric ? generic?.desktop : creative?.creativeUrl;
+  const mobileHeader = usingGeneric
+    ? generic?.mobile
+    : (creative?.mobileCreativeUrl ?? creative?.creativeUrl);
+
+  const html = buildHtml({ subject, body, desktopHeader, mobileHeader });
+
+  if (preview) {
+    return NextResponse.json({
+      ok: true, preview: true, wouldSendTo: ONLY_RECIPIENT,
+      imageCount: (html.match(/<img /g) ?? []).length,
+      headerUsed: usingGeneric ? (generic ? `generic:${campaignType}` : "none") : "bespoke",
+      html,
+    });
+  }
 
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
@@ -185,5 +219,6 @@ export async function POST(request: Request) {
     sentTo: ONLY_RECIPIENT,
     requestId, accountName, campaignType,
     creativeWasStub: Boolean(creative?.stub),
+    headerUsed: usingGeneric ? (generic ? `generic:${campaignType}` : "none") : "bespoke",
   });
 }
