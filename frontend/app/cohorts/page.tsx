@@ -207,8 +207,10 @@ function Detail({ detail, org }: { detail: CohortDetail; org: string }) {
 
   const orgRows = Object.entries(c.org_breakdown);
 
+  // step is the share of the FIRST funnel stage, not of the preceding stage, so
+  // the last bar reads as the true end-to-end conversion.
   const funnelData = (f: Cohort["th_funnel"]) =>
-    f.map((s) => ({ stage: s.stage, count: s.count, step: s.from_prev }));
+    f.map((s) => ({ stage: s.stage, count: s.count, step: s.cumulative }));
 
   const appGauge = [{ name: "app", value: c.app_share * 100, fill: CHART.ink }];
 
