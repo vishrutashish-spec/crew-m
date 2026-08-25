@@ -5,7 +5,7 @@
  *
  * Until a Plum Workspace session exists, this renders the sign-in screen and
  * nothing else: no sidebar, no assistant, no page content. The server gate in
- * middleware.ts is what actually protects the data; this is what the person
+ * proxy.ts is what actually protects the data; this is what the person
  * sees, and it keeps a single unauthenticated figure from ever painting.
  *
  * A session from outside the allowed domain is signed out on sight rather than
@@ -18,7 +18,7 @@ import {
   browserClient, authConfigured, emailAllowed, HOSTED_DOMAIN, ALLOWED_DOMAIN,
 } from "@/lib/supabase";
 import { CrewMLogo } from "@/components/logos";
-import { LogIn, ShieldCheck, TriangleAlert, RotateCw } from "lucide-react";
+import { ShieldCheck, TriangleAlert, RotateCw } from "lucide-react";
 
 interface AuthValue {
   session: Session | null;
@@ -181,7 +181,7 @@ function Shell({ children }: { children: React.ReactNode }) {
     <div className="auth-screen">
       <div className="auth-card glass">
         <div className="auth-brand">
-          <CrewMLogo height={30} />
+          <CrewMLogo />
         </div>
         <h1 className="auth-title">Campaign intelligence</h1>
         {children}

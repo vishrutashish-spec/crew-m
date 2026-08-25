@@ -5,7 +5,7 @@
  * project is the authority. Two clients, because the App Router needs both:
  *
  *   browser  runs in the page, starts the OAuth redirect, reads the session
- *   server   runs in middleware and route handlers, reads and refreshes the
+ *   server   runs in the proxy and route handlers, reads and refreshes the
  *            session from cookies so a request can be gated before any data
  *            is served
  *

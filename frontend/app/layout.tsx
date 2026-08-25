@@ -4,6 +4,7 @@ import "./globals.css";
 import { Sidebar } from "@/components/sidebar";
 import { CursorGlow } from "@/components/cursor-glow";
 import { SignalLauncher } from "@/components/signal-launcher";
+import { AuthGate } from "@/components/auth-gate";
 
 // Inter carries body copy; Vollkorn is loaded from /public/fonts via @font-face
 // in globals.css and owns every heading, figure and chart label.
@@ -34,16 +35,22 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       suppressHydrationWarning>
       <body className="min-h-full bg-background text-foreground">
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT }} />
-        <CursorGlow />
-        <Sidebar />
-        <main className="ml-[236px] min-h-screen">
-          <div className="mx-auto w-full max-w-[1500px] px-8 xl:px-12 py-9">
-            {children}
-          </div>
-        </main>
-        {/* SIGNAL is reachable from every screen. Pages that care about a
-            specific cohort still render their own inline phone. */}
-        <SignalLauncher cohortKeys={["26_35"]} org={null} />
+        {/* Nothing below the gate renders until a Plum Workspace session
+            exists, so no sidebar, assistant or figure ever paints for a
+            signed-out visitor. The server gate in proxy.ts is what
+            actually protects the data. */}
+        <AuthGate>
+          <CursorGlow />
+          <Sidebar />
+          <main className="ml-[236px] min-h-screen">
+            <div className="mx-auto w-full max-w-[1500px] px-8 xl:px-12 py-9">
+              {children}
+            </div>
+          </main>
+          {/* SIGNAL is reachable from every screen. Pages that care about a
+              specific cohort still render their own inline phone. */}
+          <SignalLauncher cohortKeys={["26_35"]} org={null} />
+        </AuthGate>
       </body>
     </html>
   );

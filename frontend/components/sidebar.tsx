@@ -5,6 +5,8 @@ import { usePathname } from "next/navigation";
 import { LayoutDashboard, Users, FlaskConical, BookOpen, Settings } from "lucide-react";
 import { CrewMLogo } from "@/components/logos";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { useAuth } from "@/components/auth-gate";
+import { LogOut } from "lucide-react";
 
 const NAV = [
   { href: "/", label: "Overview", icon: LayoutDashboard },
@@ -74,10 +76,38 @@ export function Sidebar() {
             Active, non-test organisations
           </p>
         </div>
+        <SignedIn />
         <p className="text-[10px] text-muted-foreground mt-3 px-1">
           Plum Product Marketing
         </p>
       </div>
     </aside>
+  );
+}
+
+
+/**
+ * Who is signed in, and the way out.
+ *
+ * Kept in the sidebar footer rather than a header menu, because on a tool
+ * holding confidential aggregates the identity should always be in view: it is
+ * the answer to "whose access produced this screenshot".
+ */
+function SignedIn() {
+  const { email, signOut } = useAuth();
+  if (!email) return null;
+  const initials = email.split("@")[0].split(/[._-]/)
+    .filter(Boolean).slice(0, 2).map((s) => s[0]?.toUpperCase()).join("");
+  return (
+    <div className="flex items-center gap-2 mt-3 px-1">
+      <span className="auth-who">
+        <span className="auth-avatar metal-cyan" aria-hidden>{initials || "P"}</span>
+        <span className="auth-email" title={email}>{email}</span>
+      </span>
+      <button onClick={signOut} className="auth-signout ml-auto"
+        aria-label="Sign out" title="Sign out">
+        <LogOut className="w-3 h-3" />
+      </button>
+    </div>
   );
 }

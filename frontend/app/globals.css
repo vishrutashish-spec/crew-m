@@ -1611,3 +1611,146 @@ select.field:focus, input.field:focus, textarea.field:focus {
 }
 .tune-switch.is-on { background: var(--cyan-wash); border-color: var(--cyan); }
 .tune-switch.is-on span { transform: translateX(13px); background: var(--cyan-deep); }
+
+/* ------------------------------------------------------------------- auth
+   The sign-in plate. It is the only thing on screen before a session exists,
+   so it carries the product's identity rather than a bare form. */
+.auth-screen {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+  padding: 40px 20px;
+  background:
+    radial-gradient(760px 460px at 50% -8%, var(--cyan-wash) 0%, transparent 62%),
+    radial-gradient(620px 420px at 82% 110%, rgba(255, 63, 82, 0.09) 0%, transparent 60%),
+    var(--background);
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 424px;
+  border-radius: 20px;
+  padding: 34px 32px 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  text-align: left;
+}
+
+.auth-brand { display: flex; align-items: center; }
+
+.auth-title {
+  font-family: var(--font-heading), Georgia, serif;
+  font-size: 27px;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  color: var(--ink-text);
+  margin: 2px 0 0;
+}
+
+.auth-sub {
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--muted-foreground);
+  margin: 0;
+}
+
+.auth-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 11px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--foreground);
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease;
+}
+.auth-btn:hover:not(:disabled) {
+  border-color: var(--cyan);
+  box-shadow: 0 8px 24px -14px rgba(43, 11, 33, 0.3);
+  transform: translateY(-1px);
+}
+.auth-btn:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+.auth-btn:disabled { opacity: .65; cursor: default; }
+
+.auth-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--muted-foreground);
+  padding-top: 4px;
+}
+.auth-note-bad {
+  color: var(--red);
+  background: color-mix(in srgb, var(--red) 7%, transparent);
+  border: 1px solid color-mix(in srgb, var(--red) 26%, transparent);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+.auth-note code {
+  font-size: 10.5px;
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: var(--muted);
+}
+
+.auth-foot {
+  font-size: 11px;
+  color: var(--muted-foreground);
+  max-width: 400px;
+  text-align: center;
+  line-height: 1.55;
+  margin: 0;
+}
+
+/* Signed-in identity in the sidebar footer. */
+.auth-who {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.auth-avatar {
+  width: 25px;
+  height: 25px;
+  border-radius: 8px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #fff;
+}
+.auth-email {
+  font-size: 10.5px;
+  color: var(--muted-foreground);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.auth-signout {
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted-foreground);
+  flex-shrink: 0;
+}
+.auth-signout:hover { border-color: var(--red); color: var(--red); }

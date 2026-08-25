@@ -1,6 +1,10 @@
 /**
  * Route gate for Crew M.
  *
+ * Named proxy, not middleware: the middleware file convention is deprecated in
+ * this Next version and renamed to proxy, per
+ * node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md
+ *
  * A login that leaves the data API open is decoration. This runs on every page
  * and on the engine proxy, so an unauthenticated request cannot read a single
  * Plum figure, whether it comes from a browser or from curl.
@@ -21,7 +25,7 @@ import { serverClient, emailAllowed, authConfigured } from "@/lib/supabase";
 /** Paths that must work before a session exists. */
 const PUBLIC = ["/auth/callback", "/auth/signout"];
 
-export async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
   const res = NextResponse.next({ request: req });
 
