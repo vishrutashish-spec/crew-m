@@ -26,6 +26,7 @@ Two things this wrapper handles.
    is the worst possible failure shape.
 """
 
+import json
 import os
 import sys
 
@@ -49,8 +50,57 @@ def _strip(path: str) -> str:
     return path
 
 
+# ---------------------------------------------------------------------------
+# Access gate
+# ---------------------------------------------------------------------------
+#
+# The engine is its own Vercel project with its own public URL. Before this,
+# signing in to the app protected nothing: anyone could call the engine host
+# directly and read every figure. So the engine now requires a shared secret
+# that only the app's authenticated proxy holds.
+#
+# It fails CLOSED. Running on Vercel without a configured secret refuses every
+# request, because a missing environment variable must not silently reopen the
+# data. Locally the secret is absent and the gate is off, which is correct: the
+# dev server binds to a developer's own machine.
+_SECRET = os.environ.get("CREWM_ENGINE_TOKEN")
+_DEPLOYED = bool(os.environ.get("VERCEL"))
+_HEADER = b"x-crewm-engine"
+
+
+async def _deny(send, status: int, message: str) -> None:
+    body = json.dumps({"error": message}).encode()
+    await send({"type": "http.response.start", "status": status,
+                "headers": [(b"content-type", b"application/json"),
+                            (b"content-length", str(len(body)).encode())]})
+    await send({"type": "http.response.body", "body": body})
+
+
+def _authorised(scope) -> bool:
+    if not _DEPLOYED:
+        return True
+    if not _SECRET:
+        return False
+    for name, value in scope.get("headers") or []:
+        if name.lower() == _HEADER:
+            try:
+                return value.decode() == _SECRET
+            except Exception:
+                return False
+    return False
+
+
 async def app(scope, receive, send):
     """ASGI wrapper that normalises the request path, then delegates."""
+    if scope.get("type") == "http" and not _authorised(scope):
+        if _DEPLOYED and not _SECRET:
+            await _deny(send, 503,
+                        "Engine access is not configured, so it will not serve.")
+        else:
+            await _deny(send, 401,
+                        "This engine is reachable only through the Crew M app.")
+        return
+
     if scope.get("type") in ("http", "websocket"):
         scope = dict(scope)
         original = scope.get("path", "/")
