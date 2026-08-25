@@ -64,6 +64,9 @@ def get_model() -> dict:
         logger.info("Building deterministic cohort model...")
         model = P.build()
         checks = P.verify(model)   # raises if any anchor disagrees
+        # Stamped on the model so anything that quotes the count reads the real
+        # one. It has drifted twice already from being typed into prose.
+        model["invariant_count"] = len(checks)
         _state["model"] = model
         _state["checks"] = checks
         _state["built_at"] = datetime.now(timezone.utc).isoformat()

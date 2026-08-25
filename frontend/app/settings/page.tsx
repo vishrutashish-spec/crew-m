@@ -125,7 +125,7 @@ export default function SettingsPage() {
                 "No export or download of records anywhere in the interface",
                 "Every data-access route logs what was requested",
                 "The API refuses to start if any model invariant fails",
-                "No prediction claims high confidence: no campaign performance history exists to learn from",
+                "Push and email rates are learned from 458 real campaigns; WhatsApp stays a labelled prior",
                 "Provenance labels are mandatory: observed, derived, modeled, predicted",
               ].map((g) => (
                 <div key={g} className="flex items-start gap-2.5 text-[12.5px]">

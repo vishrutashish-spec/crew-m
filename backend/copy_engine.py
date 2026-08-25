@@ -21,10 +21,12 @@ copy team already locked:
   * HC never says "book again" (one free checkup per plan year, structurally)
   * No em dashes anywhere in emitted text
 
-The performance prediction is PREDICTED at low confidence: multipliers over the
-modeled channel priors in anchors.py, each rule stated with its arithmetic. No
-real campaign history exists for this account, so these are style-fit
-adjustments over priors, never learned rates.
+The performance prediction is PREDICTED: style-fit multipliers over the channel
+rates in anchors.py, each rule stated with its arithmetic. Those base rates are
+now OBSERVED for push and email, learned from this account's own 458 campaigns
+and 11.3 million sends. WhatsApp is still a modeled external prior, because no
+WhatsApp campaign exists in CleverTap. Confidence therefore depends on the
+channel as well as on whether the copy has shipped before.
 
 --- Data access note (governance) ---
 This module touches no user data at all. It operates on message templates and
@@ -82,10 +84,25 @@ FEAR_WORDS = ["cancer", "cardiac", "disease", "diagnosis", "serious", "risk"]
 
 SOFT_CTAS = ["tap below", "tap to book", "book it", "whenever it's convenient", "check in"]
 
-_EMOJI_RE = re.compile(
+# Emoji counting, which every discipline check depends on. The previous
+# version had two defects that quietly corrupted those checks:
+#
+#   1. It omitted U+2300-U+23FF, so the hourglass and stopwatch used in shipped
+#      copy (⏳ ⏱) counted as zero. A push title carrying exactly one emoji was
+#      reported as having none and failed its own rule.
+#   2. It counted a ZWJ sequence as several emoji, so the doctor 👨‍⚕️ scored 2.
+#      That inflated counts and pushed compliant copy over its band ceiling.
+#
+# Now a "cluster" is a base emoji plus an optional variation selector, followed
+# by any number of ZWJ-joined parts. One human-visible emoji counts once.
+_EMOJI_CORE = (
     "[\U0001F300-\U0001F5FF\U0001F600-\U0001F64F\U0001F680-\U0001F6FF"
-    "\U0001F900-\U0001F9FF\U0001FA70-\U0001FAFF☀-➿⬀-⯿"
-    "\U0001F1E6-\U0001F1FF←-⇿✀-➿]"
+    "\U0001F900-\U0001F9FF\U0001FA70-\U0001FAFF"
+    "\u2190-\u21FF\u2300-\u23FF\u2600-\u27BF\u2B00-\u2BFF"
+    "\U0001F1E6-\U0001F1FF]"
+)
+_EMOJI_RE = re.compile(
+    _EMOJI_CORE + "\uFE0F?(?:\u200D" + _EMOJI_CORE + "\uFE0F?)*"
 )
 
 
@@ -280,7 +297,7 @@ EMAIL_HC = {
         "something like Vitamin D or B12 runs low and your focus quietly drops. A "
         "baseline now is what makes that visible later.\n\n"
         "What is included:\n"
-        "At-home sample collection, no clinic queues\n"
+        "At-home sample collection, so nothing needs planning\n"
         "Results in 24 to 48 hours on the Plum app\n"
         "A doctor explains every result\n"
         "Booked around your schedule\n\n"
@@ -649,6 +666,8 @@ def predict(analysis: dict, channel: str, objective: str,
     f("Soft CTA present" in warns or "Soft CTA present" in fails, 1.0, 0.93,
       "Missing the soft CTA shipped copy always carries")
 
+    _conf = A.confidence_for(channel, from_library)
+
     clamp = lambda m: max(0.6, min(1.35, m))  # noqa: E731
     open_m, click_m, conv_m = clamp(open_m), clamp(click_m), clamp(conv_m)
 
@@ -658,9 +677,9 @@ def predict(analysis: dict, channel: str, objective: str,
 
     out = {
         "label": "PREDICTED",
-        "confidence": A.CONFIDENCE_LIBRARY if from_library else A.CONFIDENCE_CUSTOM,
-        "confidence_reason": (A.CONFIDENCE_LIBRARY_REASON if from_library
-                              else A.CONFIDENCE_CUSTOM_REASON),
+        "confidence": _conf[0],
+        "confidence_reason": _conf[1],
+        "channel_evidence": A.CHANNEL_BENCHMARK_PROVENANCE.get(channel, {}),
         "from_library": from_library,
         # What backs each row of the prediction, so the UI can show the basis
         # instead of only a confidence word.
@@ -700,6 +719,38 @@ LIBRARY_SIZE = sum(
 # Generation
 # ---------------------------------------------------------------------------
 
+def _fit_emoji(body: str, band: str) -> str:
+    """
+    Bring a body inside its band's emoji ceiling by dropping DECORATIVE emoji.
+
+    Some shipped library copy for the older bands carries a four-emoji bullet
+    block, which puts it at six against a ceiling of three. The copy guide is
+    explicit that 41+ reads most direct and carries one to three, so the copy
+    and the rule genuinely disagree and the reference copy has to pass its own
+    bar. Rather than hand-edit prose inside long literals and risk missing a
+    case, the excess is removed deterministically here.
+
+    Only leading emoji on bullet lines are removed, and only while the count is
+    over the ceiling. The hook emoji in the opening line and the pointer in the
+    closing call to action both carry meaning, so they are never touched.
+    """
+    lo, hi = EMOJI_RANGE[band]
+    if len(_EMOJI_RE.findall(body)) <= hi:
+        return body
+    lines = body.split("\n")
+    # Bullet lines are the ones that OPEN with an emoji. Work from the bottom so
+    # the first bullet keeps its marker for as long as possible.
+    idxs = [i for i, ln in enumerate(lines)
+            if _EMOJI_RE.match(ln.strip()) and i not in (0, len(lines) - 1)]
+    for i in reversed(idxs):
+        if len(_EMOJI_RE.findall("\n".join(lines))) <= hi:
+            break
+        stripped = _EMOJI_RE.sub("", lines[i], count=1).strip()
+        if stripped:
+            lines[i] = stripped
+    return "\n".join(lines)
+
+
 def _variants_for(objective: str, band: str, channel: str,
                   angle: str | None) -> list[dict]:
     """Assemble variants from the library for one band and channel."""
@@ -707,7 +758,7 @@ def _variants_for(objective: str, band: str, channel: str,
 
     def add(kind, body, title=None, preheader=None, source="library"):
         v.append({"kind": kind, "title": title, "preheader": preheader,
-                  "body": _clean(body), "source": source})
+                  "body": _fit_emoji(_clean(body), band), "source": source})
 
     if channel == "whatsapp":
         # An explicit angle writes to that mechanism. Without one, the band's

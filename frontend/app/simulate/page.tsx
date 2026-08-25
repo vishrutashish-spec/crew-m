@@ -833,7 +833,7 @@ function Result({ result: r }: { result: SimResult }) {
 
         <ChartFrame
           title="Projected funnel"
-          sub="Modeled industry priors. No real campaign history exists for this account."
+          sub="Delivery, open and click are learned from this account's own campaigns for push and email. WhatsApp stays a labelled prior."
           chip="PREDICTED"
           filename="projected-funnel"
           caption="Projected campaign funnel, PREDICTED from modeled priors. Crew M"
@@ -895,8 +895,9 @@ function Result({ result: r }: { result: SimResult }) {
             <div className="rounded-lg bg-[color:var(--amber-bg)] border border-[color:var(--amber-border)] p-3.5">
               <p className="label-mono !text-[color:var(--amber-text)] mb-1.5">Soft</p>
               <p className="text-[11.5px] leading-relaxed">
-                Everything downstream of send. The rates are priors, not learned from Plum
-                campaigns. Treat the shape as directional, not the absolute numbers.
+                Everything downstream of send. For push and email these rates are learned
+                from 458 real campaigns and 11.3 million sends. For WhatsApp they are still
+                an external prior, because Plum sends WhatsApp through WATI, not CleverTap.
               </p>
             </div>
           </div>

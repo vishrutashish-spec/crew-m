@@ -293,6 +293,30 @@ def verify(model: dict) -> list[str]:
             raise AssertionError(f"cohort {ck}: push.with_app is {wa}, expected > 0")
     checks.append("every cohort reports deliverable push > 0")
 
+    # A channel may only be labelled OBSERVED if there is campaign evidence
+    # behind it. Without this, someone can promote a modeled prior to observed
+    # by editing one string, which is the most damaging silent edit available
+    # in this file: it would make a guess look measured.
+    for ch, rates in A.CHANNEL_BENCHMARKS.items():
+        prov = A.CHANNEL_BENCHMARK_PROVENANCE.get(ch)
+        if prov is None:
+            raise AssertionError(f"channel {ch}: no benchmark provenance")
+        for metric, v in rates.items():
+            if not (0.0 < v <= 1.0):
+                raise AssertionError(
+                    f"channel {ch}: {metric} rate {v} is outside (0, 1]")
+        if prov["kind"] == "OBSERVED":
+            if prov.get("campaigns", 0) <= 0 or prov.get("sent", 0) <= 0:
+                raise AssertionError(
+                    f"channel {ch} is marked OBSERVED but cites "
+                    f"{prov.get('campaigns')} campaigns and {prov.get('sent')} "
+                    "sends. An observed rate needs sends behind it.")
+        elif prov["kind"] != "MODELED":
+            raise AssertionError(
+                f"channel {ch}: provenance kind {prov['kind']!r} is neither "
+                "OBSERVED nor MODELED")
+    checks.append("every channel rate is in range and OBSERVED ones cite real sends")
+
     return checks
 
 

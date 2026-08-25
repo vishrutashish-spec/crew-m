@@ -362,16 +362,68 @@ PEAK_HOUR = {
 # No real delivery/open/click/conversion rate exists for any channel in any
 # source document.
 #
-# So these are industry priors, not learned rates, and the simulator caps its
-# confidence at "low" and says so. [B 15] is explicit: never let the model
-# invent conversion rates; if it can't predict reliably, say so rather than
-# fabricate.
+# THAT IS NO LONGER TRUE, and the correction matters more than the original
+# caution. CleverTap's message report does expose per-campaign delivery, open
+# and click for this account: 458 campaigns with volume and 11.3 million sends.
+# Push and email rates are now learned from it. The Bible called the missing
+# campaign export the single most critical data gap; the gap was in the reading,
+# not in the data. WhatsApp is the one channel with genuinely nothing to learn
+# from, because Plum sends WhatsApp through WATI rather than CleverTap.
 # ===========================================================================
 
+# Delivery, open and click, per channel.
+#
+# Push and email are now OBSERVED, aggregated from this account's own campaign
+# history: 458 campaigns carrying volume, 11.3 million sends over a bounded
+# 12-month window, read through CleverTap's message report. The modeled priors
+# they replace were wrong by multiples in both directions, which means every
+# funnel projection the simulator produced before this was wrong by multiples:
+#
+#   push  open     11.8% modeled  ->  39.88% observed   3.4x understated
+#   push  click     4.1% modeled  ->   1.17% observed   3.5x OVERSTATED
+#   email open     22.1% modeled  ->  61.83% observed   2.8x understated
+#   email click     3.1% modeled  ->  27.39% observed   8.8x understated
+#
+# WhatsApp stays MODELED, and the reason is specific rather than a shrug: there
+# is no WhatsApp campaign in CleverTap at all. Plum sends WhatsApp through WATI,
+# which this account does not report on, so there is nothing here to learn from.
+# Mixing an observed push rate and a modeled WhatsApp rate in one table is
+# exactly why each carries its own provenance below.
 CHANNEL_BENCHMARKS = {
     "whatsapp": {"delivery": 0.951, "open": 0.648, "click": 0.079},
-    "email":    {"delivery": 0.923, "open": 0.221, "click": 0.031},
-    "push":     {"delivery": 0.847, "open": 0.118, "click": 0.041},
+    "email":    {"delivery": 0.969, "open": 0.6183, "click": 0.2739},
+    "push":     {"delivery": 0.988, "open": 0.3988, "click": 0.0117},
+}
+
+CAMPAIGN_HISTORY_PULLED = date(2026, 8, 22)
+
+CHANNEL_BENCHMARK_PROVENANCE = {
+    "push": {
+        "kind": "OBSERVED",
+        "campaigns": 346,
+        "sent": 9_272_808,
+        "basis": ("346 push campaigns with volume, 9,272,808 sends. Delivery is "
+                  "sends minus errors, open is views over delivered, click is "
+                  "clicks over views."),
+    },
+    "email": {
+        "kind": "OBSERVED",
+        "campaigns": 112,
+        "sent": 2_051_311,
+        "basis": ("112 email campaigns with volume, 2,051,311 sends. The open "
+                  "rate is high partly because inbox providers prefetch images, "
+                  "which inflates opens industry-wide. It is still this "
+                  "account's own measured behaviour, which is the right prior "
+                  "for predicting this account."),
+    },
+    "whatsapp": {
+        "kind": "MODELED",
+        "campaigns": 0,
+        "sent": 0,
+        "basis": ("No WhatsApp campaign exists in CleverTap. Plum sends "
+                  "WhatsApp through WATI, which this account does not report "
+                  "on, so this row is an external prior and the only one left."),
+    },
 }
 
 # Click-to-convert. A click lands on the product homepage, and the funnels
@@ -393,12 +445,17 @@ CONVERSION_PROVENANCE = {
     "app_install":   ("MODELED", "industry prior, no install-campaign history exists"),
     "reengagement":  ("MODELED", "industry prior, no re-engagement history exists"),
 }
-BENCHMARKS_ARE_MODELED = True
+# Superseded. Campaign performance data DOES exist for push and email, and is
+# now used. Kept as a name because other modules import it, but it no longer
+# claims the account has no history.
+BENCHMARKS_ARE_MODELED = False
 BENCHMARK_PROVENANCE = (
-    "MODELED industry priors. No real campaign performance data exists in any "
-    "source, the CT Bible names the missing campaign history export as the "
-    "single most critical data gap. Simulated funnels are therefore capped at "
-    "low confidence and must not be presented as learned predictions."
+    "Push and email delivery, open and click are OBSERVED from this account's "
+    "own campaign history: 458 campaigns with volume and 11.3 million sends "
+    "over a bounded 12-month window. WhatsApp remains a MODELED external prior, "
+    "because no WhatsApp campaign exists in CleverTap at all. The earlier "
+    "modeled priors were wrong by up to 8.8x, so predictions made before this "
+    "pull should not be compared with predictions made after it."
 )
 
 # What actually backs a copy performance prediction, stated per input so the
@@ -421,10 +478,11 @@ PREDICTION_BASIS = {
         "wording itself has precedent."
     ),
     "delivery_open_click": (
-        f"External channel benchmarks, not learned. {CT_CAMPAIGNS_IN_ACCOUNT} "
-        f"CleverTap campaigns and {CT_JOURNEYS_IN_ACCOUNT} journeys exist in "
-        "this account, but no per-campaign performance export does, so none of "
-        "them train these rates."
+        "Learned from this account's own campaign history for push and email: "
+        "458 campaigns with volume and 11.3 million sends over a bounded "
+        "12-month window. WhatsApp is the exception and stays an external "
+        "prior, because no WhatsApp campaign exists in CleverTap at all: Plum "
+        "sends WhatsApp through WATI, which this account does not report on."
     ),
     "convert": (
         "Observed product funnels over the 120-day window wherever one exists: "
@@ -436,17 +494,53 @@ PREDICTION_BASIS = {
 # Recommended library copy carries less copy-side risk than pasted copy: it has
 # shipped before and passes every discipline check by construction. The channel
 # priors are equally modeled either way, so this moves one notch, never to high.
+# Confidence now depends on the CHANNEL as well as the copy, because the
+# channels no longer rest on the same evidence. Push and email rates are
+# learned from real sends; WhatsApp is still an external prior.
 CONFIDENCE_LIBRARY = "moderate"
 CONFIDENCE_LIBRARY_REASON = (
     "Copy is drawn from the shipped library, so the wording has precedent and "
-    "clears every discipline rule. Delivery, open and click remain external "
-    "priors, so this is not a learned prediction."
+    "clears every discipline rule."
 )
 CONFIDENCE_CUSTOM = "low"
 CONFIDENCE_CUSTOM_REASON = (
-    "This wording has never shipped, so there is no precedent for it on top of "
-    "channel priors that are already external rather than learned."
+    "This wording has never shipped, so there is no precedent for it."
 )
+
+
+def confidence_for(channel: str, from_library: bool) -> tuple[str, str]:
+    """
+    Confidence and its reason, combining copy precedent with channel evidence.
+
+    Observed channel rates plus library copy is the strongest position this
+    tool can honestly claim, and it is still not "high": the rates are account
+    averages rather than per-cohort, and no holdout has been run.
+    """
+    prov = CHANNEL_BENCHMARK_PROVENANCE.get(channel, {})
+    observed = prov.get("kind") == "OBSERVED"
+    if observed and from_library:
+        return "moderate", (
+            f"Copy has shipped before, and the {CHANNEL_LABELS.get(channel, channel)} "
+            f"rates are learned from {prov['campaigns']} real campaigns and "
+            f"{prov['sent']:,} sends. Not high: these are account averages, not "
+            "per-cohort rates, and no holdout has been run."
+        )
+    if observed:
+        return "low", (
+            f"The {CHANNEL_LABELS.get(channel, channel)} rates are learned from "
+            f"{prov['campaigns']} real campaigns, but this wording has never "
+            "shipped, so the copy side has no precedent."
+        )
+    if from_library:
+        return "low", (
+            "Copy has shipped before, but no WhatsApp campaign exists in "
+            "CleverTap, so the channel rates are an external prior rather than "
+            "learned from Plum sends."
+        )
+    return "low", (
+        "Neither side is anchored: unshipped wording on a channel with no "
+        "campaign history in this account."
+    )
 
 CHANNELS = ["whatsapp", "email", "push"]          # never SMS
 CHANNEL_LABELS = {"whatsapp": "WhatsApp", "email": "Email", "push": "Push"}
@@ -513,7 +607,7 @@ ANCHOR_NOTES = [
         ),
     },
     {
-        "title": "No real campaign performance data exists",
+        "title": "Campaign performance is learned for push and email, modeled for WhatsApp",
         "body": BENCHMARK_PROVENANCE,
     },
 ]

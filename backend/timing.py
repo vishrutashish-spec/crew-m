@@ -297,10 +297,12 @@ def funnel_explain(channel: str, objective: str, sent: int,
         "composition": {"observed": observed, "derived": derived,
                         "modeled": len(steps) - observed - derived},
         "honesty": (
-            "Audience sizing is exact. Everything between send and click is a "
-            "channel prior, because this account has no campaign history to "
-            "learn from. Click to convert is the one downstream rate with a "
-            "real anchor wherever a product funnel exists."
+            "Audience sizing is exact. Delivery, open and click are learned "
+            "from this account's own campaigns for push and email, 458 of them "
+            "across 11.3 million sends. WhatsApp is the exception and stays an "
+            "external prior, because Plum sends WhatsApp through WATI rather "
+            "than CleverTap. Click to convert is anchored in the observed "
+            "product funnels wherever one exists."
         ),
         "label": "PREDICTED",
     }

@@ -1087,9 +1087,8 @@ def h_copy(model, keys, org, msg, facts, seed, channel):
         f"emojis, style {a['style_score']}/100:",
         body if not v["title"] else f"{v['title']}\n{body}",
         f"Predicted open {_pct(p['predicted']['open'])} against a "
-        f"{_pct(p['baseline']['open'])} channel prior, at low confidence: this "
-        f"account has no campaign history, so that is a style-fit adjustment on a "
-        f"prior, not a learned rate.",
+        f"{_pct(p['baseline']['open'])} channel baseline, at {p['confidence']} "
+        f"confidence. {p.get('channel_evidence', {}).get('basis', '')}",
     ]
     marker = CI.worst_marker(keys[0])
     if marker and obj in ("hc_activation", "hc_crosssell"):
@@ -1115,8 +1114,9 @@ def h_accuracy(model, keys, org, msg, facts, seed):
         f"{_pick('plain', seed)} Four labels, never blurred: OBSERVED off the source "
         f"of record, DERIVED as exact arithmetic on observed facts, MODELED as a "
         f"calibrated assumption that still reconciles to the anchors, PREDICTED as a "
-        f"forecast capped at low confidence. The 956,050 base reconciles to 25 "
-        f"invariants at boot and 20 simulations are swept every start. The clinical "
+        f"forecast. The 956,050 base reconciles to "
+        f"{model.get('invariant_count', len(P.verify(model)))} "
+        f"invariants at boot, and a simulation sweep runs every start. The clinical "
         f"layer sits on {_n(prov['th']['consults'])} real consults and "
         f"{_n(prov['hc']['bookings'])} checkup bookings."
     )
