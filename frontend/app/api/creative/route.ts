@@ -34,21 +34,13 @@ async function queuePendingCreative(params: {
 }
 
 /**
- * Real creative rendering (Figma template -> font substitution -> local logo
- * composite -> pixel-verified export) only runs through an interactive Figma
- * MCP session — a Vercel serverless function has no Figma access, so it can't
- * happen here. This map holds accounts that already had that pipeline run by
- * hand; anyone else gets an honest placeholder instead of a fake banner.
- * See EMAIL-DESIGN-PLAYBOOK.md and BUILD-SHEET-prochant-welcome.md.
+ * In the target architecture, campaign creative is a slot in the HTML
+ * template, filled by composing the campaign-type banner with the client
+ * logo via a server-side image library. This route does not perform that
+ * composition today; it accepts the request and queues it for the
+ * creative-production pipeline. See CREW-M-CAMPAIGN-PLAYBOOK.md.
  */
-const REAL_CREATIVES: Record<string, Record<string, { desktop: string; mobile: string }>> = {
-  prochant: {
-    renewal: {
-      desktop: "https://d250yozwgs1tp8.cloudfront.net/1704861952/assets/21c98d5b81da4887aeab19ef18893a10.png",
-      mobile: "https://d250yozwgs1tp8.cloudfront.net/1704861952/assets/af754a113a3e4a4a94ff4452c1d803a1.png",
-    },
-  },
-};
+const REAL_CREATIVES: Record<string, Record<string, { desktop: string; mobile: string }>> = {};
 
 export async function POST(request: Request) {
   const { requestId, copy, logoUrl } = (await request.json()) as RenderCreativeRequest;

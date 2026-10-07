@@ -26,7 +26,7 @@ interface AgentReply {
    *  entirely and sends campaignBrief verbatim, unbranded, as the body. */
   plain?: boolean;
   /** Only set if the AM explicitly named a recipient. Omitted -> safe default. */
-  sendTo?: { mode: "single" | "all_plum_staff"; email?: string };
+  sendTo?: { segmentId?: string; segmentName?: string };
 }
 
 const SYSTEM_PROMPT = `You are Crew M's campaign assistant. Someone just tagged you in a Slack channel — your job is to gather what's needed to draft a client email campaign, then hand it off for drafting.
@@ -86,20 +86,16 @@ For step 3, figure out what this actually is:
 Ask short, direct questions — one at a time, not a list. Don't explain your
 reasoning. Don't use markdown headers.
 
-By default, every draft goes to a safe internal test address once approved —
-you never need to ask about this. Only set "sendTo" in the final JSON if the
-AM explicitly names where it should go:
-- They give a specific email address ("send it to me at x@y.com", "test send
-  to jane@acme.com") -> {"mode":"single","email":"x@y.com"}
-- They say something like "send to everyone at Plum" / "send to all of Plum
-  staff" / "company-wide" -> {"mode":"all_plum_staff"}
-Never infer or guess a recipient — only set "sendTo" when they said so in
-plain words. If they didn't mention a recipient at all, omit "sendTo"
-entirely from the JSON.
+Audience is resolved by the PMM in CleverTap after the draft is created. You
+do not pick recipients. If the AM explicitly names a CleverTap segment (e.g.
+"the HC-eligible-never-booked segment"), capture it:
+  "sendTo": {"segmentName": "<the segment name they said>"}
+Otherwise omit sendTo entirely and the PMM will attach the correct segment
+during review.
 
 Once you have the AM's name, the account name, and the campaign type/intent,
 respond with ONLY this JSON (no other text):
-{"action":"draft","amName":"...","accountName":"...","campaignType":"welcome|renewal|hra|test|<slug>","campaignBrief":"...","logoUrl":"...","narrative":"...","plain":true,"sendTo":{"mode":"single|all_plum_staff","email":"..."}}
+{"action":"draft","amName":"...","accountName":"...","campaignType":"welcome|renewal|hra|test|<slug>","campaignBrief":"...","logoUrl":"...","narrative":"...","sendTo":{"segmentName":"..."}}
 ("narrative", "plain" and "sendTo" are all optional — include each only per the rules above.)
 
 Until then, respond with ONLY this JSON (no other text):
@@ -270,14 +266,7 @@ export async function POST(request: Request) {
   const requestId = `chat-${Date.now()}`;
   const { amName, accountName, campaignType, campaignBrief, logoUrl, narrative, plain } = reply;
 
-  // "Plum" / "PlumHQ" as the account is never a real client (Plum's actual
-  // clients are companies like Groww, Prochant) — the only reason to name
-  // Plum itself as the account is an internal/company-wide send. Default to
-  // everyone at Plum for this specific case, deterministically, rather than
-  // relying on the model to remember a new rule turn to turn. An explicit
-  // sendTo from the AM still wins (e.g. "just to me at x@plumhq.com").
-  const isPlumItself = /^plum(hq)?$/i.test((accountName ?? "").trim());
-  const sendTo = reply.sendTo ?? (isPlumItself ? { mode: "all_plum_staff" as const } : undefined);
+  const sendTo = reply.sendTo;
 
   // A literal test send has no real benefit to write a campaign about —
   // skip the copy model entirely rather than asking it to invent one.
@@ -323,12 +312,9 @@ export async function POST(request: Request) {
     }).catch(() => {});
   }
 
-  const sendToNote =
-    sendTo?.mode === "single"
-      ? ` It'll go to ${sendTo.email} once approved.`
-      : sendTo?.mode === "all_plum_staff"
-      ? " It'll go to everyone at Plum once approved — the PMM approval message will show the address count."
-      : "";
+  const sendToNote = sendTo?.segmentName
+    ? ` It'll target the \`${sendTo.segmentName}\` segment once the PMM publishes it in CleverTap.`
+    : "";
 
   await slackApi(token, "chat.postMessage", {
     channel: slackChannel,

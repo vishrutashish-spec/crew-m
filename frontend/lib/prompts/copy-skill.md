@@ -528,15 +528,15 @@ Guidelines:
 **Reference email**
 
 Sender Name: Plum
-Subject: Welcome to Your 2026–27 Health Benefits 🎉 Open Financial <> Plum
+Subject: Welcome to Your 2026–27 Health Benefits 🎉 [Client Name] <> Plum
 
 Email Body:
 
 Welcome back! We're delighted to have you with us.
 
-We're excited to share that Open Financial has renewed its partnership with Plum to continue bringing you a best-in-class healthcare experience, comprehensive, simple, inclusive, and easy to access for you and your loved ones.
+We're excited to share that [Client Name] has renewed its partnership with Plum to continue bringing you a best-in-class healthcare experience, comprehensive, simple, inclusive, and easy to access for you and your loved ones.
 
-Niva Bupa remains the trusted insurance partner, so you can expect reliable service and support whenever you need it. Because when it comes to your well-being, we want nothing but the best for our Open Financial family.
+[Insurer Name] remains the trusted insurance partner, so you can expect reliable service and support whenever you need it. Because when it comes to your well-being, we want nothing but the best for our [Client Name] family.
 
 Here's when it starts: Your renewed insurance coverage begins on 21st August 2026.
 
@@ -556,7 +556,7 @@ Here's what you're covered for, Comprehensive Health Insurance (ESC):
 - We've got you covered with comprehensive health insurance for you and your family.
 - Sum Insured: Graded
 - Family definition: ESC (Employee + Spouse + Children)
-- Insurer: Niva Bupa | TPA: In-house
+- Insurer: [Insurer Name] | TPA: In-house
 - Start Date of Coverage: 21-08-2026
 
 Health Insurance Benefits for 2026–27:

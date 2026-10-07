@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
 import fs from "node:fs";
 import path from "node:path";
-import { lookupAccountFacts, factsForPrompt } from "@/lib/account-facts";
-import { getHraNarrative, renderHraBody } from "@/lib/hra-narratives";
 
 interface GenerateCopyRequest {
   requestId: string;
@@ -70,20 +68,12 @@ export async function POST(request: Request) {
 
   const copySkill = fs.readFileSync(COPY_SKILL_PATH, "utf-8");
 
-  // HRA adoption uses the team's own hand-written narratives verbatim. These
-  // are deliberate marketing copy; sending them through the model would only
-  // degrade them, so this path never calls the LLM at all.
-  if (/^hra$/i.test(String(campaignType).trim())) {
-    const seed = [...String(requestId ?? "")].reduce((a, c) => a + c.charCodeAt(0), 0);
-    const n = getHraNarrative(narrative, seed);
-    const body = renderHraBody(n, (amName ?? "there").trim().split(/\s+/)[0] || "there");
-    return NextResponse.json({
-      requestId, accountName, campaignType,
-      subject: n.subject, body, narrative: n.key, narrativeLabel: n.label,
-    });
-  }
-
-  const facts = lookupAccountFacts(accountName);
+  // Account facts come from a verified source at runtime (a database lookup
+  // backed by the warehouse). This endpoint does not read any such lookup
+  // today; until it does, the "no verified facts" branch below always runs,
+  // which writes a correct email without inventing specifics. Wire a real
+  // lookup here when the facts table is ready.
+  const facts = null as { coverStart?: string } | null;
   const isRenewal = normalizedType === "renewal";
 
   // Policy year label for the subject, e.g. "2026-27", derived from the
@@ -93,15 +83,11 @@ export async function POST(request: Request) {
     : new Date().getFullYear();
   const yearLabel = `${startYear}-${String((startYear + 1) % 100).padStart(2, "0")}`;
 
-  const knownFacts = facts
-    ? `Verified policy facts, read from Plum's warehouse. Quote these exactly.
-Do not alter, round, reformat or embellish any figure or date:
-
-${factsForPrompt(facts)}`
-    : `No verified policy data is on file for this account. Write every section
-below, but state NO insurer name, date, sum insured, maternity limit, copay or
-any other specific. Where a specific belongs, write that the detail will follow
-shortly. Never invent a figure and never write a placeholder like "[insurer]".`;
+  const knownFacts = `No verified policy data is on file for this account. Write
+every section below, but state NO insurer name, date, sum insured, maternity
+limit, copay or any other specific. Where a specific belongs, write that the
+detail will follow shortly. Never invent a figure and never write a placeholder
+like "[insurer]".`;
 
   const userPrompt = isStandard ? `Write the body copy for a ${isRenewal ? "RENEWAL" : "WELCOME"} benefits email to employees of "${accountName}".
 Requested by account manager ${amName}.

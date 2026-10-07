@@ -2,7 +2,7 @@
 
 > **Purpose**: The single source of truth for building, training, and operating the Crew M campaign intelligence platform. Every segment definition, event name, property, constraint, copy rule, and domain fact lives here. If it's not in this file, it's not confirmed. If it contradicts something elsewhere, this file wins.
 >
-> **Audience**: The dev team building the hackathon solution, the model training pipeline, and anyone who needs to understand what CleverTap data looks like, what it means, and what rules the system must enforce.
+> **Audience**: The engineering team building the campaign system, and anyone who needs to understand what CleverTap data looks like, what it means, and what rules the system must enforce.
 >
 > **How to use this**: Sections 1–8 are the **data layer** (what exists, what it's called, how it's structured). Sections 9–13 are the **rules layer** (what the system must enforce). Section 14 is the **data requirements appendix** (what we still need to collect/export to train the models properly).
 

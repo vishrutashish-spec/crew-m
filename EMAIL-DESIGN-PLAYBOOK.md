@@ -4,7 +4,7 @@ Everything needed to generate Plum email header/footer/CTA PNGs from the Figma
 templates and hand them to CleverTap. Combines the original brief with
 everything learned actually doing it.
 
-Last verified: 2026-08-21 · Reference build: Groww co-branded welcome email
+Design system for Plum campaign email collateral
 
 ---
 
@@ -105,7 +105,7 @@ Proof: pixel-scan the logo region of an export and count brand-coloured
 pixels — result is `0` while the logo is plainly visible in the editor.
 
 **Therefore the client logo must be composited locally at export time.**
-This is a permanent pipeline step, not a workaround. See §5.4.
+This is a required pipeline step by design. See §5.4.
 
 ### 1.6 Other API/tool limits worth knowing
 
@@ -278,7 +278,7 @@ The approved treatment (the accepted reference build):
 > colour by hue distance. It was built and works — logo → dominant colour →
 > nearest of the eight modules — but was **dropped** in favour of
 > consistency. Don't reintroduce it without asking. If it's ever revived,
-> note that two-colour brands (e.g. Groww: `#5064FA` indigo + `#00F0B4` mint)
+> note that two-colour brands 
 > need a tie-break — take the tightest hue match.
 
 Where the accent lives:
@@ -337,7 +337,7 @@ currently **broken** in the file.
 
 ### 5.2 Baked into PNG vs live HTML text
 
-Verified against a production email (Open Financial, 21 Aug 2026) by checking
+Verified against a production email (a reference production email) by checking
 which strings existed in the PDF's text layer:
 
 | Element | Rendering |
@@ -367,7 +367,7 @@ Consequences:
 | Container | VERTICAL auto-layout, itemSpacing 16, counterAlign CENTER |
 | Button label | Passenger Sans Semibold, 14px, lineHeight 18px |
 
-**Desktop — co-branded (as accepted for the Groww build):**
+**Desktop — co-branded (the cobranded variant):**
 
 | Element | Value |
 |---|---|
@@ -599,11 +599,9 @@ email. What went wrong, so nobody re-litigates it:
 
 | Problem | Evidence |
 |---|---|
-| Name → domain guessing fails silently into the **wrong company's** logo | `openfinancial.com`, `capillarytech.com` both wrong guesses, 404 |
+| Name to domain guessing fails silently into the **wrong company's** logo | Guesses based on client name resolve to unrelated companies or 404 |
 | Clearbit's logo API is dead | HTTP 000, retired post-HubSpot |
-| Favicons are icons, not wordmarks | Google favicon service returned 48 × 48 for `prochant.com` — far too small for a client email |
-| Sites block scraping | prochant.com returns **403** to curl |
-| The published logo is often the **wrong colour variant** | Prochant ships only a *white* wordmark (352 × 69, avg luminance 230). Invisible on our cream header. No dark variant exists on their site — `logo-dark`, `logo-black`, `logo-color` all 404 |
+| Public logo sources are unreliable | Favicon services, scraped sites and public brand pages return wrong sizes, wrong colour variants, or 403 to automated requests. Source logos from a reviewed asset store, not the web. |
 
 So: ask the AM. It is one attachment and it removes every failure above.
 
@@ -764,7 +762,7 @@ sender `updates@info.plumhq.com`.
 - Plum's own current policy was **not findable** — only test orgs ("Plum
   Test", "Plum OPD only Org", "Plum Partner Program") plus an expired
   2023–24 `Plum Benefits Private Limited` GMC.
-- Groww resolved fine: `Groww - 2025 to 2026`, ENTERPRISE, policy
+- A typical account resolves fine: name, segment, policy ID all present
   `OG-26-9906-8403-00000493`, TPA in-house, 7 Dec 2025 → 6 Dec 2026.
 - `currentAccountManagerEmail` comes back masked (`…@masked.invalid`).
 - **Never invent a date for a real client.** Derive it and say it's derived.

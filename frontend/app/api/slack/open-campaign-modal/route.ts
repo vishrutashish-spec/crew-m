@@ -61,7 +61,7 @@ export async function POST(request: Request) {
         element: {
           type: "plain_text_input",
           action_id: "account_input",
-          placeholder: { type: "plain_text", text: "Prochant" },
+          placeholder: { type: "plain_text", text: "Client company name" },
         },
       },
       {

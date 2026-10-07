@@ -1,6 +1,6 @@
-# Plum Adoption & Product Context — Hackathon Reference
+# Plum Adoption & Product Context
 
-> **Purpose**: Supplementary context document for the Crew M hackathon. Explains what each Plum benefit product IS, how adoption data works, how user behaviour is analysed, the confirmed cohort framework, and exactly how to read/interpret raw Telehealth and Health Checkup data dumps — including age, behaviour, lifecycle, and engagement dimensions.
+> **Purpose**: Reference document for the Crew M campaign system. Explains what each Plum benefit product IS, how adoption data works, how user behaviour is analysed, the confirmed cohort framework, and exactly how to read/interpret raw Telehealth and Health Checkup data dumps — including age, behaviour, lifecycle, and engagement dimensions.
 >
 > **Audience**: The Claude Code session building the Crew M platform. Feed this alongside the Master CT Bible.
 
@@ -68,7 +68,7 @@ The adoption problem Plum solves: companies have already purchased these benefit
 - An `hra_completed` flag tracks whether someone has completed a Health Risk Assessment.
 - These properties enable cross-sell cohorts like "high mental health risk score from checkup → recommended for a consultation" — noted as a future opportunity, not an immediate priority.
 
-**For hackathon purposes**: Mental health appears primarily as a **dimension within checkup results** and as a potential cross-sell trigger (checkup → consultation), rather than a standalone product with its own separate funnel. Model it as a property/signal, not a separate product vertical.
+**For campaign targeting**: Mental health appears primarily as a **dimension within checkup results** and as a potential cross-sell trigger (checkup → consultation), rather than a standalone product with its own separate funnel. Model it as a property/signal, not a separate product vertical.
 
 ### 2.4 GMC (Group Medical Cover) / Insurance
 
@@ -79,7 +79,7 @@ The adoption problem Plum solves: companies have already purchased these benefit
 - GMC data (policy details, renewal dates, coverage specifics) exists in the system and influences targeting: `SMB_RenewalDate`, `SMB_DaysToRenewal`, `SMB_ExpiringPolicy` properties are confirmed in CleverTap.
 - Renewal-timed campaigns are a legitimate adoption lever: an approaching GMC renewal is a natural moment to push TH/HC activation ("while your plan is active, have you used your free checkup?").
 
-**For hackathon purposes**: GMC is context, not a product you're building campaigns for directly. It defines the eligible population and the commercial relationship. Treat GMC status/renewal as a **segmentation dimension**, not a conversion goal.
+**For campaign targeting**: GMC is context, not a product you're building campaigns for directly. It defines the eligible population and the commercial relationship. Treat GMC status/renewal as a **segmentation dimension**, not a conversion goal.
 
 ### 2.5 How the Products Relate
 
@@ -464,32 +464,6 @@ When you receive a raw TH or HC data export, run through this before any analysi
 
 ---
 
-## 11. Synthetic Data Calibration for the Hackathon
-
-When generating synthetic data for the Crew M platform, these are the real-world correlations that MUST be encoded to produce realistic behaviour:
-
-| # | Correlation | Direction |
-|---|---|---|
-| 1 | Enterprise orgs → lower per-employee adoption | Inverse |
-| 2 | EOR orgs → higher per-employee adoption | Positive |
-| 3 | DND = true → zero campaign conversion | Hard gate |
-| 4 | Longer org tenure (higher M-stage) → higher cumulative adoption | Positive, compounding |
-| 5 | TH first-time users → ~5 consults/year repeat rate | Strong positive |
-| 6 | HC users → ~1.0 bookings/year (structural ceiling) | Flat/capped |
-| 7 | HC report viewed → 14.3% TH cross-sell conversion | Moderate positive |
-| 8 | Push notification reachability → lowest of all channels (~23-43%) | Weak channel |
-| 9 | Email/SMS/WhatsApp reachability → strong (~80-98%) | Strong channels |
-| 10 | TH homepage→doctor list → 67% drop-off (biggest leak) | Steep early drop |
-
-Additional calibration points:
-- Total eligible base: ~956,050 users
-- No-app segment: ~739,126 users (77% of eligible base)
-- HC eligible never booked: ~75,272
-- TH eligible never booked: ~173,373
-- P0 dark on both: ~57,336
-- P1 dark on both (DND): ~13,221
-
----
 
 ## 12. What This Document Does NOT Cover
 

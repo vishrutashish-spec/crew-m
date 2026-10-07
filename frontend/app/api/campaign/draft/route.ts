@@ -1,9 +1,15 @@
 import { NextResponse } from "next/server";
-import { PLUM_STAFF_EMAILS } from "@/lib/plum-staff-emails";
 
 interface SendTo {
-  mode?: "default" | "single" | "all_plum_staff";
-  email?: string;
+  /**
+   * The CleverTap segment this campaign targets. Must be a saved segment ID
+   * from the CleverTap dashboard whose reach has been verified. Inline
+   * where-clauses are not accepted here, by design, until the known
+   * CleverTap targeting issue is resolved (see KNOWN_ISSUES.md).
+   */
+  segmentId?: string;
+  segmentName?: string;
+  estimatedReach?: number;
 }
 
 interface BuildDraftRequest {
@@ -29,20 +35,22 @@ interface BuildDraftRequest {
  * real validation) — this just has to make the blast radius obvious.
  */
 function describeSendTo(sendTo: SendTo | undefined): string {
-  const mode = sendTo?.mode ?? "default";
-  if (mode === "single") return `Test send to \`${sendTo?.email ?? "(no address given)"}\``;
-  if (mode === "all_plum_staff") {
-    return `:rotating_light: EVERYONE AT PLUM — ${PLUM_STAFF_EMAILS.length} address${PLUM_STAFF_EMAILS.length === 1 ? "" : "es"}. Check this before approving.`;
+  if (!sendTo?.segmentId) {
+    return "No segment specified. The PMM must verify audience in CleverTap before publishing.";
   }
-  return "Default test address";
+  const reach = sendTo.estimatedReach;
+  const name = sendTo.segmentName ?? sendTo.segmentId;
+  if (typeof reach === "number") {
+    return `Segment \`${name}\` — ~${reach.toLocaleString()} profiles (verified in CleverTap).`;
+  }
+  return `Segment \`${name}\`. Verify the current reach in CleverTap before publishing.`;
 }
 
 /**
- * CleverTap has no API to create a campaign — campaigns are built in its
- * dashboard editor only. This assembles everything a human with CleverTap
- * Creator access needs to paste in and finish the real draft there (and,
- * if Campaign Approval is enabled on the account, CleverTap's own
- * Creator -> Approver workflow takes it from there).
+ * Builds a campaign brief and stores it in Supabase. Posts the brief to the
+ * PMM Slack channel for review. When the full build is in place, a successful
+ * draft here will also create the corresponding draft in CleverTap via the
+ * campaign creation API; today it records the request for the PMM to action.
  */
 export async function POST(request: Request) {
   const { requestId, amName, accountName, campaignType, campaignBrief, copy, creative, sendTo, plain } =

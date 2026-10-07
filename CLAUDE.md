@@ -1,6 +1,6 @@
 # How to work on this project
 
-This is a two-day hackathon build. The person you are working with brought a real
+This is an early-stage product build. The person you are working with brought a real
 problem from their own work at Plum. Do not assume how technical they are - some
 are engineers, some have never opened a terminal, and you will find out by
 talking to them rather than by guessing. Either way the value of the day is their

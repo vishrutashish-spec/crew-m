@@ -320,7 +320,7 @@ POST /1/now.json
 
 ### 3.8 Segments (Limited API Access)
 
-**API Segments** — Private Beta only, requires CSM access. Not available for hackathon.
+**API Segments** - Private Beta only, requires CSM access. Confirm availability on the current CleverTap tier before building against it.
 
 **Custom List API** — Generally available, 3-step CSV upload:
 1. `POST /1/get_custom_list_segment_url` → pre-signed URL (24h validity)
@@ -459,7 +459,7 @@ Stricter of the two always wins. Violations appear in campaign error reports.
 | **Webhooks** | Real-time event streaming | JSON POST | Push campaign interaction events to a URL |
 | **BI Connectors** | Warehouse sync | Various | Integration guides available |
 
-**For Crew M hackathon**: Use cursor APIs for targeted pulls (specific events, date ranges). If we need full historical data, use S3 export if available on Plum's plan.
+**For bulk reads**: Use cursor APIs for targeted pulls (specific events, date ranges). For full historical data, use the S3 export route if available on the account's plan.
 
 ---
 
